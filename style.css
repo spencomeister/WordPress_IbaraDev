@@ -1,8 +1,17 @@
 /*
 Theme Name: IbaraDev VTuber Landing Page
-Description: Personal VTuber Landing Page Theme for IbaraDevilRoze - Modern White/Black + Purple Accent with Dark Mode
-Version: 2.0
+Theme URI: https://github.com/spencomeister/WordPress_IbaraDev
+Description: Personal VTuber Landing Page Theme for IbaraDevilRoze - Modern White/Black + Purple Accent with Dark Mode. Features blog functionality, news sections, and responsive design.
+Version: 2.1
 Author: IbaraDev
+Author URI: https://github.com/spencomeister
+License: GPL v2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: vtuber-theme
+Tags: blog, entertainment, dark-mode, responsive-design, custom-colors, custom-logo, custom-menu, featured-images, threaded-comments, translation-ready
+Requires at least: 5.0
+Tested up to: 6.4
+Requires PHP: 7.4
 */
 
 /* CSS Variables for Theme Colors */
@@ -24,7 +33,7 @@ Author: IbaraDev
 }
 
 /* Dark Mode Colors */
-[data-theme="dark"] {
+body[data-theme="dark"] {
   --bg-primary: #000000;
   --bg-secondary: #0f1419;
   --bg-tertiary: #1a1a1a;
@@ -37,9 +46,9 @@ Author: IbaraDev
   --shadow-dark: rgba(255, 255, 255, 0.25);
 }
 
-/* Auto Dark Mode (System Preference) */
+/* Auto Dark Mode (System Preference) - Only when no data-theme is set */
 @media (prefers-color-scheme: dark) {
-  :root {
+  body:not([data-theme]) {
     --bg-primary: #000000;
     --bg-secondary: #0f1419;
     --bg-tertiary: #1a1a1a;
@@ -89,7 +98,7 @@ header {
   transition: all 0.3s ease;
 }
 
-[data-theme="dark"] header {
+body[data-theme="dark"] header {
   background-color: rgba(0, 0, 0, 0.95);
 }
 
@@ -235,12 +244,46 @@ nav {
   transition: all 0.3s ease;
 }
 
+/* SVG icon styling for social links */
+.social-link svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
 .social-link:hover {
   background-color: var(--accent-purple);
   border-color: var(--accent-purple);
   color: white;
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+}
+
+/* Social Media Specific Colors */
+.social-link[title*="YouTube"]:hover {
+  background-color: #ff0000;
+  border-color: #ff0000;
+}
+
+.social-link[title*="X"]:hover,
+.social-link[title*="Twitter"]:hover {
+  background-color: #000000;
+  border-color: #000000;
+}
+
+.social-link[title*="Discord"]:hover {
+  background-color: #5865f2;
+  border-color: #5865f2;
+}
+
+.social-link[title*="Twitch"]:hover {
+  background-color: #9146ff;
+  border-color: #9146ff;
+}
+
+.social-link[title*="BOOTH"]:hover {
+  background-color: #fc4d50;
+  border-color: #fc4d50;
 }
 
 .hero-image {
@@ -361,11 +404,11 @@ nav {
 }
 
 .achievements-table th.title-col {
-  width: 200px;
+  width: 280px;
 }
 
 .achievements-table th.description-col {
-  min-width: 280px;
+  min-width: 240px;
 }
 
 .achievement-row {
@@ -434,7 +477,7 @@ nav {
   }
   
   .achievements-table th.title-col {
-    width: 150px;
+    width: 180px;
   }
   
   .achievement-title {
@@ -647,6 +690,17 @@ footer p {
 }
 
 /* Loading Screen */
+/* Ensure loading screen is visible by default */
+html.loading, body.loading {
+  overflow: hidden;
+}
+
+/* Ensure normal scrolling when loaded */
+html.loaded, body.loaded,
+html:not(.loading), body:not(.loading) {
+  overflow: auto !important;
+}
+
 .loading-screen {
   position: fixed;
   top: 0;
@@ -660,9 +714,18 @@ footer p {
   align-items: center;
   z-index: 9999;
   transition: opacity 0.5s ease, visibility 0.5s ease;
+  opacity: 1;
+  visibility: visible;
 }
 
 .loading-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Hide loading screen when page is loaded */
+body.loaded .loading-screen {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -687,11 +750,11 @@ footer p {
   display: none;
 }
 
-[data-theme="dark"] .loading-logo-image.logo-black {
+body[data-theme="dark"] .loading-logo-image.logo-black {
   display: none;
 }
 
-[data-theme="dark"] .loading-logo-image.logo-white {
+body[data-theme="dark"] .loading-logo-image.logo-white {
   display: block;
 }
 
@@ -819,11 +882,39 @@ footer p {
   }
 }
 
-/* Hide content during loading */
+/* Content Loading State Management */
 body.loading main,
 body.loading header,
 body.loading footer {
   visibility: hidden;
+  opacity: 0;
+}
+
+/* Show content when loaded or loading is complete */
+body.loaded main,
+body.loaded header,
+body.loaded footer,
+body:not(.loading) main,
+body:not(.loading) header,
+body:not(.loading) footer {
+  visibility: visible !important;
+  opacity: 1 !important;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Emergency fallback for stuck loading states - Force visibility after 5 seconds */
+main,
+header,
+footer {
+  transition: opacity 0.3s ease-in-out;
+  animation: forceVisible 0.1s ease-in-out 5s forwards;
+}
+
+@keyframes forceVisible {
+  to {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 }
 
 /* Responsive Design */
@@ -966,51 +1057,63 @@ body.loading footer {
 }
 
 /* Loading Screen Dark Mode Support */
-[data-theme="dark"] .loading-screen {
+body[data-theme="dark"] .loading-screen {
   background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
 }
 
-[data-theme="dark"] .progress-bar {
+body[data-theme="dark"] .progress-bar {
   background-color: var(--bg-tertiary);
   box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.1);
 }
 
-[data-theme="dark"] .loading-dot {
+body[data-theme="dark"] .loading-dot {
   background-color: var(--accent-purple);
+}
+
+body[data-theme="dark"] .loading-logo p {
+  color: var(--text-secondary);
+}
+
+body[data-theme="dark"] .loading-percentage {
+  color: var(--accent-purple);
+}
+
+body[data-theme="dark"] .loading-text {
+  color: var(--text-tertiary);
 }
 
 /* Auto Dark Mode for Loading Screen */
 @media (prefers-color-scheme: dark) {
-  .loading-screen {
+  body:not([data-theme]) .loading-screen {
     background: linear-gradient(135deg, #000000 0%, #0f1419 100%);
   }
   
-  .loading-logo-image.logo-black {
+  body:not([data-theme]) .loading-logo-image.logo-black {
     display: none;
   }
   
-  .loading-logo-image.logo-white {
+  body:not([data-theme]) .loading-logo-image.logo-white {
     display: block;
   }
   
-  .loading-logo p {
+  body:not([data-theme]) .loading-logo p {
     color: #b3b3b3;
   }
   
-  .progress-bar {
+  body:not([data-theme]) .progress-bar {
     background-color: #1a1a1a;
     box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.1);
   }
   
-  .loading-percentage {
+  body:not([data-theme]) .loading-percentage {
     color: #8b5cf6;
   }
   
-  .loading-text {
+  body:not([data-theme]) .loading-text {
     color: #8c8c8c;
   }
   
-  .loading-dot {
+  body:not([data-theme]) .loading-dot {
     background-color: #8b5cf6;
   }
 }
@@ -1127,17 +1230,43 @@ body.loading footer {
   align-items: center;
 }
 
-.read-more a {
+/* Read More Button Styles */
+.read-more {
+  display: inline-block;
   color: var(--accent-purple);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.9rem;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid var(--accent-purple);
+  border-radius: 25px;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+  margin-top: 1rem;
 }
 
-.read-more a:hover {
-  color: var(--accent-purple-light);
-  transform: translateX(5px);
+.read-more::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-light));
+  transition: left 0.3s ease;
+  z-index: -1;
+}
+
+.read-more:hover {
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+}
+
+.read-more:hover::before {
+  left: 0;
 }
 
 .read-more i {
@@ -1145,15 +1274,76 @@ body.loading footer {
   transition: transform 0.3s ease;
 }
 
-.read-more a:hover i {
+.read-more:hover i {
   transform: translateX(3px);
 }
 
+/* News More Button Styles */
 .news-more {
   text-align: center;
-  margin-top: 2rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
 }
 
+.btn {
+  display: inline-block;
+  padding: 1rem 2.5rem;
+  border: none;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: center;
+  min-width: 180px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-light));
+  color: white;
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--accent-purple-light), #a855f7);
+  transition: left 0.3s ease;
+  z-index: -1;
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px rgba(139, 92, 246, 0.4);
+  color: white;
+}
+
+.btn-primary:hover::before {
+  left: 0;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--accent-purple);
+  border: 2px solid var(--accent-purple);
+}
+
+.btn-secondary:hover {
+  background: var(--accent-purple);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+}
+
+/* Legacy support for news-more-btn */
 .news-more-btn {
   display: inline-block;
   background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-light));
@@ -1169,6 +1359,7 @@ body.loading footer {
 .news-more-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 15px 35px rgba(139, 92, 246, 0.4);
+  color: white;
 }
 
 /* Blog Styles */
@@ -1681,5 +1872,215 @@ body.loading footer {
   .filter-btn {
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
+  }
+}
+
+/* ===============================================
+   UTILITY CLASSES & ACCESSIBILITY IMPROVEMENTS
+   =============================================== */
+
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip to main content link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--accent-purple);
+  color: white;
+  padding: 8px 12px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 10000;
+  font-weight: 600;
+  transition: top 0.3s ease;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Animation Classes */
+.fade-in {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Performance optimizations - will-change */
+.loading-screen,
+.progress-fill,
+.loading-dot,
+.social-link,
+.achievement-row,
+.news-card,
+.video-card {
+  will-change: transform, opacity;
+}
+
+/* Enhanced Focus Management for Accessibility */
+.social-link:focus,
+.theme-toggle:focus,
+.nav-links a:focus,
+.filter-btn:focus,
+button:focus,
+input:focus,
+textarea:focus,
+.page-link:focus,
+.share-btn:focus {
+  outline: 2px solid var(--accent-purple);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000000;
+    --shadow-light: rgba(0, 0, 0, 0.8);
+    --shadow-medium: rgba(0, 0, 0, 0.9);
+  }
+  
+  body[data-theme="dark"] {
+    --border-color: #ffffff;
+    --shadow-light: rgba(255, 255, 255, 0.8);
+    --shadow-medium: rgba(255, 255, 255, 0.9);
+  }
+  
+  .social-link,
+  .theme-toggle,
+  .nav-links a {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .fade-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  
+  .loading-dot {
+    animation: none;
+  }
+  
+  .hero-image img:hover,
+  .social-link:hover,
+  .achievement-row:hover,
+  .news-card:hover,
+  .video-card:hover {
+    transform: none;
+  }
+  
+  .loading-logo {
+    animation: none;
+  }
+}
+
+/* Contact form accessibility improvements */
+.contact-message {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  font-weight: 500;
+}
+
+.contact-message.success {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+}
+
+.contact-message.error {
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+}
+
+body[data-theme="dark"] .contact-message.success {
+  background-color: #1e3a2e;
+  border-color: #2d5a3d;
+  color: #4ade80;
+}
+
+body[data-theme="dark"] .contact-message.error {
+  background-color: #3a1e1e;
+  border-color: #5a2d2d;
+  color: #f87171;
+}
+
+/* Button states for better UX */
+.submit-btn:disabled,
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Loading state for forms */
+.form-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.form-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: inherit;
+}
+
+body[data-theme="dark"] .form-loading::after {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* Print styles */
+@media print {
+  .loading-screen,
+  .theme-toggle,
+  .social-links,
+  .skip-link {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .hero-image,
+  .loading-logo-image {
+    max-height: 200px;
   }
 }

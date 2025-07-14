@@ -267,48 +267,20 @@
         runLoadingSequence();
     }
 
-    // Emergency fallback - More aggressive timing
+    // Emergency fallback
     setTimeout(() => {
-        if (!document.body.classList.contains('loaded')) {
-            console.log('Emergency fallback triggered after 1 second');
-            window.forceShowContent();
+        if (!document.body.classList.contains('loaded') && !document.body.classList.contains('loading')) {
+            console.log('Emergency fallback triggered');
+            runLoadingSequence();
         }
     }, 1000);
 
-    // Auto-trigger force show after 2 seconds if still not loaded
+    // Auto-trigger force show after 3 seconds if still not loaded
     setTimeout(() => {
         if (!document.body.classList.contains('loaded')) {
-            console.log('Auto-triggering force show content after 2 seconds');
+            console.log('Auto-triggering force show content after 3 seconds');
             window.forceShowContent();
         }
-    }, 2000);
-
-    // Ultimate failsafe - Force content visible after 3 seconds regardless
-    setTimeout(() => {
-        console.log('Ultimate failsafe: forcing content visible');
-        document.body.classList.add('loaded');
-        document.body.classList.remove('loading');
-        
-        const mainElements = document.querySelectorAll('main, header, footer');
-        mainElements.forEach(element => {
-            if (element) {
-                element.style.visibility = 'visible';
-                element.style.opacity = '1';
-                element.style.display = 'block';
-            }
-        });
-        
-        const loadingScreen = document.getElementById('loading-screen');
-        if (loadingScreen) {
-            loadingScreen.style.display = 'none';
-        }
-        
-        // Enable scrolling
-        document.body.style.overflow = 'auto';
-        document.documentElement.style.overflow = 'auto';
-        
-        window.loadingScriptActive = false;
-        console.log('Ultimate failsafe completed');
     }, 3000);
 
 })();
