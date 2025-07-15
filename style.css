@@ -805,13 +805,51 @@ body[data-theme="dark"] .theme-icon-light {
   color: var(--accent-purple);
   font-size: 3rem;
   position: relative;
+  overflow: hidden;
 }
 
-.video-thumbnail::before {
-  content: '▶';
+.video-thumbnail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.3s ease;
+}
+
+.video-card:hover .video-thumbnail-img {
+  transform: scale(1.05);
+}
+
+.video-icon {
+  z-index: 1;
+}
+
+.play-button {
   position: absolute;
-  font-size: 2rem;
-  opacity: 0.7;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-purple);
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+
+.video-card:hover .play-button {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.play-button i {
+  font-size: 1.2rem;
+  margin-left: 3px;
 }
 
 .video-info {
@@ -829,6 +867,56 @@ body[data-theme="dark"] .theme-icon-light {
   color: var(--text-tertiary);
   line-height: 1.6;
   font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.video-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent-purple);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--accent-purple);
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  background: transparent;
+}
+
+.video-link:hover {
+  background: var(--accent-purple);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(139, 69, 19, 0.3);
+}
+
+.video-link i {
+  font-size: 0.8rem;
+}
+
+.videos-more {
+  text-align: center;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.videos-more p {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+.videos-more .btn {
+  font-size: 1rem;
+  padding: 0.8rem 2rem;
+}
+
+.videos-more .btn i {
+  margin-right: 0.5rem;
+  font-size: 1.1rem;
 }
 
 /* Contact Section */
@@ -2085,4 +2173,11 @@ body[data-theme="dark"] .form-loading::after {
   .loading-logo-image {
     max-height: 200px;
   }
+}
+
+.video-channel {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0.5rem 0;
+  font-weight: 500;
 }

@@ -102,133 +102,106 @@ get_header(); ?>
     <!-- Achievements Section -->
     <section class="section" id="achievements">
         <div class="container">
-            <h2>個人実績</h2>
-            <div class="achievements-table-container">
-                <table class="achievements-table">
-                    <thead>
-                        <tr>
-                            <th class="icon-col"></th>
-                            <th class="date-col">年月</th>
-                            <th class="title-col">実績</th>
-                            <th class="description-col">説明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $achievements_data = get_theme_mod('achievements_data', '[]');
-                        $achievements = json_decode($achievements_data, true);
-                        
-                        if (!empty($achievements)) {
-                            foreach ($achievements as $index => $achievement) {
-                                if (!empty($achievement['title']) || !empty($achievement['desc'])) {
-                                    // Use custom icon if available, otherwise use personal default (📺 配信)
-                                    $icon = !empty($achievement['icon']) ? $achievement['icon'] : '📺';
-                                    ?>
-                                    <tr class="achievement-row fade-in">
-                                        <td class="achievement-icon"><?php echo $icon; ?></td>
-                                        <td class="achievement-date"><?php echo esc_html($achievement['date']); ?></td>
-                                        <td class="achievement-title"><?php echo esc_html($achievement['title']); ?></td>
-                                        <td class="achievement-description"><?php echo nl2br(esc_html($achievement['desc'])); ?></td>
-                                    </tr>
-                                    <?php
-                                }
-                            }
-                        } else {
-                            // Default achievements if no custom data is set
-                            ?>
-                            <tr class="achievement-row fade-in">
-                                <td class="achievement-icon">📺</td>
-                                <td class="achievement-date">2023.06</td>
-                                <td class="achievement-title">初配信</td>
-                                <td class="achievement-description">生まれて初めての配信で同時接続者数120人＆チャンネル登録300人達成しました！</td>
-                            </tr>
-                            <tr class="achievement-row fade-in">
-                                <td class="achievement-icon">📺</td>
-                                <td class="achievement-date">2023.09</td>
-                                <td class="achievement-title">登録者数1000人達成<br />初 新衣装公開<br />メンバーシップ開設</td>
-                                <td class="achievement-description">チャンネル登録者数1000人達成＆初新衣装公開し、メンバーシップの開設を行いました！</td>
-                            </tr>
-                            <tr class="achievement-row fade-in">
-                                <td class="achievement-icon">👥</td>
-                                <td class="achievement-date">2023.12</td>
-                                <td class="achievement-title">リスナー限定リアルイベント in 渋谷</td>
-                                <td class="achievement-description">初めてのリアルイベントを自身で計画し、開催することが出来ました！</td>
-                            </tr>
-                            <tr class="achievement-row fade-in">
-                                <td class="achievement-icon">⚔️</td>
-                                <td class="achievement-date">2024.02</td>
-                                <td class="achievement-title">リ虎家コラボカフェ自主開催 in 秋葉原</td>
-                                <td class="achievement-description">同じママであるritora.さんのVTuberのみんなを集めてコラボカフェを自主開催しました！</td>
-                            </tr>
-                            <?php
-                        }
-                        ?>
-                    </tbody>
-                </table>
+            <h2>実績</h2>
+            <div style="text-align: center; padding: 3rem 0;">
+                <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 2rem;">
+                    これまでの個人で行った活動実績と企業様との様々な案件実績をご覧いただけます！
+                </p>
+                <a href="<?php echo esc_url(home_url('/achievements/')); ?>" class="btn btn-primary">
+                    <i class="fas fa-trophy"></i> 実績を見る
+                </a>
             </div>
         </div>
     </section>
 
-    <!-- Business Achievements Section -->
-    <section class="section" id="business">
+    <!-- Videos Section -->
+    <section class="section" id="videos">
         <div class="container">
-            <h2>案件実績</h2>
-            <div class="achievements-table-container">
-                <table class="achievements-table">
-                    <thead>
-                        <tr>
-                            <th class="icon-col"></th>
-                            <th class="date-col">年月</th>
-                            <th class="title-col">案件名</th>
-                            <th class="description-col">詳細</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $business_data = get_theme_mod('business_data', '[]');
-                        $business_achievements = json_decode($business_data, true);
-                        
-                        if (!empty($business_achievements)) {
-                            foreach ($business_achievements as $index => $achievement) {
-                                if (!empty($achievement['title']) || !empty($achievement['desc'])) {
-                                    // Use custom icon if available, otherwise use business default (🎮 ゲーム)
-                                    $icon = !empty($achievement['icon']) ? $achievement['icon'] : '🎮';
-                                    ?>
-                                    <tr class="achievement-row fade-in">
-                                        <td class="achievement-icon"><?php echo $icon; ?></td>
-                                        <td class="achievement-date"><?php echo esc_html($achievement['date']); ?></td>
-                                        <td class="achievement-title"><?php echo esc_html($achievement['title']); ?></td>
-                                        <td class="achievement-description"><?php echo nl2br(esc_html($achievement['desc'])); ?></td>
-                                    </tr>
-                                    <?php
-                                }
-                            }
-                        } else {
-                            // Default business achievements if no custom data is set
-                            ?>
-                            <tr class="achievement-row fade-in">
-                                <td class="achievement-icon">🎮</td>
-                                <td class="achievement-date">2023.08</td>
-                                <td class="achievement-title">ゲームタイトルA プロモーション配信</td>
-                                <td class="achievement-description">新作ゲームのプロモーション配信を実施。視聴者数やエンゲージメント率が高く評価されました。</td>
-                            </tr>
-                            <tr class="achievement-row fade-in">
-                                <td class="achievement-icon">🛍️</td>
-                                <td class="achievement-date">2023.11</td>
-                                <td class="achievement-title">アパレルブランドB コラボ商品PR</td>
-                                <td class="achievement-description">アパレルブランドとのコラボレーション商品のPR配信を行い、完売に貢献しました。</td>
-                            </tr>
-                            <tr class="achievement-row fade-in">
-                                <td class="achievement-icon">🍔</td>
-                                <td class="achievement-date">2024.01</td>
-                                <td class="achievement-title">飲食チェーンC メニュー紹介</td>
-                                <td class="achievement-description">人気飲食チェーンの新メニュー紹介配信を実施。ターゲット層への効果的なリーチを実現しました。</td>
-                            </tr>
-                            <?php
-                        }
-                        ?>
-                    </tbody>
-                </table>
+            <h2>おすすめ動画</h2>
+            <div class="videos-grid">
+                <?php
+                // Video cards data - can be customized via WordPress Customizer
+                $video_cards = array(
+                    array(
+                        'title' => get_theme_mod('video_1_title', '初配信アーカイブ'),
+                        'description' => get_theme_mod('video_1_desc', '記念すべき初回配信のアーカイブです。緊張しながらも楽しく配信できました！'),
+                        'url' => get_theme_mod('video_1_url', '#'),
+                        'icon' => '🎬'
+                    ),
+                    array(
+                        'title' => get_theme_mod('video_2_title', 'ゲーム実況ハイライト'),
+                        'description' => get_theme_mod('video_2_desc', '人気ゲームの実況プレイのハイライトシーンをまとめました。'),
+                        'url' => get_theme_mod('video_2_url', '#'),
+                        'icon' => '🎮'
+                    ),
+                    array(
+                        'title' => get_theme_mod('video_3_title', '歌ってみた動画'),
+                        'description' => get_theme_mod('video_3_desc', 'リクエストいただいた楽曲を歌わせていただきました。'),
+                        'url' => get_theme_mod('video_3_url', '#'),
+                        'icon' => '🎵'
+                    )
+                );
+                
+                foreach ($video_cards as $index => $video): 
+                    // 動画情報を取得（サムネイル用）
+                    $video_info = null;
+                    if (!empty($video['url']) && $video['url'] !== '#') {
+                        $video_info = get_youtube_video_info($video['url']);
+                    }
+                ?>
+                <div class="video-card">
+                    <div class="video-thumbnail">
+                        <?php if ($video_info && !empty($video_info['thumbnail_medium'])): ?>
+                            <img src="<?php echo esc_url($video_info['thumbnail_medium']); ?>" 
+                                 alt="<?php echo esc_attr($video['title']); ?>" 
+                                 class="video-thumbnail-img"
+                                 loading="lazy">
+                        <?php else: ?>
+                            <span class="video-icon"><?php echo esc_html($video['icon']); ?></span>
+                        <?php endif; ?>
+                        <div class="play-button">
+                            <i class="fas fa-play" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <h3><?php echo esc_html($video['title']); ?></h3>
+                        <?php if ($video_info && !empty($video_info['channel_title'])): ?>
+                        <p class="video-channel"><?php echo esc_html($video_info['channel_title']); ?></p>
+                        <?php endif; ?>
+                        <p><?php echo esc_html($video['description']); ?></p>
+                        <?php if (!empty($video['url']) && $video['url'] !== '#'): ?>
+                        <a href="<?php echo esc_url($video['url']); ?>" 
+                           class="video-link" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           aria-label="<?php echo esc_attr($video['title']); ?>を視聴する">
+                            <i class="fas fa-external-link-alt"></i> 視聴する
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <!-- YouTube Channel Link -->
+            <div class="videos-more" style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    その他の動画はYouTubeチャンネルでご覧いただけます
+                </p>
+                <?php
+                $youtube_url = get_theme_mod('youtube_url');
+                if ($youtube_url): ?>
+                <a href="<?php echo esc_url($youtube_url); ?>" 
+                   class="btn btn-primary" 
+                   target="_blank" 
+                   rel="noopener noreferrer">
+                    <i class="fab fa-youtube"></i> YouTubeチャンネルを見る
+                </a>
+                <?php else: ?>
+                <a href="#" class="btn btn-secondary">
+                    <i class="fab fa-youtube"></i> YouTubeチャンネルを見る
+                </a>
+                <?php endif; ?>
             </div>
         </div>
     </section>

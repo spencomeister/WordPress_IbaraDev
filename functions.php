@@ -99,6 +99,18 @@ function vtuber_setup_blog_page() {
         update_option('page_for_posts', $blog_page_id);
     }
     
+    // Create achievements page if it doesn't exist
+    $achievements_page = get_page_by_path('achievements');
+    if (!$achievements_page) {
+        wp_insert_post(array(
+            'post_title' => '実績',
+            'post_name' => 'achievements',
+            'post_content' => '',
+            'post_status' => 'publish',
+            'post_type' => 'page'
+        ));
+    }
+    
     // Ensure front page is set to show a static page (not posts)
     update_option('show_on_front', 'page');
     
@@ -125,8 +137,7 @@ function vtuber_fallback_menu() {
     $menu_items = array(
         'ホーム' => home_url(),
         '自己紹介' => home_url() . '/#about',
-        '個人実績' => home_url() . '/#achievements',
-        '案件実績' => home_url() . '/#business',
+        '実績' => home_url() . '/achievements/',
         'ニュース' => home_url() . '/blog/',
         'お問合せ' => home_url() . '/#contact'
     );
@@ -465,7 +476,21 @@ function vtuber_customize_register($wp_customize) {
     // 動画セクション
     $wp_customize->add_section('videos_section', array(
         'title' => __('動画セクション', 'vtuber-theme'),
+        'description' => __('おすすめ動画の設定を行います。YouTube Data APIを使用してタイトルとサムネイルを自動取得します。', 'vtuber-theme'),
         'priority' => 35,
+    ));
+    
+    // YouTube Data API設定
+    $wp_customize->add_setting('youtube_api_key', array(
+        'default' => '',
+        'sanitize_callback' => 'sanitize_text_field',
+    ));
+    $wp_customize->add_control('youtube_api_key', array(
+        'label' => __('YouTube Data API キー', 'vtuber-theme'),
+        'description' => __('YouTube Data APIキーを入力してください。<a href="https://console.developers.google.com/" target="_blank">Google Cloud Console</a>で取得できます。', 'vtuber-theme'),
+        'section' => 'videos_section',
+        'type' => 'text',
+        'priority' => 10,
     ));
     
     // 動画カード
@@ -476,8 +501,10 @@ function vtuber_customize_register($wp_customize) {
         ));
         $wp_customize->add_control('video_' . $i . '_title', array(
             'label' => __('動画 ' . $i . ' タイトル', 'vtuber-theme'),
+            'description' => __('YouTube URLを入力すると自動で取得されます', 'vtuber-theme'),
             'section' => 'videos_section',
             'type' => 'text',
+            'priority' => 20 + ($i * 10),
         ));
         
         $wp_customize->add_setting('video_' . $i . '_desc', array(
@@ -488,6 +515,19 @@ function vtuber_customize_register($wp_customize) {
             'label' => __('動画 ' . $i . ' 説明', 'vtuber-theme'),
             'section' => 'videos_section',
             'type' => 'textarea',
+            'priority' => 21 + ($i * 10),
+        ));
+        
+        $wp_customize->add_setting('video_' . $i . '_url', array(
+            'default' => '',
+            'sanitize_callback' => 'esc_url_raw',
+        ));
+        $wp_customize->add_control('video_' . $i . '_url', array(
+            'label' => __('動画 ' . $i . ' URL', 'vtuber-theme'),
+            'description' => __('YouTube動画のURLを入力してください', 'vtuber-theme'),
+            'section' => 'videos_section',
+            'type' => 'url',
+            'priority' => 22 + ($i * 10),
         ));
     }
 }
@@ -939,5 +979,253 @@ function vtuber_get_excerpt($content, $length = 50) {
     return $content;
 }
 
-?>
+/**
+ * YouTube Data APIで動画情報を取得
+ */
+function get_youtube_video_info($url) {
+    if (empty($url)) {
+        return false;
+    }
+    
+    // YouTube動画IDを抽出
+    $video_id = extract_youtube_video_id($url);
+    if (!$video_id) {
+        return false;
+    }
+    
+    // APIキーを取得
+    $api_key = get_theme_mod('youtube_api_key');
+    if (empty($api_key)) {
+        return false;
+    }
+    
+    // キャッシュキーを生成
+    $cache_key = 'youtube_data_api_' . $video_id;
+    $cached_info = get_transient($cache_key);
+    
+    if ($cached_info !== false) {
+        return $cached_info;
+    }
+    
+    // YouTube Data API v3を呼び出し
+    $api_url = 'https://www.googleapis.com/youtube/v3/videos?' . http_build_query(array(
+        'id' => $video_id,
+        'part' => 'snippet',
+        'key' => $api_key,
+        'fields' => 'items(snippet(title,description,channelTitle,thumbnails))'
+    ));
+    
+    $response = wp_remote_get($api_url, array(
+        'timeout' => 15,
+        'user-agent' => 'WordPress/' . get_bloginfo('version'),
+        'headers' => array(
+            'Accept' => 'application/json',
+        ),
+    ));
+    
+    if (is_wp_error($response)) {
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('YouTube Data API Error: ' . $response->get_error_message());
+        }
+        return false;
+    }
+    
+    $response_code = wp_remote_retrieve_response_code($response);
+    if ($response_code !== 200) {
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('YouTube Data API HTTP Error: ' . $response_code);
+        }
+        return false;
+    }
+    
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+    
+    // デバッグ: YouTube Data APIのレスポンスをログに記録（開発時のみ）
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        error_log('YouTube Data API Response: ' . $body);
+    }
+    
+    if (!$data || !isset($data['items']) || empty($data['items'])) {
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('YouTube Data API Parse Error: ' . print_r($data, true));
+        }
+        return false;
+    }
+    
+    $video_data = $data['items'][0]['snippet'];
+    
+    // タイトルのUnicodeとHTMLエンティティをデコード
+    $title = decode_youtube_title($video_data['title']);
+    $channel_title = isset($video_data['channelTitle']) ? decode_youtube_title($video_data['channelTitle']) : '';
+    
+    // サムネイル画像のURLを取得（高解像度優先）
+    $thumbnail_url = '';
+    $thumbnail_medium_url = '';
+    
+    if (isset($video_data['thumbnails'])) {
+        $thumbnails = $video_data['thumbnails'];
+        
+        // 高解像度サムネイル
+        if (isset($thumbnails['maxres']['url'])) {
+            $thumbnail_url = $thumbnails['maxres']['url'];
+        } elseif (isset($thumbnails['high']['url'])) {
+            $thumbnail_url = $thumbnails['high']['url'];
+        } elseif (isset($thumbnails['medium']['url'])) {
+            $thumbnail_url = $thumbnails['medium']['url'];
+        }
+        
+        // 中解像度サムネイル
+        if (isset($thumbnails['medium']['url'])) {
+            $thumbnail_medium_url = $thumbnails['medium']['url'];
+        } elseif (isset($thumbnails['default']['url'])) {
+            $thumbnail_medium_url = $thumbnails['default']['url'];
+        }
+    }
+    
+    // フォールバック用のサムネイル
+    if (empty($thumbnail_url)) {
+        $thumbnail_url = 'https://img.youtube.com/vi/' . $video_id . '/maxresdefault.jpg';
+    }
+    if (empty($thumbnail_medium_url)) {
+        $thumbnail_medium_url = 'https://img.youtube.com/vi/' . $video_id . '/hqdefault.jpg';
+    }
+    
+    $video_info = array(
+        'title' => sanitize_text_field($title),
+        'thumbnail' => esc_url_raw($thumbnail_url),
+        'thumbnail_medium' => esc_url_raw($thumbnail_medium_url),
+        'channel_title' => sanitize_text_field($channel_title),
+        'video_id' => $video_id,
+    );
+    
+    // キャッシュに24時間保存
+    set_transient($cache_key, $video_info, 24 * HOUR_IN_SECONDS);
+    
+    return $video_info;
+}
 
+/**
+ * YouTube URLから動画IDを抽出
+ */
+function extract_youtube_video_id($url) {
+    $pattern = '/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/';
+    preg_match($pattern, $url, $matches);
+    return isset($matches[1]) ? $matches[1] : false;
+}
+
+/**
+ * AJAX: YouTube Data APIで動画情報を取得
+ */
+function ajax_get_video_info() {
+    // セキュリティチェック
+    if (!check_ajax_referer('video_info_nonce', 'nonce', false)) {
+        wp_send_json_error(array(
+            'message' => 'セキュリティチェックに失敗しました。',
+            'debug' => 'Invalid nonce'
+        ));
+        return;
+    }
+    
+    if (!current_user_can('customize')) {
+        wp_send_json_error(array(
+            'message' => '権限がありません。',
+            'debug' => 'No customize capability'
+        ));
+        return;
+    }
+    
+    $url = isset($_POST['url']) ? sanitize_url($_POST['url']) : '';
+    
+    if (empty($url)) {
+        wp_send_json_error(array(
+            'message' => 'URLが指定されていません。',
+            'debug' => 'Empty URL parameter'
+        ));
+        return;
+    }
+    
+    // YouTube URLかチェック
+    if (!preg_match('/(?:youtube\.com|youtu\.be)/', $url)) {
+        wp_send_json_error(array(
+            'message' => 'YouTube URLではありません。',
+            'debug' => 'URL: ' . $url,
+            'url' => $url
+        ));
+        return;
+    }
+    
+    // APIキーの存在チェック
+    $api_key = get_theme_mod('youtube_api_key');
+    if (empty($api_key)) {
+        wp_send_json_error(array(
+            'message' => 'YouTube Data APIキーが設定されていません。',
+            'debug' => 'API key not configured',
+            'setup_url' => admin_url('customize.php?autofocus[section]=videos_section')
+        ));
+        return;
+    }
+    
+    // 動画情報を取得
+    $video_info = get_youtube_video_info($url);
+    
+    if ($video_info && !empty($video_info['title'])) {
+        wp_send_json_success(array_merge($video_info, array(
+            'debug' => 'Successfully retrieved video info via YouTube Data API',
+            'original_url' => $url
+        )));
+    } else {
+        wp_send_json_error(array(
+            'message' => '動画情報を取得できませんでした。APIキーが正しいか、動画が公開されているか確認してください。',
+            'debug' => 'get_youtube_video_info returned: ' . print_r($video_info, true),
+            'url' => $url,
+            'api_key_configured' => !empty($api_key)
+        ));
+    }
+}
+add_action('wp_ajax_get_video_info', 'ajax_get_video_info');
+
+/**
+ * カスタマイザー用JavaScript
+ */
+function enqueue_customizer_scripts() {
+    wp_enqueue_script(
+        'vtuber-customizer',
+        get_template_directory_uri() . '/js/customizer.js',
+        array('jquery', 'customize-controls'),
+        '1.0.0',
+        true
+    );
+    
+    wp_localize_script('vtuber-customizer', 'vtuberAjax', array(
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('video_info_nonce'),
+    ));
+}
+add_action('customize_controls_enqueue_scripts', 'enqueue_customizer_scripts');
+
+/**
+ * Unicode対応の文字列処理
+ * YouTube APIから返されるタイトルの文字化けを解決
+ */
+function decode_youtube_title($title) {
+    if (empty($title)) {
+        return '';
+    }
+    
+    // Unicodeエスケープをデコード
+    $title = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function($match) {
+        return mb_convert_encoding(pack('H*', $match[1]), 'UTF-8', 'UCS-2BE');
+    }, $title);
+    
+    // HTMLエンティティをデコード
+    $title = html_entity_decode($title, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    
+    // 特殊な文字の処理
+    $title = str_replace(array('&amp;', '&lt;', '&gt;', '&quot;', '&#039;'), array('&', '<', '>', '"', "'"), $title);
+    
+    // 余分な空白を削除
+    $title = trim($title);
+    
+    return $title;
+}

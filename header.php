@@ -133,6 +133,12 @@
                 </a>
             </li>
             <li class="sidebar-menu-item">
+                <a href="<?php echo esc_url(home_url('/achievements/')); ?>" class="sidebar-menu-link">
+                    <i class="fas fa-trophy" aria-hidden="true"></i>
+                    <span>実績</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
                 <a href="<?php echo esc_url(get_permalink(get_option('page_for_posts'))); ?>" class="sidebar-menu-link">
                     <i class="fas fa-newspaper" aria-hidden="true"></i>
                     <span>NEWS</span>
