@@ -35,9 +35,9 @@
                     <p class="item-excerpt">
                         <?php
                         if (has_excerpt()) {
-                            echo wp_trim_words(get_the_excerpt(), 50, '...');
+                            echo vtuber_get_excerpt(get_the_excerpt(), 50);
                         } else {
-                            echo wp_trim_words(get_the_content(), 50, '...');
+                            echo vtuber_get_excerpt(get_the_content(), 50);
                         }
                         ?>
                     </p>

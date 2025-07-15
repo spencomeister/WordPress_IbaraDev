@@ -249,18 +249,16 @@ get_header(); ?>
                         setup_postdata($post);
                         $post_date = get_the_date('Y.m.d');
                         $post_title = get_the_title();
-                        $post_excerpt = get_the_excerpt();
+                        $post_excerpt = vtuber_get_excerpt(get_the_content(), 50);
                         $post_link = get_permalink();
                         ?>
                         <article class="news-card fade-in">
-                            <div class="news-card-content">
-                                <div class="news-date"><?php echo $post_date; ?></div>
-                                <h3 class="news-title"><?php echo $post_title; ?></h3>
-                                <p class="news-excerpt"><?php echo $post_excerpt; ?></p>
-                                <a href="<?php echo $post_link; ?>" class="read-more">
-                                    Read More <i class="fas fa-arrow-right"></i>
-                                </a>
-                            </div>
+                            <div class="news-date"><?php echo $post_date; ?></div>
+                            <h3 class="news-title"><?php echo $post_title; ?></h3>
+                            <p class="news-excerpt"><?php echo $post_excerpt; ?></p>
+                            <a href="<?php echo $post_link; ?>" class="read-more">
+                                Read More <i class="fas fa-arrow-right"></i>
+                            </a>
                         </article>
                         <?php
                     }
@@ -269,34 +267,29 @@ get_header(); ?>
                     // Default news if no posts exist
                     ?>
                     <article class="news-card fade-in">
-                        <div class="news-card-content">
-                            <div class="news-date">2024.07.14</div>
-                            <h3 class="news-title">ウェブサイトがオープンしました！</h3>
-                            <p class="news-excerpt">新しいウェブサイトがオープンしました。最新情報やお知らせをこちらでお届けします。</p>
-                            <a href="<?php echo home_url('/blog/'); ?>" class="read-more">
-                                Read More <i class="fas fa-arrow-right"></i>
-                            </a>
-                        </div>
+                    <article class="news-card fade-in">
+                        <div class="news-date">2024.07.14</div>
+                        <h3 class="news-title">ウェブサイトがオープンしました！</h3>
+                        <p class="news-excerpt">新しいウェブサイトがオープンしました。最新情報をお届けします…</p>
+                        <a href="<?php echo home_url('/blog/'); ?>" class="read-more">
+                            Read More <i class="fas fa-arrow-right"></i>
+                        </a>
                     </article>
                     <article class="news-card fade-in">
-                        <div class="news-card-content">
-                            <div class="news-date">2024.07.10</div>
-                            <h3 class="news-title">新しい配信スケジュール</h3>
-                            <p class="news-excerpt">7月の配信スケジュールを更新しました。詳細はブログをご確認ください。</p>
-                            <a href="<?php echo home_url('/blog/'); ?>" class="read-more">
-                                Read More <i class="fas fa-arrow-right"></i>
-                            </a>
-                        </div>
+                        <div class="news-date">2024.07.10</div>
+                        <h3 class="news-title">新しい配信スケジュール</h3>
+                        <p class="news-excerpt">7月の配信スケジュールを更新しました…</p>
+                        <a href="<?php echo home_url('/blog/'); ?>" class="read-more">
+                            Read More <i class="fas fa-arrow-right"></i>
+                        </a>
                     </article>
                     <article class="news-card fade-in">
-                        <div class="news-card-content">
-                            <div class="news-date">2024.07.05</div>
-                            <h3 class="news-title">ファンアート募集開始</h3>
-                            <p class="news-excerpt">ファンアートの募集を開始しました！詳細は配信でお知らせします。</p>
-                            <a href="<?php echo home_url('/blog/'); ?>" class="read-more">
-                                Read More <i class="fas fa-arrow-right"></i>
-                            </a>
-                        </div>
+                        <div class="news-date">2024.07.05</div>
+                        <h3 class="news-title">ファンアート募集開始</h3>
+                        <p class="news-excerpt">ファンアートの募集を開始しました…</p>
+                        <a href="<?php echo home_url('/blog/'); ?>" class="read-more">
+                            Read More <i class="fas fa-arrow-right"></i>
+                        </a>
                     </article>
                     <?php
                 }
@@ -321,19 +314,6 @@ get_header(); ?>
                 <div class="contact-info">
                     <h3>Get in Touch</h3>
                     <p>お仕事のご依頼やコラボレーションのご相談はこちらからお気軽にお問い合わせください。</p>
-                    
-                    <div class="contact-methods" role="list">
-                        <div class="contact-method" role="listitem">
-                            <i class="fas fa-envelope" aria-hidden="true"></i>
-                            <span>business@example.com</span>
-                        </div>
-                        <div class="contact-method" role="listitem">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                            </svg>
-                            <span>@IbaraDevilRoze</span>
-                        </div>
-                    </div>
                 </div>
                 
                 <form class="contact-form" 

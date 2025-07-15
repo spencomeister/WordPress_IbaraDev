@@ -88,7 +88,7 @@ function vtuber_setup_blog_page() {
     $blog_page = get_page_by_path('blog');
     if (!$blog_page) {
         $blog_page_id = wp_insert_post(array(
-            'post_title' => 'ブログ',
+            'post_title' => 'ニュース',
             'post_name' => 'blog',
             'post_content' => '',
             'post_status' => 'publish',
@@ -127,7 +127,7 @@ function vtuber_fallback_menu() {
         '自己紹介' => home_url() . '/#about',
         '個人実績' => home_url() . '/#achievements',
         '案件実績' => home_url() . '/#business',
-        'ブログ' => home_url() . '/blog/',
+        'ニュース' => home_url() . '/blog/',
         'お問合せ' => home_url() . '/#contact'
     );
     
@@ -904,4 +904,40 @@ function vtuber_theme_deactivation() {
 }
 register_deactivation_hook(__FILE__, 'vtuber_theme_deactivation');
 
+/**
+ * Customize excerpt length and more text
+ * 投稿抜粋の長さとmore textをカスタマイズ
+ */
+function vtuber_custom_excerpt_length($length) {
+    return 20; // 20 words for excerpt
+}
+add_filter('excerpt_length', 'vtuber_custom_excerpt_length');
+
+function vtuber_custom_excerpt_more($more) {
+    return '…';
+}
+add_filter('excerpt_more', 'vtuber_custom_excerpt_more');
+
+/**
+ * Japanese-friendly excerpt function
+ * 日本語対応の抜粋関数（文字数制限）
+ */
+function vtuber_get_excerpt($content, $length = 50) {
+    // HTMLタグを除去
+    $content = strip_tags($content);
+    // ショートコードを除去
+    $content = strip_shortcodes($content);
+    // 改行や余分な空白を除去
+    $content = preg_replace('/\s+/', ' ', $content);
+    $content = trim($content);
+    
+    // 文字数制限
+    if (mb_strlen($content) > $length) {
+        $content = mb_substr($content, 0, $length) . '…';
+    }
+    
+    return $content;
+}
+
 ?>
+

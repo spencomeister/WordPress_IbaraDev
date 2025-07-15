@@ -4,6 +4,7 @@
  * 
  * Features:
  * - Theme toggle functionality
+ * - Sidebar menu functionality
  * - Smooth scroll navigation
  * - Intersection Observer animations
  * - Optimized performance
@@ -34,6 +35,7 @@
             
             const body = document.body;
             const themeToggle = document.getElementById('theme-toggle');
+            const sidebarThemeToggle = document.getElementById('sidebar-theme-toggle');
             const icon = themeToggle?.querySelector('i');
             
             body.setAttribute('data-theme', theme);
@@ -43,7 +45,22 @@
                 updateThemeIcon(theme, icon);
             }
             
+            // Update sidebar theme toggle icons
+            updateSidebarThemeIcons(theme);
+            
             return true;
+        },
+        
+        toggleSidebar() {
+            const sidebar = document.getElementById('left-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const isOpen = sidebar.classList.contains('active');
+            
+            if (isOpen) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
         }
     };
 
@@ -55,6 +72,116 @@
             icon.className = 'fas fa-sun';
         } else {
             icon.className = 'fas fa-moon';
+        }
+    }
+
+    /**
+     * Update sidebar theme icons
+     */
+    function updateSidebarThemeIcons(theme) {
+        const darkIcon = document.querySelector('.theme-icon-dark');
+        const lightIcon = document.querySelector('.theme-icon-light');
+        
+        if (darkIcon && lightIcon) {
+            if (theme === 'dark') {
+                darkIcon.style.display = 'none';
+                lightIcon.style.display = 'inline';
+            } else {
+                darkIcon.style.display = 'inline';
+                lightIcon.style.display = 'none';
+            }
+        }
+    }
+
+    /**
+     * Open sidebar menu
+     */
+    function openSidebar() {
+        const sidebar = document.getElementById('left-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const body = document.body;
+        
+        if (sidebar && overlay) {
+            sidebar.classList.add('active');
+            overlay.classList.add('active');
+            body.style.overflow = 'hidden';
+            
+            // Focus management for accessibility
+            const firstFocusable = sidebar.querySelector('a, button');
+            if (firstFocusable) {
+                firstFocusable.focus();
+            }
+        }
+    }
+
+    /**
+     * Close sidebar menu
+     */
+    function closeSidebar() {
+        const sidebar = document.getElementById('left-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const body = document.body;
+        
+        if (sidebar && overlay) {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+            body.style.overflow = '';
+            
+            // Return focus to menu toggle button
+            const menuToggle = document.getElementById('mobile-menu-toggle');
+            if (menuToggle) {
+                menuToggle.focus();
+            }
+        }
+    }
+
+    /**
+     * Initialize sidebar functionality
+     */
+    function initSidebar() {
+        const menuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebarClose = document.getElementById('sidebar-close');
+        const overlay = document.getElementById('sidebar-overlay');
+        
+        // Menu toggle click handler
+        if (menuToggle) {
+            menuToggle.addEventListener('click', function() {
+                window.VTuberTheme.toggleSidebar();
+            });
+        }
+        
+        // Sidebar close button handler
+        if (sidebarClose) {
+            sidebarClose.addEventListener('click', function() {
+                closeSidebar();
+            });
+        }
+        
+        // Overlay click handler
+        if (overlay) {
+            overlay.addEventListener('click', function() {
+                closeSidebar();
+            });
+        }
+        
+        // Escape key handler
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const sidebar = document.getElementById('left-sidebar');
+                if (sidebar && sidebar.classList.contains('active')) {
+                    closeSidebar();
+                }
+            }
+        });
+        
+        // Sidebar theme toggle
+        const sidebarThemeToggle = document.getElementById('sidebar-theme-toggle');
+        if (sidebarThemeToggle) {
+            sidebarThemeToggle.addEventListener('click', function() {
+                const currentTheme = document.body.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                window.VTuberTheme.setTheme(newTheme);
+            });
         }
     }
 
@@ -91,6 +218,7 @@
         
         body.setAttribute('data-theme', initialTheme);
         updateThemeIcon(initialTheme, icon);
+        updateSidebarThemeIcons(initialTheme);
         
         // Theme toggle click handler
         themeToggle.addEventListener('click', function() {
@@ -384,6 +512,7 @@
         
         // Initialize all features
         initThemeSystem();
+        initSidebar();
         initSmoothScroll();
         initFadeInAnimations();
         initHeaderScroll();
