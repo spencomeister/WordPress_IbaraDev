@@ -164,15 +164,6 @@ function vtuber_scripts() {
         '6.4.0'
     );
     
-    // Simple loading script - Critical for UX, load immediately
-    wp_enqueue_script(
-        'simple-loading', 
-        get_template_directory_uri() . '/js/simple-loading.js', 
-        array(), 
-        $theme_version, 
-        false
-    );
-    
     // Main JavaScript - Load in footer for performance
     wp_enqueue_script(
         'vtuber-script', 
@@ -191,64 +182,6 @@ function vtuber_scripts() {
     ));
 }
 add_action('wp_enqueue_scripts', 'vtuber_scripts');
-
-// Add inline JavaScript for loading screen fallback
-function vtuber_inline_loading_script() {
-    ?>
-    <script>
-    // Fallback loading screen handler
-    (function() {
-        'use strict';
-        
-        // Add loading class to body immediately
-        document.documentElement.classList.add('loading');
-        if (document.body) {
-            document.body.classList.add('loading');
-        }
-        
-        // Fallback function if main script fails
-        function fallbackLoading() {
-            console.log('Loading screen fallback activated');
-            
-            setTimeout(function() {
-                var loadingScreen = document.getElementById('loading-screen');
-                var body = document.body || document.documentElement;
-                
-                // Only activate fallback if the main loading script has completely failed
-                if (loadingScreen && !body.classList.contains('loaded') && !window.loadingScriptActive) {
-                    console.log('Fallback: Main loading script failed, hiding loading screen and showing content');
-                    body.classList.add('loaded');
-                    body.classList.remove('loading');
-                    
-                    // Ensure main content is visible
-                    var mainElements = document.querySelectorAll('main, header, footer');
-                    mainElements.forEach(function(element) {
-                        if (element) {
-                            element.style.visibility = 'visible';
-                            element.style.opacity = '1';
-                        }
-                    });
-                    
-                    loadingScreen.style.opacity = '0';
-                    setTimeout(function() {
-                        if (loadingScreen.parentNode) {
-                            loadingScreen.parentNode.removeChild(loadingScreen);
-                        }
-                    }, 500);
-                } else {
-                    console.log('Fallback: Loading script is active, not interfering');
-                }
-            }, 4000); // Reduced to 4 seconds since loading is now optimized
-        }
-        
-        // Start fallback timer
-        setTimeout(fallbackLoading, 100);
-        
-    })();
-    </script>
-    <?php
-}
-add_action('wp_head', 'vtuber_inline_loading_script', 1);
 
 // Contact form handling
 function handle_contact_form_submission() {
@@ -354,19 +287,6 @@ function vtuber_customize_register($wp_customize) {
         'section' => 'main_page_settings',
         'type' => 'text',
         'description' => __('/images/フォルダ内の画像ファイル名を入力してください', 'vtuber-theme'),
-    ));
-    
-    // ローディング画面設定
-    $wp_customize->add_setting('loading_screen_enabled', array(
-        'default' => true,
-        'sanitize_callback' => 'wp_validate_boolean',
-        'transport' => 'refresh',
-    ));
-    $wp_customize->add_control('loading_screen_enabled', array(
-        'label' => __('ローディング画面を表示', 'vtuber-theme'),
-        'section' => 'main_page_settings',
-        'type' => 'checkbox',
-        'description' => __('ページ読み込み時にローディング画面を表示するかどうか', 'vtuber-theme'),
     ));
     
     // メインナビゲーション設定
@@ -912,33 +832,6 @@ function vtuber_body_classes($classes) {
     return $classes;
 }
 add_filter('body_class', 'vtuber_body_classes');
-
-// AJAX handler for theme switching (optional future feature)
-function vtuber_ajax_theme_switch() {
-    // Verify nonce for security
-    if (!check_ajax_referer('vtuber_nonce', 'nonce', false)) {
-        wp_send_json_error('Security check failed');
-        return;
-    }
-    
-    $theme = sanitize_text_field($_POST['theme'] ?? '');
-    
-    if (in_array($theme, array('light', 'dark'))) {
-        // Save user preference if logged in
-        if (is_user_logged_in()) {
-            update_user_meta(get_current_user_id(), 'theme_preference', $theme);
-        }
-        
-        wp_send_json_success(array(
-            'theme' => $theme,
-            'message' => 'Theme updated successfully'
-        ));
-    } else {
-        wp_send_json_error('Invalid theme value');
-    }
-}
-add_action('wp_ajax_theme_switch', 'vtuber_ajax_theme_switch');
-add_action('wp_ajax_nopriv_theme_switch', 'vtuber_ajax_theme_switch');
 
 /**
  * Add theme version to WordPress admin footer

@@ -46,9 +46,6 @@
     // Apply theme immediately
     body.setAttribute('data-theme', currentTheme);
     
-    // Add loading class for content management
-    body.classList.add('loading');
-    
     console.log('🎨 Theme initialized:', currentTheme);
 })();
 </script>

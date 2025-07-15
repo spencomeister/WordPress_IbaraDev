@@ -43,31 +43,9 @@
                 updateThemeIcon(theme, icon);
             }
             
-            updateLoadingLogo(theme);
             return true;
         }
     };
-
-    /**
-     * Update loading logo based on theme
-     */
-    function updateLoadingLogo(theme) {
-        const logoBlack = document.querySelector('.loading-logo-image.logo-black');
-        const logoWhite = document.querySelector('.loading-logo-image.logo-white');
-        
-        if (!logoBlack || !logoWhite) {
-            console.log('Loading logo elements not found');
-            return;
-        }
-        
-        if (theme === 'dark') {
-            logoBlack.style.display = 'none';
-            logoWhite.style.display = 'block';
-        } else {
-            logoBlack.style.display = 'block';
-            logoWhite.style.display = 'none';
-        }
-    }
 
     /**
      * Update theme toggle icon
@@ -113,7 +91,6 @@
         
         body.setAttribute('data-theme', initialTheme);
         updateThemeIcon(initialTheme, icon);
-        updateLoadingLogo(initialTheme);
         
         // Theme toggle click handler
         themeToggle.addEventListener('click', function() {
@@ -123,7 +100,6 @@
             body.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme, icon);
-            updateLoadingLogo(newTheme);
             
             // Smooth transition
             body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
@@ -138,7 +114,6 @@
                 const newTheme = e.matches ? 'dark' : 'light';
                 body.setAttribute('data-theme', newTheme);
                 updateThemeIcon(newTheme, icon);
-                updateLoadingLogo(newTheme);
             }
         });
     }
@@ -369,7 +344,6 @@
             // ESC key to close any open modals
             if (e.key === 'Escape') {
                 // Add modal close functionality here if needed
-                console.log('ESC key pressed');
             }
         });
     }
@@ -382,7 +356,6 @@
         if (heroImg && heroImg.src) {
             const img = new Image();
             img.src = heroImg.src;
-            img.onload = () => console.log('Hero image preloaded');
         }
     }
 
@@ -391,63 +364,13 @@
      */
     function initWindowLoadHandler() {
         window.addEventListener('load', function() {
-            console.log('Window load event triggered - content ready');
-            
+            // Trigger load-dependent animations
             setTimeout(() => {
-                const body = document.body;
-                if (body.classList.contains('loaded')) {
-                    console.log('Loading screen finished, ensuring content visibility');
-                    
-                    const mainElements = document.querySelectorAll('main, header, footer');
-                    mainElements.forEach(element => {
-                        if (element) {
-                            element.style.visibility = 'visible';
-                            element.style.opacity = '1';
-                        }
-                    });
-                    
-                    // Trigger load-dependent animations
-                    setTimeout(() => {
-                        const heroSection = document.querySelector('.hero');
-                        if (heroSection) {
-                            heroSection.classList.add('loaded');
-                        }
-                    }, 100);
+                const heroSection = document.querySelector('.hero');
+                if (heroSection) {
+                    heroSection.classList.add('loaded');
                 }
             }, 100);
-        });
-    }
-
-    /**
-     * Initialize logo error handling
-     */
-    function initLogoErrorHandling() {
-        const logoImages = document.querySelectorAll('.loading-logo-image');
-        
-        logoImages.forEach(img => {
-            img.addEventListener('error', function() {
-                const logoContainer = img.closest('.loading-logo');
-                if (logoContainer && !logoContainer.querySelector('.loading-logo-fallback')) {
-                    const fallbackText = document.createElement('h1');
-                    fallbackText.className = 'loading-logo-fallback';
-                    fallbackText.textContent = 'IbaraDevilRoze';
-                    fallbackText.style.cssText = `
-                        font-size: 2.5rem;
-                        font-weight: 800;
-                        background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-light));
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
-                        background-clip: text;
-                        margin-bottom: 0.5rem;
-                        letter-spacing: -1px;
-                    `;
-                    logoContainer.insertBefore(fallbackText, logoContainer.querySelector('p'));
-                }
-                
-                logoImages.forEach(logoImg => {
-                    logoImg.style.display = 'none';
-                });
-            });
         });
     }
 
@@ -456,11 +379,8 @@
      */
     function initializeTheme() {
         if (window.VTuberTheme.initialized) {
-            console.log('Theme already initialized');
             return;
         }
-        
-        console.log('Initializing VTuber Theme v2.1');
         
         // Initialize all features
         initThemeSystem();
@@ -471,7 +391,6 @@
         initSocialEffects();
         initKeyboardNavigation();
         initWindowLoadHandler();
-        initLogoErrorHandling();
         preloadCriticalImages();
         
         window.VTuberTheme.initialized = true;

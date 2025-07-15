@@ -9,68 +9,6 @@
 
 get_header(); ?>
 
-<!-- Emergency Content Visibility Script -->
-<script>
-(function() {
-    'use strict';
-    
-    // Immediate content visibility fallback
-    setTimeout(function() {
-        console.log('Emergency script: ensuring content visibility');
-        document.body.classList.add('loaded');
-        document.body.classList.remove('loading');
-        document.body.style.overflow = 'auto';
-        document.documentElement.style.overflow = 'auto';
-        
-        var mainElements = document.querySelectorAll('main, header, footer');
-        for (var i = 0; i < mainElements.length; i++) {
-            mainElements[i].style.visibility = 'visible';
-            mainElements[i].style.opacity = '1';
-            mainElements[i].style.display = 'block';
-        }
-        
-        var loadingScreen = document.getElementById('loading-screen');
-        if (loadingScreen) {
-            loadingScreen.style.display = 'none';
-        }
-    }, 2000);
-})();
-</script>
-
-<!-- Loading Screen -->
-<div class="loading-screen" id="loading-screen" role="status" aria-label="Loading page content">
-    <div class="loading-logo">
-        <img src="<?php echo esc_url(get_template_directory_uri() . '/images/logo-black-trans.png'); ?>" 
-             alt="<?php echo esc_attr(get_bloginfo('name')); ?> Logo" 
-             class="loading-logo-image logo-black"
-             loading="eager"
-             width="200"
-             height="auto">
-        <img src="<?php echo esc_url(get_template_directory_uri() . '/images/logo-white-trans.png'); ?>" 
-             alt="<?php echo esc_attr(get_bloginfo('name')); ?> Logo" 
-             class="loading-logo-image logo-white"
-             loading="eager"
-             width="200"
-             height="auto">
-    </div>
-    
-    <div class="loading-container">
-        <div class="loading-progress">
-            <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                <div class="progress-fill" id="progress-fill"></div>
-            </div>
-            <div class="loading-percentage" id="loading-percentage" aria-live="polite">0%</div>
-            <div class="loading-text" id="loading-text" aria-live="polite">Initializing...</div>
-        </div>
-        
-        <div class="loading-dots" aria-hidden="true">
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
-        </div>
-    </div>
-</div>
-
 <!-- Main Content -->
 <main id="main-content" role="main">
     <!-- Hero Section -->
