@@ -57,15 +57,25 @@
 <header id="main-header" role="banner">
     <div class="container">
         <nav role="navigation" aria-label="Main navigation">
+            <!-- Mobile Menu Toggle -->
+            <button class="mobile-menu-toggle" 
+                    id="mobile-menu-toggle" 
+                    type="button"
+                    aria-label="メニューを開く"
+                    title="メニューを開く">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+
             <div class="logo">
                 <a href="<?php echo esc_url(home_url('/')); ?>" rel="home" aria-label="<?php echo esc_attr(get_bloginfo('name') . ' - Home'); ?>">
-                    <?php 
-                    if (has_custom_logo()) :
-                        the_custom_logo();
-                    else :
-                        echo esc_html(get_bloginfo('name'));
-                    endif;
-                    ?>
+                    <img src="<?php echo get_template_directory_uri(); ?>/images/logo-black-trans.png" 
+                         alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
+                         class="logo-light">
+                    <img src="<?php echo get_template_directory_uri(); ?>/images/logo-white-trans.png" 
+                         alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
+                         class="logo-dark">
                 </a>
             </div>
             
@@ -91,3 +101,95 @@
         </nav>
     </div>
 </header>
+
+<!-- Left Sidebar Menu -->
+<aside id="left-sidebar" class="left-sidebar" role="complementary">
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <a href="<?php echo esc_url(home_url('/')); ?>" rel="home">
+                <img src="<?php echo get_template_directory_uri(); ?>/images/logo-black-trans.png" 
+                     alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
+                     class="sidebar-logo-light">
+                <img src="<?php echo get_template_directory_uri(); ?>/images/logo-white-trans.png" 
+                     alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
+                     class="sidebar-logo-dark">
+            </a>
+        </div>
+        <button class="sidebar-close" 
+                id="sidebar-close" 
+                type="button"
+                aria-label="メニューを閉じる"
+                title="メニューを閉じる">
+            <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
+    </div>
+    
+    <nav class="sidebar-nav" role="navigation" aria-label="サイドバーナビゲーション">
+        <ul class="sidebar-menu">
+            <li class="sidebar-menu-item">
+                <a href="<?php echo esc_url(home_url('/')); ?>" class="sidebar-menu-link">
+                    <i class="fas fa-home" aria-hidden="true"></i>
+                    <span>ホーム</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="<?php echo esc_url(get_permalink(get_option('page_for_posts'))); ?>" class="sidebar-menu-link">
+                    <i class="fas fa-newspaper" aria-hidden="true"></i>
+                    <span>NEWS</span>
+                </a>
+            </li>
+            <?php
+            // Get custom menu items if they exist
+            $menu_items = wp_get_nav_menu_items('primary');
+            if ($menu_items) {
+                foreach ($menu_items as $item) {
+                    $icon_class = 'fas fa-link'; // Default icon
+                    
+                    // Customize icons based on menu item title
+                    switch (strtolower($item->title)) {
+                        case 'about':
+                        case 'プロフィール':
+                            $icon_class = 'fas fa-user';
+                            break;
+                        case 'contact':
+                        case 'お問い合わせ':
+                            $icon_class = 'fas fa-envelope';
+                            break;
+                        case 'stream':
+                        case 'ライブ':
+                            $icon_class = 'fas fa-play';
+                            break;
+                        case 'schedule':
+                        case 'スケジュール':
+                            $icon_class = 'fas fa-calendar';
+                            break;
+                    }
+                    
+                    echo '<li class="sidebar-menu-item">';
+                    echo '<a href="' . esc_url($item->url) . '" class="sidebar-menu-link">';
+                    echo '<i class="' . esc_attr($icon_class) . '" aria-hidden="true"></i>';
+                    echo '<span>' . esc_html($item->title) . '</span>';
+                    echo '</a>';
+                    echo '</li>';
+                }
+            }
+            ?>
+        </ul>
+        
+        <!-- Theme Toggle in Sidebar -->
+        <div class="sidebar-theme-toggle">
+            <button class="sidebar-theme-btn" 
+                    id="sidebar-theme-toggle" 
+                    type="button"
+                    aria-label="テーマを切り替え"
+                    title="ダークモードの切り替え">
+                <i class="fas fa-moon theme-icon-dark" aria-hidden="true"></i>
+                <i class="fas fa-sun theme-icon-light" aria-hidden="true"></i>
+                <span>テーマ切り替え</span>
+            </button>
+        </div>
+    </nav>
+</aside>
+
+<!-- Sidebar Overlay -->
+<div id="sidebar-overlay" class="sidebar-overlay"></div>

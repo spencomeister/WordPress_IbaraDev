@@ -1,13 +1,17 @@
 <?php get_header(); ?>
 
 <!-- Blog List -->
-<main class="blog-main">
+<main class="blog-main" role="main">
     <div class="container">
         <!-- Breadcrumb -->
-        <nav class="breadcrumb">
-            <a href="<?php echo home_url(); ?>">ホーム</a>
-            <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
-            <span>NEWS</span>
+        <nav class="breadcrumb" aria-label="パンくずリスト">
+            <ol class="breadcrumb-list">
+                <li><a href="<?php echo esc_url(home_url()); ?>">ホーム</a></li>
+                <li aria-current="page">
+                    <span class="breadcrumb-separator" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+                    <span>NEWS</span>
+                </li>
+            </ol>
         </nav>
 
         <!-- Page Header -->
@@ -53,9 +57,9 @@
                     <p class="item-excerpt">
                         <?php
                         if (has_excerpt()) {
-                            echo wp_trim_words(get_the_excerpt(), 50, '...');
+                            echo vtuber_get_excerpt(get_the_excerpt(), 50);
                         } else {
-                            echo wp_trim_words(get_the_content(), 50, '...');
+                            echo vtuber_get_excerpt(get_the_content(), 50);
                         }
                         ?>
                     </p>

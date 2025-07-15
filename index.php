@@ -19,7 +19,7 @@
                         } elseif (is_date()) {
                             echo 'アーカイブ';
                         } else {
-                            echo 'ブログ';
+                            echo 'ニュース';
                         }
                     ?></span>
                 </li>
@@ -47,7 +47,7 @@
                         echo 'アーカイブ';
                     }
                 } else {
-                    echo 'ブログ';
+                    echo 'ニュース';
                 }
             ?></h1>
             <?php if (is_search()): ?>
@@ -366,9 +366,9 @@
                     <p class="news-excerpt">
                         <?php
                         if (has_excerpt()) {
-                            echo wp_trim_words(get_the_excerpt(), 30, '...');
+                            echo vtuber_get_excerpt(get_the_excerpt(), 50);
                         } else {
-                            echo wp_trim_words(get_the_content(), 30, '...');
+                            echo vtuber_get_excerpt(get_the_content(), 50);
                         }
                         ?>
                     </p>

@@ -52,7 +52,9 @@
                         <?php
                         $excerpt = get_the_excerpt();
                         if (empty($excerpt)) {
-                            $excerpt = wp_trim_words(get_the_content(), 50, '...');
+                            $excerpt = vtuber_get_excerpt(get_the_content(), 50);
+                        } else {
+                            $excerpt = vtuber_get_excerpt($excerpt, 50);
                         }
                         // Highlight search terms
                         $search_query = get_search_query();
