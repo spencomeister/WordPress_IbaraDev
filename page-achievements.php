@@ -41,9 +41,9 @@ get_header(); ?>
                         <table class="achievements-table" role="table" aria-label="個人実績一覧">
                             <thead>
                                 <tr>
-                                    <th class="icon-col" scope="col"><span class="sr-only">種別</span></th>
+                                    <th class="icon-col" scope="col" aria-label="種別"><span class="sr-only">種別</span></th>
                                     <th class="date-col" scope="col">時期</th>
-                                    <th class="title-col" scope="col">実績</th>
+                                    <th class="title-col" scope="col">実績名</th>
                                     <th class="description-col" scope="col">詳細</th>
                                 </tr>
                             </thead>
@@ -100,9 +100,9 @@ get_header(); ?>
                     <table class="achievements-table" role="table" aria-label="案件実績一覧">
                         <thead>
                             <tr>
-                                <th class="icon-col" scope="col"><span class="sr-only">種別</span></th>
+                                <th class="icon-col" scope="col" aria-label="種別"><span class="sr-only">種別</span></th>
                                 <th class="date-col" scope="col">時期</th>
-                                <th class="title-col" scope="col">案件</th>
+                                <th class="title-col" scope="col">案件名</th>
                                 <th class="description-col" scope="col">詳細</th>
                             </tr>
                         </thead>
