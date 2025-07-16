@@ -35,7 +35,6 @@
             
             const body = document.body;
             const themeToggle = document.getElementById('theme-toggle');
-            const sidebarThemeToggle = document.getElementById('sidebar-theme-toggle');
             const icon = themeToggle?.querySelector('i');
             
             body.setAttribute('data-theme', theme);
@@ -44,9 +43,6 @@
             if (icon) {
                 updateThemeIcon(theme, icon);
             }
-            
-            // Update sidebar theme toggle icons
-            updateSidebarThemeIcons(theme);
             
             return true;
         },
@@ -60,6 +56,20 @@
                 closeSidebar();
             } else {
                 openSidebar();
+            }
+        },
+        
+        // Helper function to refresh video titles
+        refreshVideoTitles() {
+            if (typeof applyVideoTitles === 'function') {
+                applyVideoTitles();
+            }
+        },
+        
+        // Helper function to refresh all video data
+        refreshVideoData() {
+            if (typeof applyVideoData === 'function') {
+                applyVideoData();
             }
         }
     };
@@ -76,35 +86,25 @@
     }
 
     /**
-     * Update sidebar theme icons
-     */
-    function updateSidebarThemeIcons(theme) {
-        const darkIcon = document.querySelector('.theme-icon-dark');
-        const lightIcon = document.querySelector('.theme-icon-light');
-        
-        if (darkIcon && lightIcon) {
-            if (theme === 'dark') {
-                darkIcon.style.display = 'none';
-                lightIcon.style.display = 'inline';
-            } else {
-                darkIcon.style.display = 'inline';
-                lightIcon.style.display = 'none';
-            }
-        }
-    }
-
-    /**
      * Open sidebar menu
      */
     function openSidebar() {
         const sidebar = document.getElementById('left-sidebar');
         const overlay = document.getElementById('sidebar-overlay');
+        const menuToggle = document.getElementById('mobile-menu-toggle');
         const body = document.body;
         
         if (sidebar && overlay) {
             sidebar.classList.add('active');
             overlay.classList.add('active');
             body.style.overflow = 'hidden';
+            
+            // Add active class to hamburger menu
+            if (menuToggle) {
+                menuToggle.classList.add('active');
+                menuToggle.setAttribute('aria-label', 'メニューを閉じる');
+                menuToggle.setAttribute('title', 'メニューを閉じる');
+            }
             
             // Focus management for accessibility
             const firstFocusable = sidebar.querySelector('a, button');
@@ -120,6 +120,7 @@
     function closeSidebar() {
         const sidebar = document.getElementById('left-sidebar');
         const overlay = document.getElementById('sidebar-overlay');
+        const menuToggle = document.getElementById('mobile-menu-toggle');
         const body = document.body;
         
         if (sidebar && overlay) {
@@ -127,8 +128,14 @@
             overlay.classList.remove('active');
             body.style.overflow = '';
             
+            // Remove active class from hamburger menu
+            if (menuToggle) {
+                menuToggle.classList.remove('active');
+                menuToggle.setAttribute('aria-label', 'メニューを開く');
+                menuToggle.setAttribute('title', 'メニューを開く');
+            }
+            
             // Return focus to menu toggle button
-            const menuToggle = document.getElementById('mobile-menu-toggle');
             if (menuToggle) {
                 menuToggle.focus();
             }
@@ -173,16 +180,6 @@
                 }
             }
         });
-        
-        // Sidebar theme toggle
-        const sidebarThemeToggle = document.getElementById('sidebar-theme-toggle');
-        if (sidebarThemeToggle) {
-            sidebarThemeToggle.addEventListener('click', function() {
-                const currentTheme = document.body.getAttribute('data-theme');
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                window.VTuberTheme.setTheme(newTheme);
-            });
-        }
     }
 
     /**
@@ -218,7 +215,6 @@
         
         body.setAttribute('data-theme', initialTheme);
         updateThemeIcon(initialTheme, icon);
-        updateSidebarThemeIcons(initialTheme);
         
         // Theme toggle click handler
         themeToggle.addEventListener('click', function() {
@@ -477,6 +473,139 @@
     }
 
     /**
+     * Initialize video section functionality
+     */
+    function initVideoSection() {
+        const playButtons = document.querySelectorAll('.play-button');
+        
+        playButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Find the corresponding "視聴する" link in the same video card
+                const videoCard = this.closest('.video-card');
+                const watchLink = videoCard?.querySelector('a[href*="youtube.com"], a[href*="youtu.be"], a[href*="twitch.tv"], a[href*="watch"], .btn-primary');
+                
+                if (watchLink) {
+                    // Open the video link
+                    window.open(watchLink.href, '_blank', 'noopener,noreferrer');
+                } else {
+                    console.warn('Watch link not found for this video card');
+                }
+            });
+            
+            // Add keyboard accessibility
+            button.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+        });
+        
+        // Make video cards clickable (optional)
+        const videoCards = document.querySelectorAll('.video-card');
+        videoCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                // Only trigger if not clicking on the play button or watch link
+                if (!e.target.closest('.play-button') && !e.target.closest('a')) {
+                    const watchLink = this.querySelector('a[href*="youtube.com"], a[href*="youtu.be"], a[href*="twitch.tv"], a[href*="watch"], .btn-primary');
+                    if (watchLink) {
+                        window.open(watchLink.href, '_blank', 'noopener,noreferrer');
+                    }
+                }
+            });
+            
+            // Add hover effect for better UX
+            card.style.cursor = 'pointer';
+        });
+        
+        // Apply video data from customizer
+        applyVideoData();
+        
+        // Also apply data after a short delay to ensure DOM is fully loaded
+        setTimeout(() => {
+            applyVideoData();
+        }, 100);
+    }
+
+    /**
+     * Apply video data from WordPress customizer
+     */
+    function applyVideoData() {
+        // Check if vtuber_ajax and video_data are available
+        if (typeof vtuber_ajax === 'undefined' || !vtuber_ajax.video_data) {
+            console.warn('Video data not available');
+            return;
+        }
+        
+        const videoData = vtuber_ajax.video_data;
+        
+        // Get all video cards
+        const videoCards = document.querySelectorAll('.video-card');
+        
+        // Apply data to video cards
+        Object.keys(videoData).forEach((videoKey, index) => {
+            const data = videoData[videoKey];
+            if (videoCards[index]) {
+                const videoCard = videoCards[index];
+                
+                // Apply title
+                if (data.title && data.title.trim() !== '') {
+                    const titleElement = videoCard.querySelector('.video-info h3');
+                    if (titleElement) {
+                        // Store original title as fallback
+                        if (!titleElement.hasAttribute('data-original-title')) {
+                            titleElement.setAttribute('data-original-title', titleElement.textContent);
+                        }
+                        titleElement.textContent = data.title;
+                        console.log(`Applied title "${data.title}" to video card ${index + 1}`);
+                    }
+                }
+                
+                // Apply description
+                if (data.description && data.description.trim() !== '') {
+                    const descElement = videoCard.querySelector('.video-info p:not(.video-channel)');
+                    if (descElement) {
+                        // Store original description as fallback
+                        if (!descElement.hasAttribute('data-original-desc')) {
+                            descElement.setAttribute('data-original-desc', descElement.textContent);
+                        }
+                        descElement.textContent = data.description;
+                        console.log(`Applied description "${data.description}" to video card ${index + 1}`);
+                    }
+                }
+                
+                // Apply URL
+                if (data.url && data.url.trim() !== '' && data.url !== '#') {
+                    const linkElement = videoCard.querySelector('.video-link, .btn-primary');
+                    if (linkElement) {
+                        // Store original URL as fallback
+                        if (!linkElement.hasAttribute('data-original-url')) {
+                            linkElement.setAttribute('data-original-url', linkElement.href);
+                        }
+                        linkElement.href = data.url;
+                        console.log(`Applied URL "${data.url}" to video card ${index + 1}`);
+                    }
+                }
+            }
+        });
+        
+        // Debug information
+        console.log('Video data from customizer:', videoData);
+        console.log('Found video cards:', videoCards.length);
+    }
+
+    /**
+     * Apply video titles from WordPress customizer (legacy support)
+     */
+    function applyVideoTitles() {
+        // Call the new comprehensive function
+        applyVideoData();
+    }
+
+    /**
      * Preload critical images
      */
     function preloadCriticalImages() {
@@ -510,6 +639,18 @@
             return;
         }
         
+        // Debug: Check if video data is available
+        if (typeof vtuber_ajax !== 'undefined' && vtuber_ajax.video_data) {
+            console.log('Video data available:', vtuber_ajax.video_data);
+        } else {
+            console.warn('Video data not available in vtuber_ajax');
+        }
+        
+        // Legacy check for video titles
+        if (typeof vtuber_ajax !== 'undefined' && vtuber_ajax.video_titles) {
+            console.log('Video titles available:', vtuber_ajax.video_titles);
+        }
+        
         // Initialize all features
         initThemeSystem();
         initSidebar();
@@ -519,6 +660,7 @@
         initContactForm();
         initSocialEffects();
         initKeyboardNavigation();
+        initVideoSection();
         initWindowLoadHandler();
         preloadCriticalImages();
         

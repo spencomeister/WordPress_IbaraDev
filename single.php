@@ -10,9 +10,14 @@
             <nav class="breadcrumb" aria-label="パンくずリスト">
                 <ol class="breadcrumb-list">
                     <li><a href="<?php echo esc_url(home_url()); ?>">ホーム</a></li>
-                    <li><a href="<?php echo esc_url(get_permalink(get_option('page_for_posts'))); ?>">NEWS</a></li>
-                    <li aria-current="page">
+                    <li>
                         <span class="breadcrumb-separator" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+                    </li>
+                    <li><a href="<?php echo esc_url(get_permalink(get_option('page_for_posts'))); ?>">NEWS</a></li>
+                    <li>
+                        <span class="breadcrumb-separator" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+                    </li>
+                    <li aria-current="page">
                         <span><?php the_title(); ?></span>
                     </li>
                 </ol>
