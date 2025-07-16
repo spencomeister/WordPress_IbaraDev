@@ -1,9 +1,9 @@
 /*
-Theme Name: IbaraDev VTuber Landing Page
+Theme Name: Ibara DevilRoze Landing Theme
 Theme URI: https://github.com/spencomeister/WordPress_IbaraDev
 Description: Personal VTuber Landing Page Theme for IbaraDevilRoze - Modern White/Black + Purple Accent with Dark Mode. Features blog functionality, news sections, and responsive design.
-Version: 2.1
-Author: IbaraDev
+Version: 2.2
+Author: Marusawa Kenta
 Author URI: https://github.com/spencomeister
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -557,10 +557,12 @@ body[data-theme="dark"] .sidebar-logo-dark {
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   box-shadow: 0 10px 30px var(--shadow-light);
+  min-width: 320px; /* 最小幅を設定 */
 }
 
 .achievements-table {
   width: 100%;
+  min-width: 280px; /* テーブル自体の最小幅 */
   border-collapse: collapse;
   background-color: var(--bg-primary);
 }
@@ -609,9 +611,27 @@ body[data-theme="dark"] .sidebar-logo-dark {
   border-bottom: none;
 }
 
+.achievement-row:nth-child(even) {
+  background-color: rgba(139, 92, 246, 0.02);
+}
+
+.achievement-row:nth-child(odd) {
+  background-color: var(--bg-primary);
+}
+
 .achievements-table td {
   padding: 1.2rem 1rem;
   vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.achievement-title,
+.achievement-description {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .achievement-icon {
@@ -645,92 +665,158 @@ body[data-theme="dark"] .sidebar-logo-dark {
   .achievements-table-container {
     margin: 0 -1rem;
     border-radius: 12px;
+    overflow-x: visible;
   }
   
   .achievements-table th,
   .achievements-table td {
-    padding: 0.8rem 0.6rem;
-  }
-  
-  .achievements-table th.icon-col {
-    width: 50px;
-  }
-  
-  .achievements-table th.date-col {
-    width: 100px;
-  }
-  
-  .achievements-table th.title-col {
-    width: 180px;
-  }
-  
-  .achievement-title {
-    font-size: 1rem;
-  }
-  
-  .achievement-description {
+    padding: 0.8rem 0.5rem;
     font-size: 0.85rem;
   }
   
-  .achievement-icon {
-    font-size: 1.5rem;
-  }
-}
-
-@media (max-width: 580px) {
-  .achievements-table thead {
-    display: none;
+  .achievements-table th.icon-col {
+    width: 40px;
   }
   
-  .achievements-table,
-  .achievements-table tbody,
-  .achievements-table tr,
-  .achievements-table td {
-    display: block;
+  .achievements-table th.date-col {
+    width: 85px;
   }
   
-  .achievement-row {
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    margin-bottom: 1rem;
-    padding: 1rem;
-    background-color: var(--bg-primary);
-    box-shadow: 0 4px 12px var(--shadow-light);
+  .achievements-table th.title-col {
+    width: auto;
+    min-width: 120px;
   }
   
-  .achievement-row:hover {
-    transform: none;
-    box-shadow: 0 8px 20px var(--shadow-medium);
+  .achievements-table th.description-col {
+    width: auto;
+    min-width: 100px;
   }
   
-  .achievements-table td {
-    padding: 0.3rem 0;
-    border: none;
-    position: relative;
-    padding-left: 0;
+  .achievement-title {
+    font-size: 0.9rem;
+    line-height: 1.3;
+    word-wrap: break-word;
+  }
+  
+  .achievement-description {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    word-wrap: break-word;
   }
   
   .achievement-icon {
-    float: right;
-    margin-bottom: 0.5rem;
+    font-size: 1.3rem;
   }
   
   .achievement-date {
     font-size: 0.8rem;
-    color: var(--accent-purple);
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .achievements-table-container {
+    margin: 0 -0.5rem;
+    border-radius: 8px;
+  }
+  
+  .achievements-table th,
+  .achievements-table td {
+    padding: 0.6rem 0.3rem;
+    font-size: 0.8rem;
+  }
+  
+  .achievements-table th.icon-col {
+    width: 35px;
+  }
+  
+  .achievements-table th.date-col {
+    width: 75px;
+  }
+  
+  .achievements-table th.title-col {
+    width: auto;
+    min-width: 100px;
+    font-size: 0.75rem;
+  }
+  
+  .achievements-table th.description-col {
+    width: auto;
+    min-width: 80px;
+    font-size: 0.75rem;
   }
   
   .achievement-title {
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-    clear: both;
+    font-size: 0.85rem;
+    line-height: 1.3;
+    word-break: break-word;
   }
   
   .achievement-description {
-    font-size: 0.9rem;
-    line-height: 1.5;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  
+  .achievement-icon {
+    font-size: 1.2rem;
+  }
+  
+  .achievement-date {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+}
+
+/* 超小型画面対応 */
+@media (max-width: 320px) {
+  .achievements-table-container {
+    margin: 0 -0.25rem;
+    border-radius: 6px;
+  }
+  
+  .achievements-table th,
+  .achievements-table td {
+    padding: 0.5rem 0.2rem;
+    font-size: 0.75rem;
+  }
+  
+  .achievements-table th.icon-col {
+    width: 30px;
+  }
+  
+  .achievements-table th.date-col {
+    width: 65px;
+  }
+  
+  .achievements-table th.title-col {
+    width: auto;
+    min-width: 80px;
+    font-size: 0.7rem;
+  }
+  
+  .achievements-table th.description-col {
+    width: auto;
+    min-width: 70px;
+    font-size: 0.7rem;
+  }
+  
+  .achievement-title {
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+  
+  .achievement-description {
+    font-size: 0.7rem;
+    line-height: 1.3;
+  }
+  
+  .achievement-icon {
+    font-size: 1rem;
+  }
+  
+  .achievement-date {
+    font-size: 0.7rem;
+    line-height: 1.1;
   }
 }
 
