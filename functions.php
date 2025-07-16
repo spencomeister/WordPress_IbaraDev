@@ -59,8 +59,8 @@ function vtuber_theme_setup() {
     
     // Register navigation menus
     register_nav_menus(array(
-        'primary' => __('Primary Menu', 'vtuber-theme'),
-        'footer'  => __('Footer Menu', 'vtuber-theme'),
+        'primary' => __('メインメニュー', 'vtuber-theme'),
+        'footer'  => __('フッターメニュー', 'vtuber-theme'),
     ));
     
     // Set content width
@@ -264,7 +264,7 @@ function vtuber_customize_register($wp_customize) {
     
     // ヒーローセクション設定
     $wp_customize->add_setting('hero_title', array(
-        'default' => 'Welcome to My World',
+        'default' => '私の世界へようこそ',
         'sanitize_callback' => 'sanitize_text_field',
         'transport' => 'refresh',
     ));
@@ -396,26 +396,32 @@ function vtuber_customize_register($wp_customize) {
     $wp_customize->add_section('about_section', array(
         'title' => __('自己紹介セクション', 'vtuber-theme'),
         'priority' => 32,
+        'description' => __('プロフィール情報をテーブル形式で管理します', 'vtuber-theme'),
     ));
     
-    // 自己紹介テキスト
-    $default_texts = array(
-        1 => __('こんにちは！ゲームや雑談を通じて皆さんとの繋がりを大切にしているVTuberです。日常に楽しさとエンターテイメントをお届けしたいという想いからこの活動を始めました。', 'vtuber-theme'),
-        2 => __('インディーゲームから大型タイトルまで、様々なジャンルのゲームを楽しんでいます。ゲーム以外でも、コミュニティの皆さんとの雑談や、日々の出来事についてお話しするのが大好きです。', 'vtuber-theme'),
-        3 => __('皆様の日常に楽しさをお届けするコンテンツを作ることが私の目標です。この素晴らしい旅路に参加してくださり、ありがとうございます！', 'vtuber-theme')
+    // プロフィール情報の設定項目
+    $profile_fields = array(
+        'name' => array('label' => '名前', 'default' => 'IbaraDevilRoze'),
+        'age' => array('label' => '年齢', 'default' => '？？歳'),
+        'birthday' => array('label' => '誕生日', 'default' => '？月？日'),
+        'height' => array('label' => '身長', 'default' => '？？？cm'),
+        'favorite_color' => array('label' => '好きな色', 'default' => '紫'),
+        'favorite_food' => array('label' => '好きな食べ物', 'default' => 'パンケーキ'),
+        'hobby' => array('label' => '趣味', 'default' => 'ゲーム、お絵描き'),
+        'skill' => array('label' => '特技', 'default' => 'ゲーム実況、歌')
     );
     
-    for ($i = 1; $i <= 3; $i++) {
-        $wp_customize->add_setting('about_text_' . $i, array(
-            'default' => $default_texts[$i],
-            'sanitize_callback' => 'wp_kses_post',
+    foreach ($profile_fields as $key => $field) {
+        $wp_customize->add_setting('profile_' . $key, array(
+            'default' => $field['default'],
+            'sanitize_callback' => 'sanitize_text_field',
             'transport' => 'refresh',
         ));
-        $wp_customize->add_control('about_text_' . $i, array(
-            'label' => __('自己紹介テキスト ' . $i, 'vtuber-theme'),
+        $wp_customize->add_control('profile_' . $key, array(
+            'label' => __($field['label'], 'vtuber-theme'),
             'section' => 'about_section',
-            'type' => 'textarea',
-            'description' => __('自己紹介の第' . $i . '段落を入力してください。', 'vtuber-theme'),
+            'type' => 'text',
+            'description' => __($field['label'] . 'を入力してください', 'vtuber-theme'),
         ));
     }
     
@@ -805,9 +811,9 @@ function sanitize_achievements_data($input) {
 function display_contact_messages() {
     if (isset($_GET['contact'])) {
         if ($_GET['contact'] === 'success') {
-            echo '<div class="contact-message success">Thank you for your message! I\'ll get back to you soon.</div>';
+            echo '<div class="contact-message success">お問い合わせありがとうございます！近日中にお返事いたします。</div>';
         } elseif ($_GET['contact'] === 'error') {
-            echo '<div class="contact-message error">Sorry, there was an error sending your message. Please try again.</div>';
+            echo '<div class="contact-message error">申し訳ございません。メッセージの送信でエラーが発生しました。もう一度お試しください。</div>';
         }
     }
 }
@@ -1228,4 +1234,67 @@ function decode_youtube_title($title) {
     $title = trim($title);
     
     return $title;
+}
+
+/**
+ * Render achievements table
+ * 実績テーブルを出力する共通関数
+ * 
+ * @param array $achievements 実績データの配列
+ * @param string $default_icon デフォルトアイコン
+ * @param string $no_data_message データがない場合のメッセージ
+ */
+function render_achievements_table($achievements, $default_icon = '📺', $no_data_message = 'データがありません。') {
+    if (!empty($achievements) && is_array($achievements)) {
+        // Sort by date in descending order (newest first)
+        usort($achievements, function($a, $b) {
+            $dateA = isset($a['date']) ? $a['date'] : '';
+            $dateB = isset($b['date']) ? $b['date'] : '';
+            return strcmp($dateB, $dateA);
+        });
+        
+        foreach ($achievements as $achievement) {
+            if (!empty($achievement['title'])) {
+                echo '<tr class="achievement-row">';
+                echo '<td class="achievement-icon" role="gridcell">';
+                echo '<span aria-label="' . esc_attr($achievement['title']) . 'の種別">';
+                echo isset($achievement['icon']) ? esc_html($achievement['icon']) : esc_html($default_icon);
+                echo '</span>';
+                echo '</td>';
+                echo '<td class="achievement-date" role="gridcell">';
+                echo '<time>' . esc_html(isset($achievement['date']) ? $achievement['date'] : '') . '</time>';
+                echo '</td>';
+                echo '<td class="achievement-title" role="gridcell">';
+                echo esc_html($achievement['title']);
+                echo '</td>';
+                echo '<td class="achievement-description" role="gridcell">';
+                echo esc_html(isset($achievement['desc']) ? $achievement['desc'] : '');
+                echo '</td>';
+                echo '</tr>';
+            }
+        }
+    } else {
+        echo '<tr>';
+        echo '<td colspan="4" class="no-data-message">';
+        echo esc_html($no_data_message);
+        echo '</td>';
+        echo '</tr>';
+    }
+}
+
+/**
+ * Render achievements table header
+ * 実績テーブルのヘッダーを出力する共通関数
+ * 
+ * @param string $title_column タイトルカラムの見出し
+ */
+function render_achievements_table_header($title_column = '実績名') {
+    echo '<thead>';
+    echo '<tr>';
+    echo '<th class="icon-col" scope="col" aria-label="種別"><span class="sr-only">種別</span></th>';
+    echo '<th class="date-col" scope="col">時期</th>';
+    echo '<th class="title-col" scope="col">' . esc_html($title_column) . '</th>';
+    echo '<th class="description-col" scope="col">詳細</th>';
+    echo '</tr>';
+    echo '</thead>';
 }

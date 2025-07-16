@@ -17,8 +17,8 @@ get_header(); ?>
             <div class="hero-content">
                 <div class="hero-text">
                     <h1><?php echo esc_html(get_theme_mod('vtuber_name', 'IbaraDevilRoze')); ?></h1>
-                    <p class="subtitle"><?php echo esc_html(get_theme_mod('vtuber_subtitle', 'Individual VTuber | Gaming & Chat Streams')); ?></p>
-                    <p class="description"><?php echo esc_html(get_theme_mod('vtuber_description', 'Welcome to my world! I\'m a passionate VTuber who loves gaming, chatting with viewers, and creating entertaining content. Join me on this exciting journey!')); ?></p>
+                    <p class="subtitle"><?php echo esc_html(get_theme_mod('vtuber_subtitle', 'VTuber・配信者として活動中')); ?></p>
+                    <p class="description"><?php echo esc_html(get_theme_mod('vtuber_description', 'ようこそ私の世界へ！ゲームが大好きで、視聴者の皆さんとの交流を楽しんでいるVTuberです。楽しくて居心地の良い環境作りを心がけています。')); ?></p>
                     
                     <div class="social-links" role="list">
                         <?php
@@ -84,16 +84,49 @@ get_header(); ?>
             <h2>ABOUT</h2>
             <div class="about-content">
                 <div class="about-image">
-                    <img src="<?php echo esc_url(get_template_directory_uri() . '/images/about-icon-trans.png'); ?>" 
-                         alt="<?php echo esc_attr(get_theme_mod('vtuber_name', 'IbaraDevilRoze')); ?>"
+                    <img src="<?php echo esc_url(get_template_directory_uri() . '/images/' . get_theme_mod('about_image', 'about-icon-trans.png')); ?>" 
+                         alt="<?php echo esc_attr(get_theme_mod('profile_name', 'IbaraDevilRoze')); ?>"
                          loading="lazy"
                          width="280"
                          height="280">
                 </div>
-                <div class="about-text">
-                    <p><?php echo wp_kses_post(get_theme_mod('about_text_1', 'Hello! I\'m a VTuber who loves connecting with people through gaming and chatting. I started my journey as a content creator because I wanted to bring joy and entertainment to people\'s daily lives.')); ?></p>
-                    <p><?php echo wp_kses_post(get_theme_mod('about_text_2', 'I enjoy playing a wide variety of games, from indie titles to popular AAA games. When I\'m not gaming, I love chatting with my community and sharing my thoughts on various topics.')); ?></p>
-                    <p><?php echo wp_kses_post(get_theme_mod('about_text_3', 'My goal is to create entertaining content that brings joy to people\'s daily lives. Thank you for being part of this amazing journey!')); ?></p>
+                <div class="about-profile">
+                    <table class="profile-table">
+                        <tbody>
+                            <tr>
+                                <td class="profile-label">名前</td>
+                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_name', 'IbaraDevilRoze')); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="profile-label">年齢</td>
+                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_age', '？？歳')); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="profile-label">誕生日</td>
+                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_birthday', '？月？日')); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="profile-label">身長</td>
+                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_height', '？？？cm')); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="profile-label">好きな色</td>
+                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_favorite_color', '紫')); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="profile-label">好きな食べ物</td>
+                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_favorite_food', 'パンケーキ')); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="profile-label">趣味</td>
+                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_hobby', 'ゲーム、お絵描き')); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="profile-label">特技</td>
+                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_skill', 'ゲーム実況、歌')); ?></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -230,7 +263,7 @@ get_header(); ?>
                             <h3 class="news-title"><?php echo $post_title; ?></h3>
                             <p class="news-excerpt"><?php echo $post_excerpt; ?></p>
                             <a href="<?php echo $post_link; ?>" class="read-more">
-                                Read More <i class="fas fa-arrow-right"></i>
+                                続きを読む <i class="fas fa-arrow-right"></i>
                             </a>
                         </article>
                         <?php
@@ -245,7 +278,7 @@ get_header(); ?>
                         <h3 class="news-title">ウェブサイトがオープンしました！</h3>
                         <p class="news-excerpt">新しいウェブサイトがオープンしました。最新情報をお届けします…</p>
                         <a href="<?php echo home_url('/blog/'); ?>" class="read-more">
-                            Read More <i class="fas fa-arrow-right"></i>
+                            続きを読む <i class="fas fa-arrow-right"></i>
                         </a>
                     </article>
                     <article class="news-card fade-in">
@@ -253,7 +286,7 @@ get_header(); ?>
                         <h3 class="news-title">新しい配信スケジュール</h3>
                         <p class="news-excerpt">7月の配信スケジュールを更新しました…</p>
                         <a href="<?php echo home_url('/blog/'); ?>" class="read-more">
-                            Read More <i class="fas fa-arrow-right"></i>
+                            続きを読む <i class="fas fa-arrow-right"></i>
                         </a>
                     </article>
                     <article class="news-card fade-in">
@@ -261,7 +294,7 @@ get_header(); ?>
                         <h3 class="news-title">ファンアート募集開始</h3>
                         <p class="news-excerpt">ファンアートの募集を開始しました…</p>
                         <a href="<?php echo home_url('/blog/'); ?>" class="read-more">
-                            Read More <i class="fas fa-arrow-right"></i>
+                            続きを読む <i class="fas fa-arrow-right"></i>
                         </a>
                     </article>
                     <?php
@@ -270,7 +303,7 @@ get_header(); ?>
             </div>
             <div class="news-more">
                 <a href="<?php echo home_url('/blog/'); ?>" class="btn btn-primary">
-                    <i class="fas fa-newspaper"></i> View All News
+                    <i class="fas fa-newspaper"></i> すべてのニュースを見る
                 </a>
             </div>
         </div>
@@ -338,7 +371,7 @@ get_header(); ?>
                     <button type="submit" 
                             name="submit_contact" 
                             class="submit-btn">
-                        <span>Send Message</span>
+                        <span>送信</span>
                         <span class="sr-only">フォームを送信</span>
                     </button>
                 </form>

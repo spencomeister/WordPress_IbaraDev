@@ -405,7 +405,7 @@
             const originalText = submitBtn.textContent;
             
             // Show loading state
-            submitBtn.textContent = 'Sending...';
+            submitBtn.textContent = '送信中...';
             submitBtn.disabled = true;
             submitBtn.style.opacity = '0.7';
             
