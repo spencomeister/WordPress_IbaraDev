@@ -543,11 +543,60 @@ body[data-theme="dark"] .sidebar-logo-dark {
   box-shadow: 0 20px 40px var(--shadow-medium);
 }
 
-.about-text p {
-  margin-bottom: 1.5rem;
-  font-size: 1.1rem;
+.about-profile {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.profile-table {
+  width: 100%;
+  max-width: 500px;
+  border-collapse: collapse;
+  background-color: var(--bg-primary);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px var(--shadow-light);
+  border: 1px solid var(--border-color);
+}
+
+.profile-table td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: top;
+}
+
+.profile-table tr:last-child td {
+  border-bottom: none;
+}
+
+.profile-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  width: 35%;
+  position: relative;
+}
+
+.profile-label::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-light));
+}
+
+.profile-value {
   color: var(--text-secondary);
-  line-height: 1.8;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  width: 65%;
+}
+
+.profile-table tr:hover {
+  background-color: rgba(139, 92, 246, 0.05);
 }
 
 /* Achievements Section */
@@ -1067,8 +1116,14 @@ footer p {
 }
 
 @media (max-width: 768px) {
+  /* Mobile Menu Toggle - Show on mobile */
+  .mobile-menu-toggle {
+    display: flex;
+  }
+  
+  /* Hide desktop navigation on mobile */
   .nav-links {
-    gap: 1.5rem;
+    display: none;
   }
   
   .nav-links a {
@@ -1093,6 +1148,23 @@ footer p {
     grid-template-columns: 1fr;
     text-align: center;
     gap: 3rem;
+  }
+  
+  .profile-table {
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  
+  .profile-table td {
+    padding: 1rem 1.2rem;
+  }
+  
+  .profile-label {
+    font-size: 0.95rem;
+  }
+  
+  .profile-value {
+    font-size: 1rem;
   }
   
   .section {
@@ -2226,4 +2298,25 @@ body[data-theme="dark"] .form-loading::after {
   font-size: 0.9rem;
   margin: 0.25rem 0 0.5rem 0;
   font-weight: 500;
+}
+
+/* Article subtitle styling */
+.article-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-top: 1rem;
+}
+
+/* No data message styling */
+.no-data-message {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Back to home button container */
+.back-to-home {
+  text-align: center;
+  margin: 3rem 0;
 }
