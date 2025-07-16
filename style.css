@@ -343,46 +343,6 @@ body[data-theme="dark"] .sidebar-logo-dark {
   font-size: 1.1rem;
 }
 
-.sidebar-theme-toggle {
-  padding: 1.5rem;
-  border-top: 1px solid var(--border-color);
-  margin-top: auto;
-}
-
-.sidebar-theme-btn {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  padding: 1rem;
-  background: none;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-
-.sidebar-theme-btn:hover {
-  background-color: var(--bg-tertiary);
-  border-color: var(--accent-purple);
-  color: var(--accent-purple);
-}
-
-.theme-icon-light {
-  display: none;
-}
-
-body[data-theme="dark"] .theme-icon-dark {
-  display: none;
-}
-
-body[data-theme="dark"] .theme-icon-light {
-  display: inline;
-}
-
 /* Sidebar Overlay */
 .sidebar-overlay {
   position: fixed;

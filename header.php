@@ -50,9 +50,6 @@
 })();
 </script>
 
-<!-- Skip to main content for accessibility -->
-<a class="skip-link" href="#main-content">Skip to main content</a>
-
 <!-- Header -->
 <header id="main-header" role="banner">
     <div class="container">
@@ -133,22 +130,42 @@
                 </a>
             </li>
             <li class="sidebar-menu-item">
+                <a href="<?php echo esc_url(home_url('/#about')); ?>" class="sidebar-menu-link">
+                    <i class="fas fa-user" aria-hidden="true"></i>
+                    <span>自己紹介</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
                 <a href="<?php echo esc_url(home_url('/achievements/')); ?>" class="sidebar-menu-link">
                     <i class="fas fa-trophy" aria-hidden="true"></i>
                     <span>実績</span>
                 </a>
             </li>
             <li class="sidebar-menu-item">
-                <a href="<?php echo esc_url(get_permalink(get_option('page_for_posts'))); ?>" class="sidebar-menu-link">
+                <a href="<?php echo esc_url(home_url('/blog/')); ?>" class="sidebar-menu-link">
                     <i class="fas fa-newspaper" aria-hidden="true"></i>
-                    <span>NEWS</span>
+                    <span>ニュース</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="<?php echo esc_url(home_url('/#contact')); ?>" class="sidebar-menu-link">
+                    <i class="fas fa-envelope" aria-hidden="true"></i>
+                    <span>お問合せ</span>
                 </a>
             </li>
             <?php
-            // Get custom menu items if they exist
+            // Get custom menu items if they exist (additional items only)
             $menu_items = wp_get_nav_menu_items('primary');
             if ($menu_items) {
+                // Get default menu items to avoid duplicates
+                $default_items = array('ホーム', '自己紹介', '実績', 'ニュース', 'お問合せ');
+                
                 foreach ($menu_items as $item) {
+                    // Skip items that are already in the default menu
+                    if (in_array($item->title, $default_items)) {
+                        continue;
+                    }
+                    
                     $icon_class = 'fas fa-link'; // Default icon
                     
                     // Customize icons based on menu item title
@@ -163,11 +180,25 @@
                             break;
                         case 'stream':
                         case 'ライブ':
-                            $icon_class = 'fas fa-play';
+                        case 'live':
+                            $icon_class = 'fas fa-broadcast-tower';
                             break;
                         case 'schedule':
                         case 'スケジュール':
                             $icon_class = 'fas fa-calendar';
+                            break;
+                        case 'gallery':
+                        case 'ギャラリー':
+                            $icon_class = 'fas fa-images';
+                            break;
+                        case 'shop':
+                        case 'ショップ':
+                            $icon_class = 'fas fa-shopping-cart';
+                            break;
+                        case 'videos':
+                        case '動画':
+                        case 'おすすめ動画':
+                            $icon_class = 'fas fa-play';
                             break;
                     }
                     
@@ -181,19 +212,6 @@
             }
             ?>
         </ul>
-        
-        <!-- Theme Toggle in Sidebar -->
-        <div class="sidebar-theme-toggle">
-            <button class="sidebar-theme-btn" 
-                    id="sidebar-theme-toggle" 
-                    type="button"
-                    aria-label="テーマを切り替え"
-                    title="ダークモードの切り替え">
-                <i class="fas fa-moon theme-icon-dark" aria-hidden="true"></i>
-                <i class="fas fa-sun theme-icon-light" aria-hidden="true"></i>
-                <span>テーマ切り替え</span>
-            </button>
-        </div>
     </nav>
 </aside>
 

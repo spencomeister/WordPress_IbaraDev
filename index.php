@@ -7,8 +7,10 @@
         <nav class="breadcrumb" aria-label="パンくずリスト">
             <ol class="breadcrumb-list">
                 <li><a href="<?php echo esc_url(home_url()); ?>">ホーム</a></li>
-                <li aria-current="page">
+                <li>
                     <span class="breadcrumb-separator" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+                </li>
+                <li aria-current="page">
                     <span><?php 
                         if (is_category()) {
                             echo 'カテゴリー: ' . esc_html(single_cat_title('', false));
