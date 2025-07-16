@@ -18,7 +18,7 @@
     
     <meta name="description" content="3周年記念イベントの詳細をお知らせいたします。">
 </head>
-<body>
+<body data-theme="light">
 
 <!-- Header -->
 <header id="main-header">
@@ -196,6 +196,32 @@
         <p>&copy; 2024 IbaraDevilRoze. All rights reserved.</p>
     </div>
 </footer>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <p>&copy; 2024 IbaraDevilRoze. All rights reserved.</p>
+    </div>
+</footer>
+
+<!-- Theme Initialization Script -->
+<script>
+// Initialize theme before page renders
+(function() {
+    const body = document.body;
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    let currentTheme = 'light';
+    if (savedTheme) {
+        currentTheme = savedTheme;
+    } else if (systemPrefersDark) {
+        currentTheme = 'dark';
+    }
+    
+    body.setAttribute('data-theme', currentTheme);
+})();
+</script>
 
 <!-- Main JavaScript -->
 <script src="js/main.js"></script>

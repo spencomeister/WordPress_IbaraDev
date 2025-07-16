@@ -18,7 +18,7 @@
     
     <meta name="description" content="IbaraDevilRoze - Individual VTuber Landing Page with Modern White/Black + Purple Accent Design and Dark Mode">
 </head>
-<body class="loading">
+<body class="loading" data-theme="light">
 
 <!-- Loading Screen -->
 <div class="loading-screen" id="loading-screen">
@@ -462,6 +462,25 @@
 
 <!-- Simple Loading Script -->
 <script src="js/simple-loading.js"></script>
+
+<!-- Theme Initialization Script -->
+<script>
+// Initialize theme before page renders
+(function() {
+    const body = document.body;
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    let currentTheme = 'light';
+    if (savedTheme) {
+        currentTheme = savedTheme;
+    } else if (systemPrefersDark) {
+        currentTheme = 'dark';
+    }
+    
+    body.setAttribute('data-theme', currentTheme);
+})();
+</script>
 
 <!-- Main JavaScript -->
 <script src="js/main.js"></script>

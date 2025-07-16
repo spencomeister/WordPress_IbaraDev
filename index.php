@@ -1,87 +1,158 @@
-<!DOCTYPE html>
-<html <?php language_attributes(); ?>>
-<head>
-    <meta charset="<?php bloginfo('charset'); ?>">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?php wp_title('|', true, 'right'); ?><?php bloginfo('name'); ?></title>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <?php wp_head(); ?>
-</head>
-<body <?php body_class('loading'); ?>>
+<?php get_header(); ?>
 
-<!-- Loading Screen -->
-<div class="loading-screen" id="loading-screen">
-    <div class="loading-logo">
-        <img src="<?php echo get_template_directory_uri(); ?>/images/logo-black-trans.png" 
-             alt="IbaraDevilRoze Logo" 
-             class="loading-logo-image logo-black"
-             loading="eager">
-        <img src="<?php echo get_template_directory_uri(); ?>/images/logo-white-trans.png" 
-             alt="IbaraDevilRoze Logo" 
-             class="loading-logo-image logo-white"
-             loading="eager">
-        <p>Individual VTuber</p>
-    </div>
-    
-    <div class="loading-container">
-        <div class="loading-progress">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill"></div>
-            </div>
-            <div class="loading-percentage" id="loading-percentage">0%</div>
-            <div class="loading-text" id="loading-text">Initializing...</div>
-        </div>
-        
-        <div class="loading-dots">
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
-        </div>
-    </div>
-</div>
-
-<!-- Header -->
-<header id="main-header">
+<!-- Blog Archive -->
+<main class="blog-main" role="main">
     <div class="container">
-        <nav>
-            <div class="logo">IbaraDevilRoze</div>
-            <ul class="nav-links">
-                <li><a href="#about">自己紹介</a></li>
-                <li><a href="#achievements">個人実績</a></li>
-                <li><a href="#business">案件実績</a></li>
-                <li><a href="#videos">おすすめ動画</a></li>
-                <li><a href="#contact">お問合せ</a></li>
-            </ul>
-            <button class="theme-toggle" id="theme-toggle" title="Toggle Dark Mode">
-                <i class="fas fa-moon"></i>
-            </button>
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" aria-label="パンくずリスト">
+            <ol class="breadcrumb-list">
+                <li><a href="<?php echo esc_url(home_url()); ?>">ホーム</a></li>
+                <li>
+                    <span class="breadcrumb-separator" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+                </li>
+                <li aria-current="page">
+                    <span><?php 
+                        if (is_category()) {
+                            echo 'カテゴリー: ' . esc_html(single_cat_title('', false));
+                        } elseif (is_tag()) {
+                            echo 'タグ: ' . esc_html(single_tag_title('', false));
+                        } elseif (is_search()) {
+                            echo '検索結果: ' . esc_html(get_search_query());
+                        } elseif (is_date()) {
+                            echo 'アーカイブ';
+                        } else {
+                            echo 'ニュース';
+                        }
+                    ?></span>
+                </li>
+            </ol>
         </nav>
-    </div>
-</header>
 
-<!-- Hero Section -->
-<main>
-    <section class="hero" id="hero">
-        <div class="container">
-            <div class="hero-content">
-                <div class="hero-text">
-                    <h1><?php echo get_theme_mod('vtuber_name', 'IbaraDevilRoze'); ?></h1>
-                    <p class="subtitle"><?php echo get_theme_mod('vtuber_subtitle', 'Individual VTuber | Gaming & Chat Streams'); ?></p>
-                    <p class="description"><?php echo get_theme_mod('vtuber_description', 'Welcome to my world! I\'m a passionate VTuber who loves gaming, chatting with viewers, and creating entertaining content. Join me on this exciting journey!'); ?></p>
-                    
-                    <div class="social-links">
-                        <?php if (get_theme_mod('youtube_url')): ?>
-                        <a href="<?php echo esc_url(get_theme_mod('youtube_url')); ?>" class="social-link" target="_blank" title="YouTube">
-                            <i class="fab fa-youtube"></i>
+        <!-- Page Header -->
+        <header class="page-header">
+            <h1><?php 
+                if (is_category()) {
+                    echo 'カテゴリー: ' . esc_html(single_cat_title('', false));
+                } elseif (is_tag()) {
+                    echo 'タグ: ' . esc_html(single_tag_title('', false));
+                } elseif (is_search()) {
+                    echo '検索結果';
+                    if (get_search_query()) {
+                        echo ' "' . esc_html(get_search_query()) . '"';
+                    }
+                } elseif (is_date()) {
+                    if (is_year()) {
+                        echo esc_html(get_the_date('Y年')) . 'のアーカイブ';
+                    } elseif (is_month()) {
+                        echo esc_html(get_the_date('Y年n月')) . 'のアーカイブ';
+                    } else {
+                        echo 'アーカイブ';
+                    }
+                } else {
+                    echo 'ニュース';
+                }
+            ?></h1>
+            <?php if (is_search()): ?>
+                <p><?php echo get_search_query() ? '"' . esc_html(get_search_query()) . '" の検索結果' : '検索結果'; ?></p>
+            <?php elseif (is_category()): ?>
+                <?php $category_description = category_description(); ?>
+                <?php if ($category_description): ?>
+                    <p><?php echo wp_kses_post($category_description); ?></p>
+                <?php endif; ?>
+            <?php else: ?>
+                <p>記事一覧</p>
+            <?php endif; ?>
+        </header>
+
+        <!-- Articles List -->
+        <section class="blog-list" aria-label="記事一覧">
+            <?php if (have_posts()): ?>
+                <?php while (have_posts()): the_post(); ?>
+                <?php
+                $categories = get_the_category();
+                $category_name = !empty($categories) ? $categories[0]->name : 'お知らせ';
+                ?>
+                
+                <article class="blog-list-item">
+                    <time class="item-date" datetime="<?php echo esc_attr(get_the_date('c')); ?>">
+                        <?php echo esc_html(get_the_date('Y.m.d')); ?>
+                    </time>
+                    <div class="item-category" aria-label="カテゴリー">
+                        <?php echo esc_html($category_name); ?>
+                    </div>
+                    <h2 class="item-title">
+                        <a href="<?php the_permalink(); ?>" aria-describedby="excerpt-<?php the_ID(); ?>">
+                            <?php the_title(); ?>
                         </a>
+                    </h2>
+                    <div class="item-excerpt" id="excerpt-<?php the_ID(); ?>">
+                        <?php the_excerpt(); ?>
+                    </div>
+                    <div class="item-meta">
+                        <span class="read-more">
+                            <a href="<?php the_permalink(); ?>" aria-label="<?php the_title(); ?>の記事を読む">
+                                続きを読む <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </a>
+                        </span>
+                    </div>
+                </article>
+                
+                <?php endwhile; ?>
+                
+                <!-- Pagination -->
+                <nav class="pagination" role="navigation" aria-label="ページネーション">
+                    <?php 
+                    echo paginate_links(array(
+                        'prev_text' => '<i class="fas fa-chevron-left" aria-hidden="true"></i> 前のページ',
+                        'next_text' => '次のページ <i class="fas fa-chevron-right" aria-hidden="true"></i>',
+                        'mid_size' => 2,
+                        'type' => 'list'
+                    )); 
+                    ?>
+                </nav>
+                
+            <?php else: ?>
+                <!-- No Posts Found -->
+                <section class="no-posts" role="status" aria-live="polite">
+                    <div class="no-posts-content">
+                        <h2>記事が見つかりませんでした</h2>
+                        <?php if (is_search()): ?>
+                            <p>検索キーワード「<?php echo esc_html(get_search_query()); ?>」に一致する記事が見つかりませんでした。</p>
+                            <p>別のキーワードで検索してみてください。</p>
+                            
+                            <!-- Search Form -->
+                            <div class="search-form-container">
+                                <form role="search" method="get" class="search-form" action="<?php echo esc_url(home_url('/')); ?>">
+                                    <div class="search-input-group">
+                                        <label for="search-field-archive" class="sr-only">記事を検索</label>
+                                        <input type="search" 
+                                               id="search-field-archive"
+                                               class="search-field" 
+                                               placeholder="記事を検索..." 
+                                               value="<?php echo esc_attr(get_search_query()); ?>" 
+                                               name="s" 
+                                               required />
+                                        <button type="submit" class="search-submit" aria-label="検索実行">
+                                            <i class="fas fa-search" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        <?php else: ?>
+                            <p>まだ記事が投稿されていません。</p>
+                        <?php endif; ?>
+                        
+                        <div class="no-posts-actions">
+                            <a href="<?php echo home_url(); ?>" class="btn btn-primary">ホームに戻る</a>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</main>
+
+<?php get_footer(); ?>
                         <?php endif; ?>
                         
                         <?php if (get_theme_mod('twitter_url')): ?>
@@ -153,30 +224,55 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="achievement-row fade-in">
-                            <td class="achievement-icon">📺</td>
-                            <td class="achievement-date"><?php echo get_theme_mod('achievement_1_date', '2023.06'); ?></td>
-                            <td class="achievement-title"><?php echo get_theme_mod('achievement_1_title', '初配信'); ?></td>
-                            <td class="achievement-description"><?php echo get_theme_mod('achievement_1_desc', '生まれて初めての配信で同時接続者数120人＆チャンネル登録300人達成しました！'); ?></td>
-                        </tr>
-                        <tr class="achievement-row fade-in">
-                            <td class="achievement-icon">📺</td>
-                            <td class="achievement-date"><?php echo get_theme_mod('achievement_2_date', '2023.09'); ?></td>
-                            <td class="achievement-title"><?php echo get_theme_mod('achievement_2_title', '登録者数1000人達成<br />初 新衣装公開<br />メンバーシップ開設'); ?></td>
-                            <td class="achievement-description"><?php echo get_theme_mod('achievement_2_desc', 'チャンネル登録者数1000人達成＆初新衣装公開し、メンバーシップの開設を行いました！'); ?></td>
-                        </tr>
-                        <tr class="achievement-row fade-in">
-                            <td class="achievement-icon">👥</td>
-                            <td class="achievement-date"><?php echo get_theme_mod('achievement_3_date', '2023.12'); ?></td>
-                            <td class="achievement-title"><?php echo get_theme_mod('achievement_3_title', 'リスナー限定リアルイベント in 渋谷'); ?></td>
-                            <td class="achievement-description"><?php echo get_theme_mod('achievement_3_desc', '初めてのリアルイベントを自身で計画し、開催することが出来ました！'); ?></td>
-                        </tr>
-                        <tr class="achievement-row fade-in">
-                            <td class="achievement-icon">�</td>
-                            <td class="achievement-date"><?php echo get_theme_mod('achievement_4_date', '2024.02'); ?></td>
-                            <td class="achievement-title"><?php echo get_theme_mod('achievement_4_title', 'リ虎家コラボカフェ自主開催 in 秋葉原'); ?></td>
-                            <td class="achievement-description"><?php echo get_theme_mod('achievement_4_desc', '同じママであるritora.さんのVTuberのみんなを集めてコラボカフェを自主開催しました！'); ?></td>
-                        </tr>
+                        <?php
+                        $achievements_data = get_theme_mod('achievements_data', '[]');
+                        $achievements = json_decode($achievements_data, true);
+                        $achievement_icons = array('📺', '👥', '🎮', '🏆', '🎯', '📊', '🌟', '🎉', '💫', '🎨');
+                        
+                        if (!empty($achievements)) {
+                            foreach ($achievements as $index => $achievement) {
+                                if (!empty($achievement['title']) || !empty($achievement['desc'])) {
+                                    $icon = isset($achievement_icons[$index % count($achievement_icons)]) ? $achievement_icons[$index % count($achievement_icons)] : '📺';
+                                    ?>
+                                    <tr class="achievement-row fade-in">
+                                        <td class="achievement-icon"><?php echo $icon; ?></td>
+                                        <td class="achievement-date"><?php echo esc_html($achievement['date']); ?></td>
+                                        <td class="achievement-title"><?php echo esc_html($achievement['title']); ?></td>
+                                        <td class="achievement-description"><?php echo nl2br(esc_html($achievement['desc'])); ?></td>
+                                    </tr>
+                                    <?php
+                                }
+                            }
+                        } else {
+                            // Default achievements if no custom data is set
+                            ?>
+                            <tr class="achievement-row fade-in">
+                                <td class="achievement-icon">📺</td>
+                                <td class="achievement-date">2023.06</td>
+                                <td class="achievement-title">初配信</td>
+                                <td class="achievement-description">生まれて初めての配信で同時接続者数120人＆チャンネル登録300人達成しました！</td>
+                            </tr>
+                            <tr class="achievement-row fade-in">
+                                <td class="achievement-icon">📺</td>
+                                <td class="achievement-date">2023.09</td>
+                                <td class="achievement-title">登録者数1000人達成<br />初 新衣装公開<br />メンバーシップ開設</td>
+                                <td class="achievement-description">チャンネル登録者数1000人達成＆初新衣装公開し、メンバーシップの開設を行いました！</td>
+                            </tr>
+                            <tr class="achievement-row fade-in">
+                                <td class="achievement-icon">👥</td>
+                                <td class="achievement-date">2023.12</td>
+                                <td class="achievement-title">リスナー限定リアルイベント in 渋谷</td>
+                                <td class="achievement-description">初めてのリアルイベントを自身で計画し、開催することが出来ました！</td>
+                            </tr>
+                            <tr class="achievement-row fade-in">
+                                <td class="achievement-icon">⚔️</td>
+                                <td class="achievement-date">2024.02</td>
+                                <td class="achievement-title">リ虎家コラボカフェ自主開催 in 秋葉原</td>
+                                <td class="achievement-description">同じママであるritora.さんのVTuberのみんなを集めてコラボカフェを自主開催しました！</td>
+                            </tr>
+                            <?php
+                        }
+                        ?>
                     </tbody>
                 </table>
             </div>
@@ -198,27 +294,117 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="achievement-row fade-in">
-                            <td class="achievement-icon">🎮</td>
-                            <td class="achievement-date"><?php echo get_theme_mod('business_1_date', '2023.08'); ?></td>
-                            <td class="achievement-title"><?php echo get_theme_mod('business_1_title', 'ゲームタイトルA プロモーション配信'); ?></td>
-                            <td class="achievement-description"><?php echo get_theme_mod('business_1_desc', '新作ゲームのプロモーション配信を実施。視聴者数やエンゲージメント率が高く評価されました。'); ?></td>
-                        </tr>
-                        <tr class="achievement-row fade-in">
-                            <td class="achievement-icon">🛍️</td>
-                            <td class="achievement-date"><?php echo get_theme_mod('business_2_date', '2023.11'); ?></td>
-                            <td class="achievement-title"><?php echo get_theme_mod('business_2_title', 'アパレルブランドB コラボ商品PR'); ?></td>
-                            <td class="achievement-description"><?php echo get_theme_mod('business_2_desc', 'アパレルブランドとのコラボレーション商品のPR配信を行い、完売に貢献しました。'); ?></td>
-                        </tr>
-                        <tr class="achievement-row fade-in">
-                            <td class="achievement-icon">🍔</td>
-                            <td class="achievement-date"><?php echo get_theme_mod('business_3_date', '2024.01'); ?></td>
-                            <td class="achievement-title"><?php echo get_theme_mod('business_3_title', '飲食チェーンC メニュー紹介'); ?></td>
-                            <td class="achievement-description"><?php echo get_theme_mod('business_3_desc', '人気飲食チェーンの新メニュー紹介配信を実施。ターゲット層への効果的なリーチを実現しました。'); ?></td>
-                        </tr>
+                        <?php
+                        $business_data = get_theme_mod('business_data', '[]');
+                        $business_achievements = json_decode($business_data, true);
+                        $business_icons = array('🎮', '🛍️', '🍔', '📱', '🎵', '🎬', '💻', '🏢', '🌐', '💼');
+                        
+                        if (!empty($business_achievements)) {
+                            foreach ($business_achievements as $index => $achievement) {
+                                if (!empty($achievement['title']) || !empty($achievement['desc'])) {
+                                    $icon = isset($business_icons[$index % count($business_icons)]) ? $business_icons[$index % count($business_icons)] : '🎮';
+                                    ?>
+                                    <tr class="achievement-row fade-in">
+                                        <td class="achievement-icon"><?php echo $icon; ?></td>
+                                        <td class="achievement-date"><?php echo esc_html($achievement['date']); ?></td>
+                                        <td class="achievement-title"><?php echo esc_html($achievement['title']); ?></td>
+                                        <td class="achievement-description"><?php echo nl2br(esc_html($achievement['desc'])); ?></td>
+                                    </tr>
+                                    <?php
+                                }
+                            }
+                        } else {
+                            // Default business achievements if no custom data is set
+                            ?>
+                            <tr class="achievement-row fade-in">
+                                <td class="achievement-icon">🎮</td>
+                                <td class="achievement-date">2023.08</td>
+                                <td class="achievement-title">ゲームタイトルA プロモーション配信</td>
+                                <td class="achievement-description">新作ゲームのプロモーション配信を実施。視聴者数やエンゲージメント率が高く評価されました。</td>
+                            </tr>
+                            <tr class="achievement-row fade-in">
+                                <td class="achievement-icon">🛍️</td>
+                                <td class="achievement-date">2023.11</td>
+                                <td class="achievement-title">アパレルブランドB コラボ商品PR</td>
+                                <td class="achievement-description">アパレルブランドとのコラボレーション商品のPR配信を行い、完売に貢献しました。</td>
+                            </tr>
+                            <tr class="achievement-row fade-in">
+                                <td class="achievement-icon">🍔</td>
+                                <td class="achievement-date">2024.01</td>
+                                <td class="achievement-title">飲食チェーンC メニュー紹介</td>
+                                <td class="achievement-description">人気飲食チェーンの新メニュー紹介配信を実施。ターゲット層への効果的なリーチを実現しました。</td>
+                            </tr>
+                            <?php
+                        }
+                        ?>
                     </tbody>
                 </table>
             </div>
+        </div>
+    </section>
+
+    <!-- News Section -->
+    <section class="section" id="news">
+        <div class="container">
+            <h2>NEWS</h2>
+            <div class="news-grid">
+                <?php
+                $recent_posts = get_posts(array(
+                    'posts_per_page' => 3,
+                    'post_status' => 'publish'
+                ));
+                
+                if ($recent_posts):
+                    foreach ($recent_posts as $post): setup_postdata($post);
+                        $categories = get_the_category();
+                        $category_name = !empty($categories) ? $categories[0]->name : 'お知らせ';
+                ?>
+                <div class="news-card fade-in">
+                    <div class="news-date"><?php echo get_the_date('Y.m.d'); ?></div>
+                    <div class="news-category"><?php echo esc_html($category_name); ?></div>
+                    <h3 class="news-title">
+                        <a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
+                    </h3>
+                    <p class="news-excerpt">
+                        <?php
+                        if (has_excerpt()) {
+                            echo vtuber_get_excerpt(get_the_excerpt(), 50);
+                        } else {
+                            echo vtuber_get_excerpt(get_the_content(), 50);
+                        }
+                        ?>
+                    </p>
+                    <div class="news-meta">
+                        <div class="read-more">
+                            <a href="<?php the_permalink(); ?>">続きを読む <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <?php 
+                    endforeach; 
+                    wp_reset_postdata();
+                else:
+                ?>
+                <div class="news-card fade-in">
+                    <div class="news-date"><?php echo date('Y.m.d'); ?></div>
+                    <div class="news-category">お知らせ</div>
+                    <h3 class="news-title">
+                        <a href="#">ブログ投稿をお待ちください</a>
+                    </h3>
+                    <p class="news-excerpt">
+                        まだ投稿がありません。最新のお知らせや活動報告をお楽しみに！
+                    </p>
+                </div>
+                <?php endif; ?>
+            </div>
+            
+            <?php if (get_option('page_for_posts')): ?>
+            <div class="news-more">
+                <a href="<?php echo get_permalink(get_option('page_for_posts')); ?>" class="news-more-btn">
+                    もっと見る <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            <?php endif; ?>
         </div>
     </section>
 
@@ -298,13 +484,4 @@
     </section>
 </main>
 
-<!-- Footer -->
-<footer>
-    <div class="container">
-        <p>&copy; <?php echo date('Y'); ?> <?php echo get_theme_mod('vtuber_name', 'IbaraDevilRoze'); ?>. All rights reserved.</p>
-    </div>
-</footer>
-
-<?php wp_footer(); ?>
-</body>
-</html>
+<?php get_footer(); ?>
