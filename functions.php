@@ -184,12 +184,23 @@ function vtuber_scripts() {
         true
     );
     
+    // Prepare video data for JavaScript
+    $video_data = array();
+    for ($i = 1; $i <= 3; $i++) {
+        $video_data['video_' . $i] = array(
+            'title' => get_theme_mod('video_' . $i . '_title', ''),
+            'description' => get_theme_mod('video_' . $i . '_desc', ''),
+            'url' => get_theme_mod('video_' . $i . '_url', ''),
+        );
+    }
+    
     // Localize script for AJAX with nonce security
     wp_localize_script('vtuber-script', 'vtuber_ajax', array(
         'ajax_url' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('vtuber_nonce'),
         'theme_url' => get_template_directory_uri(),
         'debug' => defined('WP_DEBUG') && WP_DEBUG,
+        'video_data' => $video_data,
     ));
 }
 add_action('wp_enqueue_scripts', 'vtuber_scripts');
