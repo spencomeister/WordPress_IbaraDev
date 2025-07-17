@@ -1210,10 +1210,19 @@ function enqueue_customizer_scripts() {
     wp_enqueue_script('jquery');
     wp_enqueue_script('customize-controls');
     
+    // テスト用スクリプト（一時的）
+    wp_enqueue_script(
+        'vtuber-customizer-test',
+        get_template_directory_uri() . '/js/customizer-test.js',
+        array('jquery', 'customize-controls'),
+        filemtime(get_template_directory() . '/js/customizer-test.js'),
+        true
+    );
+    
     wp_enqueue_script(
         'vtuber-customizer',
         get_template_directory_uri() . '/js/customizer.js',
-        array('jquery', 'customize-controls'),
+        array('jquery', 'customize-controls', 'vtuber-customizer-test'),
         filemtime(get_template_directory() . '/js/customizer.js'), // ファイル更新時刻をバージョンに使用
         true
     );

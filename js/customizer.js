@@ -7,11 +7,14 @@
 window.customizerJsLoaded = true;
 window.fetchVideoInfo = true; // デバッグ用
 
+// 即座に実行される確認ログ
+console.log('%c🚀 Customizer.js 読み込み開始', 'color: #00ff00; font-weight: bold; font-size: 16px;');
+
 (function($) {
     'use strict';
     
     // 読み込み確認ログ
-    console.log('%c🚀 Customizer.js 読み込み完了', 'color: #00ff00; font-weight: bold; font-size: 16px;');
+    console.log('%c� Customizer.js 内部実行開始', 'color: #00ff00; font-weight: bold;');
     console.log('%cjQuery利用可能:', typeof $ !== 'undefined' ? '✅ YES' : '❌ NO');
     console.log('%cWordPress Customizer API:', typeof wp !== 'undefined' && wp.customize ? '✅ 利用可能' : '❌ 利用不可');
     
@@ -20,6 +23,8 @@ window.fetchVideoInfo = true; // デバッグ用
         console.error('%c⚠️ WordPress Customizer環境ではありません', 'color: #ff0000; font-weight: bold;');
         return;
     }
+    
+    console.log('%c✅ WordPress Customizer環境確認完了', 'color: #4CAF50; font-weight: bold;');
 
     // デバッグ用ヘルパー関数
     const Debug = {
@@ -139,23 +144,19 @@ window.fetchVideoInfo = true; // デバッグ用
                             Debug.info('設定前タイトル:', oldTitle || '(空)');
                             Debug.info('設定後タイトル:', newTitle);
                             
-                            // Step 1: 入力フィールドに値を設定
-                            titleInput.val(newTitle);
-                            Debug.step('3-1', '入力フィールドに値設定完了');
-                            
-                            // Step 2: WordPress Customizer API経由で設定（最重要）
+                            // Step 1: WordPress Customizer API経由で設定（最優先）
                             if (typeof wp !== 'undefined' && wp.customize) {
                                 const setting = wp.customize('video_' + videoIndex + '_title');
                                 if (setting) {
-                                    Debug.step('3-2', 'カスタマイザー設定オブジェクト取得完了');
+                                    Debug.step('3-1', 'カスタマイザー設定オブジェクト取得完了');
                                     Debug.info('設定前のCustomizer値:', setting.get());
                                     
-                                    // 値を設定
+                                    // 値を設定（これが最重要）
                                     setting.set(newTitle);
                                     Debug.success('✅ Customizer API経由で設定完了');
                                     Debug.info('設定後のCustomizer値:', setting.get());
                                     
-                                    // 強制的に変更をマーク（内部プロパティ）
+                                    // 強制的に変更をマーク
                                     if (setting._dirty !== undefined) {
                                         setting._dirty = true;
                                         Debug.info('🔄 設定を変更済みとしてマーク完了');
@@ -166,12 +167,6 @@ window.fetchVideoInfo = true; // デバッグ用
                                         wp.customize.state('saved').set(false);
                                         Debug.info('💾 カスタマイザー未保存状態に変更');
                                     }
-                                    
-                                    // 保存ボタンを有効化
-                                    if (wp.customize.previewer) {
-                                        wp.customize.previewer.refresh();
-                                        Debug.info('🔄 プレビューリフレッシュ実行');
-                                    }
                                 } else {
                                     Debug.error('❌ カスタマイザー設定オブジェクトが見つかりません:', 'video_' + videoIndex + '_title');
                                 }
@@ -179,7 +174,11 @@ window.fetchVideoInfo = true; // デバッグ用
                                 Debug.warning('⚠️ WordPress Customizer API が利用できません');
                             }
                             
-                            // Step 3: DOM変更イベントを複数発火（保険）
+                            // Step 2: 入力フィールドに値を設定（Customizer APIの後）
+                            titleInput.val(newTitle);
+                            Debug.step('3-2', '入力フィールドに値設定完了');
+                            
+                            // Step 3: DOM変更イベントを複数発火（確実に同期）
                             Debug.step('3-3', 'DOM変更イベント発火中...');
                             titleInput.trigger('input');
                             titleInput.trigger('change');
@@ -194,12 +193,30 @@ window.fetchVideoInfo = true; // デバッグ用
                                     titleInput.blur();
                                     Debug.info('👁️ フォーカス/ブラー処理完了');
                                     
-                                    // 最終確認
+                                    // 最終確認と強制同期
                                     if (typeof wp !== 'undefined' && wp.customize) {
                                         const finalSetting = wp.customize('video_' + videoIndex + '_title');
                                         if (finalSetting) {
-                                            Debug.success('🎯 最終確認 - Customizer値:', finalSetting.get());
-                                            Debug.info('📋 DOM値:', titleInput.val());
+                                            const customizerValue = finalSetting.get();
+                                            const domValue = titleInput.val();
+                                            
+                                            Debug.success('🎯 最終確認 - Customizer値:', customizerValue);
+                                            Debug.info('📋 DOM値:', domValue);
+                                            
+                                            // 値が一致しない場合は再同期
+                                            if (customizerValue !== domValue) {
+                                                Debug.warning('⚠️ 値の不一致を検出、再同期実行中...');
+                                                finalSetting.set(domValue);
+                                                Debug.success('� 再同期完了 - 新Customizer値:', finalSetting.get());
+                                            } else {
+                                                Debug.success('✅ 値の同期確認完了');
+                                            }
+                                            
+                                            // プレビューを更新
+                                            if (wp.customize.previewer) {
+                                                wp.customize.previewer.refresh();
+                                                Debug.info('🔄 プレビューリフレッシュ実行');
+                                            }
                                         }
                                     }
                                 }, 100);
@@ -254,6 +271,86 @@ window.fetchVideoInfo = true; // デバッグ用
                 }
             });
         });
+    }
+
+    // 自動同期処理関数
+    function autoSyncAllVideos() {
+        Debug.group('🔄 自動同期処理開始', function() {
+            let syncCount = 0;
+            let totalChanges = 0;
+            
+            for (let i = 1; i <= 3; i++) {
+                const titleInput = document.querySelector('input[data-customize-setting-link="video_' + i + '_title"]');
+                const domValue = titleInput ? titleInput.value.trim() : '';
+                
+                if (domValue) {
+                    const setting = wp.customize('video_' + i + '_title');
+                    if (setting) {
+                        const customizerValue = setting.get();
+                        
+                        // 値が異なる場合のみ同期
+                        if (customizerValue !== domValue) {
+                            setting.set(domValue);
+                            
+                            // 変更フラグ設定
+                            if (setting._dirty !== undefined) {
+                                setting._dirty = true;
+                            }
+                            
+                            totalChanges++;
+                            Debug.success(`Video ${i} 自動同期完了:`, domValue.substring(0, 50) + '...');
+                        } else {
+                            Debug.info(`Video ${i} 同期済みのためスキップ`);
+                        }
+                        syncCount++;
+                    }
+                }
+            }
+            
+            if (totalChanges > 0) {
+                // 未保存状態に変更
+                if (wp.customize.state && wp.customize.state('saved')) {
+                    wp.customize.state('saved').set(false);
+                }
+                Debug.success(`✅ 自動同期完了: ${totalChanges}/${syncCount} 個のVideoを更新`);
+            } else {
+                Debug.info('🔍 同期が必要なVideoはありませんでした');
+            }
+        });
+    }
+
+    // 保存前の自動同期処理
+    function setupSaveInterceptor() {
+        if (typeof wp !== 'undefined' && wp.customize) {
+            // 保存ボタンのクリックイベントを監視
+            $(document).on('click', '#save', function(e) {
+                Debug.warning('🚀 保存ボタンが押されました - 自動同期を実行中...');
+                
+                // 少し遅延を入れて確実に実行
+                setTimeout(function() {
+                    autoSyncAllVideos();
+                }, 100);
+            });
+            
+            // wp.customize の保存イベントもフック
+            wp.customize.bind('save', function() {
+                Debug.info('📡 WordPress Customizer 保存イベント検知');
+                autoSyncAllVideos();
+            });
+            
+            // 状態変更の監視強化
+            if (wp.customize.state && wp.customize.state('saved')) {
+                wp.customize.state('saved').bind(function(isSaved) {
+                    if (!isSaved) {
+                        Debug.info('📝 未保存状態検知 - 保存前同期準備完了');
+                    } else {
+                        Debug.success('💾 保存完了 - 自動同期処理成功');
+                    }
+                });
+            }
+            
+            Debug.success('🎯 自動同期システム初期化完了');
+        }
     }
 
     // カスタマイザー読み込み完了後に実行
@@ -328,6 +425,9 @@ window.fetchVideoInfo = true; // デバッグ用
         wp.customize.bind('ready', function() {
             Debug.group('🎛️ WordPress Customizer API 初期化', function() {
                 Debug.success('WordPress Customizer ready');
+                
+                // 自動同期システムを初期化
+                setupSaveInterceptor();
                 
                 // 設定確認
                 setTimeout(function() {
@@ -415,4 +515,24 @@ window.fetchVideoInfo = true; // デバッグ用
         }
     }
 
-})(jQuery);
+    // 手動でテスト実行可能な関数をグローバルに追加
+    window.testYouTubeVideoFetch = function(videoIndex, url) {
+        console.log(`%c🧪 手動テスト実行: Video ${videoIndex}`, 'color: #ff9800; font-weight: bold;');
+        fetchVideoInfo(url, videoIndex);
+    };
+    
+    // 手動同期機能もグローバルに追加（デバッグ用）
+    window.manualSyncAllVideos = function() {
+        console.log('%c🔧 手動同期実行', 'color: #ff9800; font-weight: bold;');
+        autoSyncAllVideos();
+    };
+
+    // 即座に実行テスト
+    if ($ && typeof $ === 'function') {
+        console.log(`%c✅ jQuery $ エイリアス利用可能`, 'color: #4CAF50; font-weight: bold;');
+        console.log(`%c📋 URL入力フィールド数: ${$('input[data-customize-setting-link*="video"][data-customize-setting-link*="url"]').length}`, 'color: #2196F3;');
+    } else {
+        console.error(`%c❌ jQuery $ エイリアス利用不可`, 'color: #F44336; font-weight: bold;');
+    }
+
+})(jQuery); // WordPress標準のjQuery使用方法
