@@ -208,6 +208,9 @@ function vtuber_scripts() {
             'show_for_external' => false,
         ),
     ));
+    
+    // Add AVIF detection and fallback functionality
+    enqueue_avif_detection_script();
 }
 add_action('wp_enqueue_scripts', 'vtuber_scripts');
 
@@ -1349,4 +1352,236 @@ function render_achievements_table_header($title_column = '実績名') {
     echo '<th class="description-col" scope="col">詳細</th>';
     echo '</tr>';
     echo '</thead>';
+}
+
+/**
+ * AVIF Image Support and Fallback Functions
+ * Provides automatic fallback from AVIF to PNG for unsupported browsers
+ * Version 2.0.1: パフォーマンス向上のためAVIF形式に変更、フォールバック機能追加
+ */
+
+/**
+ * Get theme image with AVIF fallback
+ * Automatically serves AVIF or PNG based on browser support
+ * 
+ * @param string $image_name The base image name (without extension)
+ * @param string $alt_text Alternative text for the image
+ * @param string $classes CSS classes to apply
+ * @param array $attributes Additional HTML attributes
+ * @return string HTML picture element with AVIF and PNG sources
+ */
+function get_theme_image_with_fallback($image_name, $alt_text = '', $classes = '', $attributes = array()) {
+    $base_url = get_template_directory_uri() . '/images/';
+    $avif_url = $base_url . $image_name . '.avif';
+    $png_url = $base_url . $image_name . '.png';
+    
+    // Build attributes string
+    $attr_string = '';
+    if (!empty($classes)) {
+        $attr_string .= ' class="' . esc_attr($classes) . '"';
+    }
+    
+    foreach ($attributes as $key => $value) {
+        $attr_string .= ' ' . esc_attr($key) . '="' . esc_attr($value) . '"';
+    }
+    
+    // Return picture element with AVIF and PNG sources
+    return sprintf(
+        '<picture>
+            <source srcset="%s" type="image/avif">
+            <img src="%s" alt="%s"%s loading="lazy">
+        </picture>',
+        esc_url($avif_url),
+        esc_url($png_url),
+        esc_attr($alt_text),
+        $attr_string
+    );
+}
+
+/**
+ * Get theme image URL with fallback
+ * Returns AVIF URL with client-side fallback detection
+ * 
+ * @param string $image_name The base image name (without extension)
+ * @return string AVIF image URL
+ */
+function get_theme_image_url($image_name) {
+    return get_template_directory_uri() . '/images/' . $image_name . '.avif';
+}
+
+/**
+ * Get theme image fallback URL
+ * Returns PNG fallback URL
+ * 
+ * @param string $image_name The base image name (without extension)  
+ * @return string PNG image URL
+ */
+function get_theme_image_fallback_url($image_name) {
+    return get_template_directory_uri() . '/images/' . $image_name . '.png';
+}
+
+/**
+ * Enqueue AVIF detection script
+ * Adds client-side AVIF support detection with enhanced fallback
+ */
+function enqueue_avif_detection_script() {
+    wp_add_inline_script('vtuber-theme-main', '
+        // Enhanced AVIF Support Detection and Image Fallback
+        (function() {
+            function supportsAVIF() {
+                return new Promise((resolve) => {
+                    const avif = new Image();
+                    avif.onload = () => resolve(avif.height === 1);
+                    avif.onerror = () => resolve(false);
+                    avif.src = "data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAIAAAACAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQ0MAAAAABNjb2xybmNseAACAAIAAYAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgABogQEAwgMg8f8D///8WfhwB8+ErK42A=";
+                });
+            }
+
+            function applyImageFallback() {
+                // Handle standard img elements with AVIF sources
+                const avifImages = document.querySelectorAll("img[src$=\'.avif\']");
+                avifImages.forEach(img => {
+                    img.src = img.src.replace(/\.avif$/, ".png");
+                    if (img.srcset) {
+                        img.srcset = img.srcset.replace(/\.avif/g, ".png");
+                    }
+                });
+
+                // Handle picture elements - remove AVIF sources
+                const avifSources = document.querySelectorAll("source[type=\'image/avif\']");
+                avifSources.forEach(source => {
+                    source.remove();
+                });
+
+                // Handle CSS background images (if any)
+                const elementsWithBgImages = document.querySelectorAll("[style*=\'.avif\']");
+                elementsWithBgImages.forEach(el => {
+                    const style = el.getAttribute("style");
+                    if (style) {
+                        el.setAttribute("style", style.replace(/\.avif/g, ".png"));
+                    }
+                });
+            }
+
+            // Quick browser-based detection first
+            const isOlderBrowser = !window.createImageBitmap || 
+                                   /Android\s[1-6]/.test(navigator.userAgent) ||
+                                   /iPhone\sOS\s(1[0-3]|[1-9])_/.test(navigator.userAgent);
+
+            if (isOlderBrowser) {
+                document.body.classList.add("no-avif");
+                document.addEventListener("DOMContentLoaded", applyImageFallback);
+            } else {
+                // More thorough AVIF support detection
+                supportsAVIF().then((supported) => {
+                    if (!supported) {
+                        document.body.classList.add("no-avif");
+                        applyImageFallback();
+                    }
+                }).catch(() => {
+                    // Fallback if detection fails
+                    document.body.classList.add("no-avif");
+                    applyImageFallback();
+                });
+            }
+        })();
+    ');
+}
+add_action('wp_enqueue_scripts', 'enqueue_avif_detection_script');
+
+/**
+ * Smart image output with automatic AVIF/PNG fallback
+ * This function provides a simple way to output images with fallback support
+ * 
+ * @param string $image_name The base image name (without extension)
+ * @param string $alt_text Alt text for the image
+ * @param string $classes CSS classes to apply
+ * @param array $attributes Additional HTML attributes
+ * @param bool $use_picture_element Whether to use picture element (recommended)
+ * @return void Echoes the HTML directly
+ */
+function the_theme_image($image_name, $alt_text = '', $classes = '', $attributes = array(), $use_picture_element = true) {
+    if ($use_picture_element) {
+        echo get_theme_image_with_fallback($image_name, $alt_text, $classes, $attributes);
+    } else {
+        // Fallback to simple img with JavaScript detection
+        $png_url = get_template_directory_uri() . '/images/' . $image_name . '.png';
+        $avif_url = get_template_directory_uri() . '/images/' . $image_name . '.avif';
+        
+        $attr_string = '';
+        if (!empty($classes)) {
+            $attr_string .= ' class="' . esc_attr($classes) . '"';
+        }
+        
+        foreach ($attributes as $key => $value) {
+            $attr_string .= ' ' . esc_attr($key) . '="' . esc_attr($value) . '"';
+        }
+        
+        printf(
+            '<img src="%s" data-avif-src="%s" alt="%s"%s loading="lazy">',
+            esc_url($png_url),
+            esc_url($avif_url),
+            esc_attr($alt_text),
+            $attr_string
+        );
+    }
+}
+
+/**
+ * Check if browser supports AVIF format
+ * Server-side basic detection based on User-Agent
+ * 
+ * @return bool True if likely to support AVIF
+ */
+function browser_supports_avif() {
+    if (!isset($_SERVER['HTTP_USER_AGENT'])) {
+        return false;
+    }
+    
+    $user_agent = $_SERVER['HTTP_USER_AGENT'];
+    
+    // Known browsers with AVIF support
+    if (preg_match('/Chrome\/([0-9]+)/', $user_agent, $matches)) {
+        return intval($matches[1]) >= 85; // Chrome 85+
+    }
+    
+    if (preg_match('/Firefox\/([0-9]+)/', $user_agent, $matches)) {
+        return intval($matches[1]) >= 93; // Firefox 93+
+    }
+    
+    if (preg_match('/Safari\/([0-9]+)/', $user_agent, $matches) && strpos($user_agent, 'Chrome') === false) {
+        // Safari support started in version 16 (iOS 16, macOS Ventura)
+        return preg_match('/Version\/1[6-9]\./', $user_agent);
+    }
+    
+    // Default to client-side detection
+    return false;
+}
+
+/**
+ * Generate responsive image sizes for AVIF/PNG images
+ * 
+ * @param string $image_name Base image name
+ * @param array $sizes Array of sizes like ['320w', '640w', '1024w']
+ * @return array Array with AVIF and PNG srcset strings
+ */
+function get_responsive_image_srcset($image_name, $sizes = array()) {
+    if (empty($sizes)) {
+        $sizes = ['320w', '640w', '1024w'];
+    }
+    
+    $base_url = get_template_directory_uri() . '/images/';
+    $avif_srcset = array();
+    $png_srcset = array();
+    
+    foreach ($sizes as $size) {
+        $width = str_replace('w', '', $size);
+        $avif_srcset[] = $base_url . $image_name . '-' . $width . 'w.avif ' . $size;
+        $png_srcset[] = $base_url . $image_name . '-' . $width . 'w.png ' . $width . 'w';
+    }
+    
+    return array(
+        'avif' => implode(', ', $avif_srcset),
+        'png' => implode(', ', $png_srcset)
+    );
 }

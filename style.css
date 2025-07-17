@@ -2235,6 +2235,69 @@ body[data-theme="dark"] .loading-logo-dark {
    END LOADING SCREEN STYLES
 =========================== */
 
+/* AVIF Image Format Support & Fallback Styles */
+/* Modern browsers with AVIF support will use the picture element naturally */
+/* Older browsers or those without AVIF support will get the no-avif class */
+
+/* Picture element styling for better layout control */
+picture {
+  display: inline-block;
+  max-width: 100%;
+}
+
+picture img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Enhanced fallback for browsers without AVIF support */
+.no-avif picture source[type="image/avif"] {
+  display: none;
+}
+
+/* Ensure PNG fallback images load properly */
+.no-avif img[src*=".avif"] {
+  content: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB2aWV3Qm94PSIwIDAgMSAxIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9InRyYW5zcGFyZW50Ii8+PC9zdmc+');
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Performance optimization for image loading */
+img[loading="lazy"] {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+img[loading="lazy"].loaded {
+  opacity: 1;
+}
+
+/* Responsive image handling */
+@media (max-width: 768px) {
+  picture {
+    width: 100%;
+  }
+  
+  picture img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Browser-specific AVIF support detection via CSS */
+@supports (background-image: url('data:image/avif;base64,')) {
+  .avif-supported {
+    --image-format: 'avif';
+  }
+}
+
+@supports not (background-image: url('data:image/avif;base64,')) {
+  .avif-not-supported {
+    --image-format: 'png';
+  }
+}
+
 /* Utility Classes */
 .sr-only {
   position: absolute;

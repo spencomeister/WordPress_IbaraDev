@@ -822,3 +822,122 @@ const loadingManager = new LoadingManager();
     }
 
 })();
+
+// Initialize Image Loading Manager
+let themeImageManager;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        themeImageManager = new ImageLoadingManager();
+    });
+} else {
+    themeImageManager = new ImageLoadingManager();
+}
+
+// Enhanced Image Loading Manager for AVIF/PNG fallback
+class ImageLoadingManager {
+    constructor() {
+        this.loadedImages = new Set();
+        this.totalImages = 0;
+        this.init();
+    }
+    
+    init() {
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.setupImageLoading());
+        } else {
+            this.setupImageLoading();
+        }
+    }
+    
+    setupImageLoading() {
+        // Handle all images with lazy loading
+        const images = document.querySelectorAll('img[loading="lazy"], picture img');
+        this.totalImages = images.length;
+        
+        images.forEach((img, index) => {
+            this.handleImageLoad(img, index);
+        });
+        
+        // Setup intersection observer for lazy loaded images
+        this.setupLazyLoading();
+    }
+    
+    handleImageLoad(img, index) {
+        // Add loading state
+        img.style.opacity = '0';
+        img.style.transition = 'opacity 0.3s ease-in-out';
+        
+        const loadHandler = () => {
+            this.loadedImages.add(index);
+            img.style.opacity = '1';
+            img.classList.add('loaded');
+            
+            // Trigger custom event
+            img.dispatchEvent(new CustomEvent('imageLoaded', {
+                detail: { 
+                    index: index, 
+                    total: this.totalImages,
+                    loaded: this.loadedImages.size
+                }
+            }));
+        };
+        
+        const errorHandler = () => {
+            // Handle image load error
+            console.warn('Image failed to load:', img.src);
+            img.style.opacity = '0.7';
+            img.classList.add('load-error');
+        };
+        
+        if (img.complete && img.naturalHeight !== 0) {
+            // Image already loaded
+            loadHandler();
+        } else {
+            img.addEventListener('load', loadHandler, { once: true });
+            img.addEventListener('error', errorHandler, { once: true });
+        }
+    }
+    
+    setupLazyLoading() {
+        // Enhanced intersection observer for better performance
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    
+                    // Handle data-src attributes if present
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        delete img.dataset.src;
+                    }
+                    
+                    // Handle AVIF fallback data attributes
+                    if (img.dataset.avifSrc && !document.body.classList.contains('no-avif')) {
+                        img.src = img.dataset.avifSrc;
+                        delete img.dataset.avifSrc;
+                    }
+                    
+                    observer.unobserve(img);
+                }
+            });
+        }, {
+            root: null,
+            rootMargin: '50px',
+            threshold: 0.1
+        });
+        
+        // Observe all images that aren't already loaded
+        document.querySelectorAll('img[data-src], img[data-avif-src]').forEach(img => {
+            imageObserver.observe(img);
+        });
+    }
+    
+    getAllLoadedStatus() {
+        return {
+            loaded: this.loadedImages.size,
+            total: this.totalImages,
+            percentage: this.totalImages > 0 ? (this.loadedImages.size / this.totalImages) * 100 : 100
+        };
+    }
+}
