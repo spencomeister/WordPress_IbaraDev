@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube タイトル自動取得テスト - 最終版</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-step {
+            border-left: 4px solid #007cba;
+            padding-left: 15px;
+            margin: 15px 0;
+        }
+        .success { color: #4CAF50; font-weight: bold; }
+        .error { color: #F44336; font-weight: bold; }
+        .warning { color: #FF9800; font-weight: bold; }
+        .info { color: #2196F3; font-weight: bold; }
+        pre {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        input, button {
+            padding: 8px 12px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .result-box {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎬 YouTube タイトル自動取得機能 - 最終テスト</h1>
+        <p>この画面は、WordPress カスタマイザー外での動作確認用です。</p>
+        
+        <div class="test-step">
+            <h3>📋 テストチェックリスト</h3>
+            <ul>
+                <li>✅ customizer.js のコード修正完了</li>
+                <li>✅ WordPress Customizer API 優先設定</li>
+                <li>✅ DOM/Customizer値の自動同期処理</li>
+                <li>✅ デバッグログの強化</li>
+                <li>✅ ワークフローのドキュメント更新</li>
+            </ul>
+        </div>
+
+        <div class="test-step">
+            <h3>🔧 実際のテスト手順</h3>
+            <ol>
+                <li><strong>WordPress管理画面 > 外観 > カスタマイズ</strong> にアクセス</li>
+                <li><strong>動画セクション</strong> を開く</li>
+                <li><strong>F12</strong> キーでデベロッパーツールを開く</li>
+                <li><strong>Console</strong> タブを確認</li>
+                <li>Video 1 URL に YouTube URL を入力</li>
+                <li>コンソールでログを確認</li>
+                <li>同期状態を手動確認</li>
+                <li>「公開」ボタンで保存</li>
+                <li>フロントエンドで反映確認</li>
+            </ol>
+        </div>
+
+        <div class="test-step">
+            <h3>🧪 手動テスト用コマンド</h3>
+            <p>WordPress カスタマイザーのコンソールで以下のコマンドを実行：</p>
+            
+            <h4>1. 環境確認</h4>
+            <pre><code>// WordPress Customizer API の存在確認
+console.log('WordPress Customize:', typeof wp !== 'undefined' && wp.customize ? '✅ 利用可能' : '❌ 利用不可');
+
+// jQuery の確認
+console.log('jQuery:', typeof $ !== 'undefined' ? '✅ 利用可能' : '❌ 利用不可');
+
+// customizer.js の読み込み確認
+console.log('customizer.js:', window.customizerJsLoaded ? '✅ 読み込み済み' : '❌ 未読み込み');</code></pre>
+
+            <h4>2. 手動動画情報取得テスト</h4>
+            <pre><code>// 例: Video 1 でテスト実行
+testYouTubeVideoFetch(1, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');</code></pre>
+
+            <h4>3. 設定値の同期確認</h4>
+            <pre><code>// Video 1 の値同期確認
+const videoIndex = 1;
+const customizerValue = wp.customize('video_' + videoIndex + '_title').get();
+const domValue = $('input[data-customize-setting-link="video_' + videoIndex + '_title"]').val();
+
+console.log('🎯 同期状態チェック:');
+console.log('Customizer値:', customizerValue);
+console.log('DOM値:', domValue);
+console.log('同期状態:', customizerValue === domValue ? '✅ 一致' : '❌ 不一致');</code></pre>
+
+            <h4>4. 保存状態確認</h4>
+            <pre><code>// カスタマイザーの保存状態確認
+console.log('保存状態:', wp.customize.state('saved').get() ? '✅ 保存済み' : '⚠️ 未保存');</code></pre>
+
+            <h4>5. APIキー確認</h4>
+            <pre><code>// YouTube Data API キーの設定確認
+const apiKey = wp.customize('youtube_api_key').get();
+console.log('APIキー:', apiKey ? '[設定済み] ' + apiKey.length + '文字' : '❌ 未設定');</code></pre>
+        </div>
+
+        <div class="test-step">
+            <h3>📊 期待される動作</h3>
+            <div class="result-box">
+                <h4>✅ 正常動作時のログ例</h4>
+                <pre><code>🚀 Customizer.js 読み込み開始
+✅ WordPress Customizer環境確認完了
+🎬 動画情報取得プロセス開始 (Video 1)
+✅ YouTube URL確認完了: https://www.youtube.com/watch?v=...
+📡 AJAX レスポンス受信
+✅ 取得タイトル: 【動画タイトル】
+✅ Customizer API経由で設定完了
+🎯 最終確認 - Customizer値: 【動画タイトル】
+📋 DOM値: 【動画タイトル】
+✅ 値の同期確認完了
+💾 カスタマイザー未保存状態に変更</code></pre>
+            </div>
+        </div>
+
+        <div class="test-step">
+            <h3>⚠️ トラブルシューティング</h3>
+            <div class="result-box">
+                <h4>問題: タイトルは取得されるがCustomizer値が空</h4>
+                <p><strong>解決済み</strong>: 最新版では以下の改善を実装</p>
+                <ul>
+                    <li>WordPress Customizer API での設定を最優先実行</li>
+                    <li>DOM更新よりも先にCustomizer値を設定</li>
+                    <li>最終確認での値一致チェック</li>
+                    <li>不一致時の自動再同期処理</li>
+                </ul>
+                
+                <h4>問題: 保存しても反映されない</h4>
+                <p><strong>確認事項</strong>:</p>
+                <ul>
+                    <li>保存前に `wp.customize.state('saved').get()` が `false` であること</li>
+                    <li>「公開」ボタンを確実に押下すること</li>
+                    <li>保存後にフロントエンドをリロードすること</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-step">
+            <h3>🎯 最終確認ポイント</h3>
+            <ol>
+                <li><strong class="success">JavaScript動作確認</strong>: コンソールログが正常に出力される</li>
+                <li><strong class="success">AJAX通信確認</strong>: YouTube Data APIからタイトルが取得される</li>
+                <li><strong class="success">Customizer同期確認</strong>: API値とDOM値が一致する</li>
+                <li><strong class="success">保存機能確認</strong>: 「公開」ボタンで設定が保存される</li>
+                <li><strong class="success">フロントエンド確認</strong>: ランディングページに反映される</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>📝 修正内容まとめ</h2>
+        <div class="test-step">
+            <h3>1. customizer.js の修正</h3>
+            <ul>
+                <li>WordPress Customizer API による設定を最優先に変更</li>
+                <li>DOM更新前にCustomizer値を設定するよう順序変更</li>
+                <li>最終確認での値同期チェック機能追加</li>
+                <li>不一致時の自動再同期処理実装</li>
+                <li>デバッグログのさらなる強化</li>
+            </ul>
+        </div>
+        
+        <div class="test-step">
+            <h3>2. ワークフロー文書の更新</h3>
+            <ul>
+                <li>recommended-videos-workflow.md の詳細な更新</li>
+                <li>トラブルシューティングセクションの大幅拡充</li>
+                <li>実際の確認手順の明文化</li>
+                <li>コンソールコマンド例の追加</li>
+            </ul>
+        </div>
+        
+        <div class="test-step">
+            <h3>3. 問題の根本解決</h3>
+            <p>DOM値には入るがCustomizer API値が空になる問題を解決：</p>
+            <ul>
+                <li><strong>原因</strong>: DOM更新とCustomizer API更新の順序・同期の問題</li>
+                <li><strong>解決</strong>: Customizer API優先 + 自動再同期機能</li>
+                <li><strong>結果</strong>: wp_optionへの確実な保存が可能</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        console.log('%c🧪 テストページが読み込まれました', 'color: #4CAF50; font-weight: bold; font-size: 16px;');
+        console.log('%c📋 WordPress カスタマイザーでの実際のテストを実行してください', 'color: #2196F3; font-weight: bold;');
+    </script>
+</body>
+</html>
