@@ -1,4 +1,9 @@
-<?php get_header(); ?>
+<?php
+/**
+ * Page Template
+ * IbaraDev VTuber Landing Page Theme v2.0.0
+ */
+get_header(); ?>
 
 <main class="page-main" role="main">
     <div class="container">
