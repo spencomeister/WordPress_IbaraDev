@@ -1206,17 +1206,22 @@ add_action('wp_ajax_get_video_info', 'ajax_get_video_info');
  * カスタマイザー用JavaScript
  */
 function enqueue_customizer_scripts() {
+    // jQueryと依存関係を確実に読み込み
+    wp_enqueue_script('jquery');
+    wp_enqueue_script('customize-controls');
+    
     wp_enqueue_script(
         'vtuber-customizer',
         get_template_directory_uri() . '/js/customizer.js',
         array('jquery', 'customize-controls'),
-        '1.0.0',
+        filemtime(get_template_directory() . '/js/customizer.js'), // ファイル更新時刻をバージョンに使用
         true
     );
     
     wp_localize_script('vtuber-customizer', 'vtuberAjax', array(
         'ajaxurl' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('video_info_nonce'),
+        'debug' => defined('WP_DEBUG') && WP_DEBUG,
     ));
 }
 add_action('customize_controls_enqueue_scripts', 'enqueue_customizer_scripts');
