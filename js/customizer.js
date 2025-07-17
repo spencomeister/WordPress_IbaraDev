@@ -3,8 +3,23 @@
  * シンプルなDOM操作でYouTube動画情報を自動取得
  */
 
+// グローバルスコープに読み込み確認用の関数を追加
+window.customizerJsLoaded = true;
+window.fetchVideoInfo = true; // デバッグ用
+
 (function($) {
     'use strict';
+    
+    // 読み込み確認ログ
+    console.log('%c🚀 Customizer.js 読み込み完了', 'color: #00ff00; font-weight: bold; font-size: 16px;');
+    console.log('%cjQuery利用可能:', typeof $ !== 'undefined' ? '✅ YES' : '❌ NO');
+    console.log('%cWordPress Customizer API:', typeof wp !== 'undefined' && wp.customize ? '✅ 利用可能' : '❌ 利用不可');
+    
+    // 即座にカスタマイザー環境チェック
+    if (typeof wp === 'undefined' || !wp.customize) {
+        console.error('%c⚠️ WordPress Customizer環境ではありません', 'color: #ff0000; font-weight: bold;');
+        return;
+    }
 
     // デバッグ用ヘルパー関数
     const Debug = {
@@ -116,23 +131,81 @@
                         }
                         
                         if (response.success && response.data && response.data.title) {
-                            Debug.step('3', 'タイトル入力フィールドに設定中...');
-                            titleInput.val(response.data.title);
+                            Debug.step('3', 'タイトル設定プロセス開始');
+                            const newTitle = response.data.title;
                             
-                            // WordPressのoptions更新をトリガー
-                            titleInput.trigger('change');
-                            Debug.info('WordPressオプション更新トリガー実行');
+                            // 現在の値と比較
+                            const oldTitle = titleInput.val().trim();
+                            Debug.info('設定前タイトル:', oldTitle || '(空)');
+                            Debug.info('設定後タイトル:', newTitle);
                             
-                            Debug.success('タイトル設定完了:', response.data.title);
+                            // Step 1: 入力フィールドに値を設定
+                            titleInput.val(newTitle);
+                            Debug.step('3-1', '入力フィールドに値設定完了');
                             
-                            // カスタマイザープレビュー更新
+                            // Step 2: WordPress Customizer API経由で設定（最重要）
                             if (typeof wp !== 'undefined' && wp.customize) {
                                 const setting = wp.customize('video_' + videoIndex + '_title');
                                 if (setting) {
-                                    setting.set(response.data.title);
-                                    Debug.success('カスタマイザー設定更新完了');
+                                    Debug.step('3-2', 'カスタマイザー設定オブジェクト取得完了');
+                                    Debug.info('設定前のCustomizer値:', setting.get());
+                                    
+                                    // 値を設定
+                                    setting.set(newTitle);
+                                    Debug.success('✅ Customizer API経由で設定完了');
+                                    Debug.info('設定後のCustomizer値:', setting.get());
+                                    
+                                    // 強制的に変更をマーク（内部プロパティ）
+                                    if (setting._dirty !== undefined) {
+                                        setting._dirty = true;
+                                        Debug.info('🔄 設定を変更済みとしてマーク完了');
+                                    }
+                                    
+                                    // カスタマイザーの保存状態を更新
+                                    if (wp.customize.state && wp.customize.state('saved')) {
+                                        wp.customize.state('saved').set(false);
+                                        Debug.info('💾 カスタマイザー未保存状態に変更');
+                                    }
+                                    
+                                    // 保存ボタンを有効化
+                                    if (wp.customize.previewer) {
+                                        wp.customize.previewer.refresh();
+                                        Debug.info('🔄 プレビューリフレッシュ実行');
+                                    }
+                                } else {
+                                    Debug.error('❌ カスタマイザー設定オブジェクトが見つかりません:', 'video_' + videoIndex + '_title');
                                 }
+                            } else {
+                                Debug.warning('⚠️ WordPress Customizer API が利用できません');
                             }
+                            
+                            // Step 3: DOM変更イベントを複数発火（保険）
+                            Debug.step('3-3', 'DOM変更イベント発火中...');
+                            titleInput.trigger('input');
+                            titleInput.trigger('change');
+                            titleInput.trigger('blur');
+                            titleInput.trigger('keyup');
+                            Debug.info('📡 全DOM変更イベント発火完了');
+                            
+                            // Step 4: フォーカス処理で確実に認識させる
+                            setTimeout(function() {
+                                titleInput.focus();
+                                setTimeout(function() {
+                                    titleInput.blur();
+                                    Debug.info('👁️ フォーカス/ブラー処理完了');
+                                    
+                                    // 最終確認
+                                    if (typeof wp !== 'undefined' && wp.customize) {
+                                        const finalSetting = wp.customize('video_' + videoIndex + '_title');
+                                        if (finalSetting) {
+                                            Debug.success('🎯 最終確認 - Customizer値:', finalSetting.get());
+                                            Debug.info('📋 DOM値:', titleInput.val());
+                                        }
+                                    }
+                                }, 100);
+                            }, 200);
+                            
+                            Debug.success('✅ タイトル設定プロセス完了:', newTitle);
                         } else {
                             Debug.error('動画情報取得失敗');
                             titleInput.val('取得失敗');
@@ -277,7 +350,7 @@
                     }
                     
                     // 動画設定の現在値も確認
-                    Debug.info('現在の動画設定:');
+                    Debug.info('📹 現在の動画設定確認:');
                     for (let i = 1; i <= 3; i++) {
                         const urlSetting = wp.customize('video_' + i + '_url');
                         const titleSetting = wp.customize('video_' + i + '_title');
@@ -285,10 +358,37 @@
                         if (urlSetting && titleSetting) {
                             const url = urlSetting.get();
                             const title = titleSetting.get();
-                            Debug.info(`Video ${i}:`);
-                            Debug.info(`  URL: ${url || '(未設定)'}`);
-                            Debug.info(`  Title: ${title || '(未設定)'}`);
+                            Debug.info(`📺 Video ${i}:`);
+                            Debug.info(`    URL: ${url || '(未設定)'}`);
+                            Debug.info(`    Title: ${title || '(未設定)'}`);
+                            
+                            // 設定変更の監視を追加
+                            titleSetting.bind(function(newValue, oldValue) {
+                                Debug.group(`🔄 Video ${i} タイトル変更検知`, function() {
+                                    Debug.info('変更前:', oldValue);
+                                    Debug.info('変更後:', newValue);
+                                    Debug.success('WordPress設定変更が正常に検知されました');
+                                });
+                            });
+                            
+                            urlSetting.bind(function(newValue, oldValue) {
+                                Debug.group(`🔄 Video ${i} URL変更検知`, function() {
+                                    Debug.info('変更前:', oldValue);
+                                    Debug.info('変更後:', newValue);
+                                });
+                            });
                         }
+                    }
+                    
+                    // カスタマイザーの保存状態監視
+                    if (wp.customize.state && wp.customize.state('saved')) {
+                        wp.customize.state('saved').bind(function(isSaved) {
+                            if (isSaved) {
+                                Debug.success('💾 カスタマイザー設定が保存されました');
+                            } else {
+                                Debug.warning('📝 カスタマイザーに未保存の変更があります');
+                            }
+                        });
                     }
                 }, 500);
             });
