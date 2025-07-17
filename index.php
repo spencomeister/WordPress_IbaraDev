@@ -187,9 +187,12 @@ get_header(); ?>
                 </div>
                 
                 <div class="hero-image">
-                    <img src="<?php echo get_template_directory_uri(); ?>/images/ibaradevilroze-keyvisual-trans.avif" 
-                         alt="<?php echo get_theme_mod('vtuber_name', 'IbaraDevilRoze'); ?>" 
-                         loading="lazy">
+                    <picture>
+                        <source srcset="<?php echo get_template_directory_uri(); ?>/images/ibaradevilroze-keyvisual-trans.avif" type="image/avif">
+                        <img src="<?php echo get_template_directory_uri(); ?>/images/ibaradevilroze-keyvisual-trans.png" 
+                             alt="<?php echo get_theme_mod('vtuber_name', 'IbaraDevilRoze'); ?>" 
+                             loading="lazy">
+                    </picture>
                 </div>
             </div>
         </div>
@@ -201,9 +204,16 @@ get_header(); ?>
             <h2>自己紹介</h2>
             <div class="about-content">
                 <div class="about-image">
-                    <img src="<?php echo get_template_directory_uri(); ?>/images/<?php echo get_theme_mod('about_image', 'about-icon-trans.avif'); ?>" 
-                         alt="About <?php echo get_theme_mod('vtuber_name', 'IbaraDevilRoze'); ?>" 
-                         loading="lazy">
+                    <?php 
+                    $about_image = get_theme_mod('about_image', 'about-icon-trans.avif');
+                    $image_name = pathinfo($about_image, PATHINFO_FILENAME);
+                    ?>
+                    <picture>
+                        <source srcset="<?php echo get_template_directory_uri(); ?>/images/<?php echo $image_name; ?>.avif" type="image/avif">
+                        <img src="<?php echo get_template_directory_uri(); ?>/images/<?php echo $image_name; ?>.png" 
+                             alt="About <?php echo get_theme_mod('vtuber_name', 'IbaraDevilRoze'); ?>" 
+                             loading="lazy">
+                    </picture>
                 </div>
                 <div class="about-text">
                     <p><?php echo get_theme_mod('about_text_1', 'Hello! I\'m an individual VTuber who streams various games and loves interacting with my viewers. My content focuses on creating a fun and welcoming environment for everyone.'); ?></p>
