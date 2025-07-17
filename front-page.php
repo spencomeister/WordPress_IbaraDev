@@ -1,10 +1,10 @@
 <?php
 /**
  * Front Page Template
- * IbaraDevilRoze VTuber Landing Page
+ * IbaraDev VTuber Landing Page v2.0.0
  * 
  * @package VTuberTheme
- * @version 2.1
+ * @version 2.0.0
  */
 
 get_header(); ?>

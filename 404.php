@@ -1,4 +1,9 @@
-<?php get_header(); ?>
+<?php
+/**
+ * 404 Error Page Template
+ * IbaraDev VTuber Landing Page Theme v2.0.0
+ */
+get_header(); ?>
 
 <main class="blog-main" role="main">
     <div class="container">

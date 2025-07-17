@@ -1,12 +1,12 @@
 <?php
 /**
- * IbaraDevilRoze VTuber Landing Page Theme Functions
- * Modern White/Black + Purple Accent with Dark Mode
- * Version 2.1
+ * IbaraDev VTuber Landing Page Theme Functions
+ * YouTube Data API Integration & Modern Responsive Design
+ * Version 2.0.0
  * 
  * @package VTuberTheme
- * @author IbaraDev
- * @since 2.0
+ * @author GitHub Copilot AI Assistant
+ * @since 2.0.0
  */
 
 // Prevent direct access
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define theme constants
-define('VTUBER_THEME_VERSION', '2.1');
+define('VTUBER_THEME_VERSION', '2.0.0');
 define('VTUBER_THEME_PATH', get_template_directory());
 define('VTUBER_THEME_URL', get_template_directory_uri());
 
@@ -1206,17 +1206,22 @@ add_action('wp_ajax_get_video_info', 'ajax_get_video_info');
  * カスタマイザー用JavaScript
  */
 function enqueue_customizer_scripts() {
+    // jQueryと依存関係を確実に読み込み
+    wp_enqueue_script('jquery');
+    wp_enqueue_script('customize-controls');
+    
     wp_enqueue_script(
         'vtuber-customizer',
         get_template_directory_uri() . '/js/customizer.js',
         array('jquery', 'customize-controls'),
-        '1.0.0',
+        filemtime(get_template_directory() . '/js/customizer.js'),
         true
     );
     
     wp_localize_script('vtuber-customizer', 'vtuberAjax', array(
         'ajaxurl' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('video_info_nonce'),
+        'debug' => defined('WP_DEBUG') && WP_DEBUG,
     ));
 }
 add_action('customize_controls_enqueue_scripts', 'enqueue_customizer_scripts');
