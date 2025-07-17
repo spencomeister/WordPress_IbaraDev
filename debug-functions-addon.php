@@ -22,7 +22,21 @@ function debug_customizer_video_data() {
         echo "</ul>";
     }
     
-    echo '<h4>JavaScriptに渡されるデータ:</h4>';
+    echo '<h4>JavaScriptに渡されるデータ（修正後）:</h4>';
+    echo '<pre>';
+    // New video data format being passed to JavaScript
+    $video_data = array();
+    for ($i = 1; $i <= 3; $i++) {
+        $video_data['video_' . $i] = array(
+            'title' => get_theme_mod('video_' . $i . '_title', ''),
+            'description' => get_theme_mod('video_' . $i . '_desc', ''),
+            'url' => get_theme_mod('video_' . $i . '_url', ''),
+        );
+    }
+    print_r($video_data);
+    echo '</pre>';
+    
+    echo '<h4>旧形式のデータ（参考）:</h4>';
     echo '<pre>';
     $video_titles = array(
         'video_1' => get_theme_mod('video_1_title', ''),
