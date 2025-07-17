@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!--
+IbaraDev VTuber Landing Page Theme v2.0.0
+WordPress Theme for Content Creators
+-->
 <html <?php language_attributes(); ?>>
 <head>
     <meta charset="<?php bloginfo('charset'); ?>">

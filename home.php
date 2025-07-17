@@ -1,4 +1,9 @@
-<?php get_header(); ?>
+<?php
+/**
+ * Blog Home Template
+ * IbaraDev VTuber Landing Page Theme v2.0.0
+ */
+get_header(); ?>
 
 <!-- Blog List -->
 <main class="blog-main" role="main">
