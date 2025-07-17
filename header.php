@@ -54,6 +54,26 @@ WordPress Theme for Content Creators
 })();
 </script>
 
+<!-- Loading Screen -->
+<?php if (get_theme_mod('loading_screen_enabled', true)) : ?>
+<div id="loading-screen" class="loading-screen">
+    <div class="loading-content">
+        <div class="loading-logo">
+            <img src="<?php echo get_template_directory_uri(); ?>/images/logo-black-trans.avif" 
+                 alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
+                 class="loading-logo-light">
+            <img src="<?php echo get_template_directory_uri(); ?>/images/logo-white-trans.avif" 
+                 alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
+                 class="loading-logo-dark">
+        </div>
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+        </div>
+        <p class="loading-text">読み込み中...</p>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- Header -->
 <header id="main-header" role="banner">
     <div class="container">
@@ -71,10 +91,10 @@ WordPress Theme for Content Creators
 
             <div class="logo">
                 <a href="<?php echo esc_url(home_url('/')); ?>" rel="home" aria-label="<?php echo esc_attr(get_bloginfo('name') . ' - Home'); ?>">
-                    <img src="<?php echo get_template_directory_uri(); ?>/images/logo-black-trans.png" 
+                    <img src="<?php echo get_template_directory_uri(); ?>/images/logo-black-trans.avif" 
                          alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
                          class="logo-light">
-                    <img src="<?php echo get_template_directory_uri(); ?>/images/logo-white-trans.png" 
+                    <img src="<?php echo get_template_directory_uri(); ?>/images/logo-white-trans.avif" 
                          alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
                          class="logo-dark">
                 </a>
@@ -108,10 +128,10 @@ WordPress Theme for Content Creators
     <div class="sidebar-header">
         <div class="sidebar-logo">
             <a href="<?php echo esc_url(home_url('/')); ?>" rel="home">
-                <img src="<?php echo get_template_directory_uri(); ?>/images/logo-black-trans.png" 
+                <img src="<?php echo get_template_directory_uri(); ?>/images/logo-black-trans.avif" 
                      alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
                      class="sidebar-logo-light">
-                <img src="<?php echo get_template_directory_uri(); ?>/images/logo-white-trans.png" 
+                <img src="<?php echo get_template_directory_uri(); ?>/images/logo-white-trans.avif" 
                      alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
                      class="sidebar-logo-dark">
             </a>
