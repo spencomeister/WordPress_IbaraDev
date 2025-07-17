@@ -3,6 +3,7 @@
  * Version 2.1
  * 
  * Features:
+ * - Loading screen functionality
  * - Theme toggle functionality
  * - Sidebar menu functionality
  * - Smooth scroll navigation
@@ -13,11 +14,144 @@
 
 'use strict';
 
+// Loading Screen Manager
+class LoadingManager {
+    constructor() {
+        this.loadingScreen = null;
+        this.isLoading = false;
+        this.config = window.vtuber_ajax?.loading_config || {
+            enabled: true,
+            min_loading_time: 800,
+            enable_transitions: true,
+            show_for_external: false
+        };
+        this.loadStartTime = Date.now();
+        
+        if (this.config.enabled) {
+            this.init();
+        }
+    }
+    
+    init() {
+        // Show loading screen immediately
+        this.show();
+        
+        // Hide loading screen when page is fully loaded
+        if (document.readyState === 'complete') {
+            this.hide();
+        } else {
+            window.addEventListener('load', () => this.hide());
+        }
+        
+        // Handle page transitions
+        this.setupPageTransitions();
+    }
+    
+    show() {
+        this.loadingScreen = document.getElementById('loading-screen');
+        if (this.loadingScreen) {
+            this.loadingScreen.classList.remove('hidden');
+            this.isLoading = true;
+            this.loadStartTime = Date.now();
+            
+            // Prevent scrolling during loading
+            document.body.style.overflow = 'hidden';
+            
+            console.log('🔄 Loading screen shown');
+        }
+    }
+    
+    hide() {
+        if (!this.loadingScreen || !this.isLoading || !this.config.enabled) return;
+        
+        const elapsedTime = Date.now() - this.loadStartTime;
+        const remainingTime = Math.max(0, this.config.min_loading_time - elapsedTime);
+        
+        setTimeout(() => {
+            this.loadingScreen.classList.add('hidden');
+            this.isLoading = false;
+            
+            // Re-enable scrolling
+            document.body.style.overflow = '';
+            
+            // Remove loading screen from DOM after animation
+            setTimeout(() => {
+                if (this.loadingScreen && this.loadingScreen.parentNode) {
+                    this.loadingScreen.style.display = 'none';
+                }
+            }, 500);
+            
+            console.log('✅ Loading screen hidden');
+        }, remainingTime);
+    }
+    
+    setupPageTransitions() {
+        if (!this.config.enable_transitions) return;
+        
+        // Show loading screen for internal link clicks
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (link && this.shouldShowLoadingForLink(link)) {
+                // Small delay to show loading screen before navigation
+                setTimeout(() => this.show(), 50);
+            }
+        });
+        
+        // Handle form submissions
+        document.addEventListener('submit', (e) => {
+            const form = e.target;
+            if (form && this.shouldShowLoadingForForm(form)) {
+                this.show();
+            }
+        });
+    }
+    
+    shouldShowLoadingForLink(link) {
+        const href = link.getAttribute('href');
+        if (!href) return false;
+        
+        // Skip external links
+        if (href.startsWith('http') && !href.includes(window.location.hostname)) {
+            return false;
+        }
+        
+        // Skip anchor links
+        if (href.startsWith('#')) return false;
+        
+        // Skip mailto, tel, etc.
+        if (href.includes(':') && !href.startsWith('/') && !href.startsWith(window.location.origin)) {
+            return false;
+        }
+        
+        // Skip download links
+        if (link.hasAttribute('download')) return false;
+        
+        // Skip target="_blank" links
+        if (link.getAttribute('target') === '_blank') return false;
+        
+        return true;
+    }
+    
+    shouldShowLoadingForForm(form) {
+        // Skip search forms
+        if (form.getAttribute('role') === 'search') return false;
+        
+        // Skip contact forms that use AJAX
+        if (form.classList.contains('ajax-form')) return false;
+        
+        return true;
+    }
+}
+
+// Initialize loading manager
+const loadingManager = new LoadingManager();
+
 (function() {
     // Global theme utilities
     window.VTuberTheme = {
         version: '2.1',
         initialized: false,
+        loadingManager: loadingManager,
         
         toggleTheme() {
             const themeToggle = document.getElementById('theme-toggle');
@@ -45,6 +179,14 @@
             }
             
             return true;
+        },
+        
+        showLoading() {
+            loadingManager.show();
+        },
+        
+        hideLoading() {
+            loadingManager.hide();
         },
         
         toggleSidebar() {
@@ -680,3 +822,122 @@
     }
 
 })();
+
+// Initialize Image Loading Manager
+let themeImageManager;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        themeImageManager = new ImageLoadingManager();
+    });
+} else {
+    themeImageManager = new ImageLoadingManager();
+}
+
+// Enhanced Image Loading Manager for AVIF/PNG fallback
+class ImageLoadingManager {
+    constructor() {
+        this.loadedImages = new Set();
+        this.totalImages = 0;
+        this.init();
+    }
+    
+    init() {
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.setupImageLoading());
+        } else {
+            this.setupImageLoading();
+        }
+    }
+    
+    setupImageLoading() {
+        // Handle all images with lazy loading
+        const images = document.querySelectorAll('img[loading="lazy"], picture img');
+        this.totalImages = images.length;
+        
+        images.forEach((img, index) => {
+            this.handleImageLoad(img, index);
+        });
+        
+        // Setup intersection observer for lazy loaded images
+        this.setupLazyLoading();
+    }
+    
+    handleImageLoad(img, index) {
+        // Add loading state
+        img.style.opacity = '0';
+        img.style.transition = 'opacity 0.3s ease-in-out';
+        
+        const loadHandler = () => {
+            this.loadedImages.add(index);
+            img.style.opacity = '1';
+            img.classList.add('loaded');
+            
+            // Trigger custom event
+            img.dispatchEvent(new CustomEvent('imageLoaded', {
+                detail: { 
+                    index: index, 
+                    total: this.totalImages,
+                    loaded: this.loadedImages.size
+                }
+            }));
+        };
+        
+        const errorHandler = () => {
+            // Handle image load error
+            console.warn('Image failed to load:', img.src);
+            img.style.opacity = '0.7';
+            img.classList.add('load-error');
+        };
+        
+        if (img.complete && img.naturalHeight !== 0) {
+            // Image already loaded
+            loadHandler();
+        } else {
+            img.addEventListener('load', loadHandler, { once: true });
+            img.addEventListener('error', errorHandler, { once: true });
+        }
+    }
+    
+    setupLazyLoading() {
+        // Enhanced intersection observer for better performance
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    
+                    // Handle data-src attributes if present
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        delete img.dataset.src;
+                    }
+                    
+                    // Handle AVIF fallback data attributes
+                    if (img.dataset.avifSrc && !document.body.classList.contains('no-avif')) {
+                        img.src = img.dataset.avifSrc;
+                        delete img.dataset.avifSrc;
+                    }
+                    
+                    observer.unobserve(img);
+                }
+            });
+        }, {
+            root: null,
+            rootMargin: '50px',
+            threshold: 0.1
+        });
+        
+        // Observe all images that aren't already loaded
+        document.querySelectorAll('img[data-src], img[data-avif-src]').forEach(img => {
+            imageObserver.observe(img);
+        });
+    }
+    
+    getAllLoadedStatus() {
+        return {
+            loaded: this.loadedImages.size,
+            total: this.totalImages,
+            percentage: this.totalImages > 0 ? (this.loadedImages.size / this.totalImages) * 100 : 100
+        };
+    }
+}
