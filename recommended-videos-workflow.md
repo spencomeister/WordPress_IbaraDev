@@ -1,146 +1,240 @@
-# おすすめ動画セクション - 動画タイトル取得ワークフロー
+# おすすめ動画セクション - YouTube Data API 連携ガイド
 
 ## システム概要
 
-このドキュメントは、WordPressテーマ「IbaraDev VTuber Landing Page」のおすすめ動画セクションにおける、YouTube Data APIを使用した動画タイトル自動取得機能のワークフローを詳細に説明します。
+WordPressテーマ「IbaraDev VTuber Landing Page」のおすすめ動画セクションにおける、YouTube Data APIを使用した動画タイトル自動取得機能の完全ガイドです。
 
-## アーキテクチャ概要
+## 機能概要
+
+- **自動タイトル取得**: YouTube URLを入力すると、APIから動画タイトルを自動取得
+- **リアルタイム更新**: カスタマイザーでの変更がプレビューに即座に反映
+- **自動同期**: 保存時にDOM値とカスタマイザー値を自動同期
+- **エラーハンドリング**: APIキー未設定やネットワークエラーに対応
+
+## セットアップ手順
+
+### 1. YouTube Data API キーの取得
+
+1. [Google Cloud Console](https://console.cloud.google.com/) にアクセス
+2. プロジェクトを作成または選択
+3. YouTube Data API v3 を有効化
+4. 認証情報からAPIキーを作成
+5. APIキーをカスタマイザーに設定
+
+### 2. カスタマイザー設定
+
+1. WordPress管理画面 → 外観 → カスタマイズ
+2. "動画セクション" を開く
+3. "YouTube Data API キー" にAPIキーを入力
+4. 各動画のYouTube URLを入力
+5. タイトルが自動取得されることを確認
+6. "公開" ボタンで設定を保存
+
+## 技術仕様
+
+### ファイル構成
 
 ```
-WordPress管理画面（カスタマイザー）
+/themes/WordPress_IbaraDev/
+├── functions.php          # バックエンド処理とカスタマイザー設定
+├── js/customizer.js       # フロントエンド処理とAJAX連携
+├── front-page.php         # ランディングページ表示
+└── recommended-videos-workflow.md
+```
+
+# おすすめ動画セクション - YouTube Data API 連携ガイド
+
+## システム概要
+
+WordPressテーマ「IbaraDev VTuber Landing Page」のおすすめ動画セクションにおける、YouTube Data APIを使用した動画タイトル自動取得機能の完全ガイドです。
+
+## 機能概要
+
+- **自動タイトル取得**: YouTube URLを入力すると、APIから動画タイトルを自動取得
+- **リアルタイム更新**: カスタマイザーでの変更がプレビューに即座に反映
+- **自動同期**: 保存時にDOM値とカスタマイザー値を自動同期
+- **エラーハンドリング**: APIキー未設定やネットワークエラーに対応
+
+## セットアップ手順
+
+### 1. YouTube Data API キーの取得
+
+1. [Google Cloud Console](https://console.cloud.google.com/) にアクセス
+2. プロジェクトを作成または選択
+3. YouTube Data API v3 を有効化
+4. 認証情報からAPIキーを作成
+5. APIキーをカスタマイザーに設定
+
+### 2. カスタマイザー設定
+
+1. WordPress管理画面 → 外観 → カスタマイズ
+2. "動画セクション" を開く
+3. "YouTube Data API キー" にAPIキーを入力
+4. 各動画のYouTube URLを入力
+5. タイトルが自動取得されることを確認
+6. "公開" ボタンで設定を保存
+
+## 技術仕様
+
+### ファイル構成
+
+```
+/themes/WordPress_IbaraDev/
+├── functions.php          # バックエンド処理とカスタマイザー設定
+├── js/customizer.js       # フロントエンド処理とAJAX連携
+├── front-page.php         # ランディングページ表示
+└── recommended-videos-workflow.md
+```
+
+### データフロー
+
+```
+カスタマイザー入力
     ↓
-フロントエンド（JavaScript - customizer.js）
+JavaScript (customizer.js)
     ↓
-AJAX リクエスト
-    ↓
-バックエンド（PHP - functions.php）
+AJAX → functions.php
     ↓
 YouTube Data API
     ↓
-動画情報取得・保存
+タイトル取得・表示・保存
 ```
 
-## 詳細ワークフロー
+## 主要機能の詳細
 
-### 1. カスタマイザーでの設定
+### 1. 自動タイトル取得
 
-#### 1.1 初期設定
-- **場所**: `functions.php` (行490-520)
-- **カスタマイザーセクション**: `videos_section`
-- **設定項目**:
-  - `youtube_api_key`: YouTube Data API キー
-  - `video_1_title`, `video_2_title`, `video_3_title`: 各動画のタイトル
-  - `video_1_url`, `video_2_url`, `video_3_url`: 各動画のURL
-  - `video_1_description`, `video_2_description`, `video_3_description`: 各動画の説明
+YouTube URLが入力されると、500msのデバウンス後に以下の処理が実行されます：
 
-#### 1.2 APIキー設定
-```php
-$wp_customize->add_setting('youtube_api_key', array(
-    'default' => '',
-    'sanitize_callback' => 'sanitize_text_field',
-));
+1. URL検証（YouTube URLかチェック）
+2. 重複チェック（既にタイトルが設定済みかチェック）
+3. AJAX経由でYouTube Data APIから動画情報を取得
+4. タイトルをカスタマイザーとDOM入力フィールドに同期設定
+
+### 2. 自動同期システム
+
+保存時に以下の自動同期処理が実行されます：
+
+- DOM入力フィールドの値とカスタマイザー設定値の整合性チェック
+- 不一致の場合は自動的にカスタマイザー設定値を更新
+- 変更フラグ設定と未保存状態への変更
+
+### 3. エラーハンドリング
+
+- **APIキー未設定**: 適切なエラーメッセージとセットアップガイドを表示
+- **ネットワークエラー**: タイムアウト・接続エラーの詳細表示
+- **YouTube API エラー**: クォータ制限・無効URLなどの API固有エラーに対応
+
+## トラブルシューティング
+
+### よくある問題
+
+#### 1. タイトルが自動取得されない
+
+**確認事項**：
+- YouTube Data APIキーが正しく設定されているか
+- 入力したURLが有効なYouTube URLか
+- APIキーにYouTube Data API v3の権限があるか
+- APIクォータが残っているか
+
+**解決方法**：
+- ブラウザのコンソールログを確認
+- カスタマイザーに再度URLを入力
+- APIキーの再設定
+
+#### 2. タイトルが保存されない
+
+**原因**: DOM値とカスタマイザー値の同期不具合
+
+**解決方法**：
+- 自動同期システムにより、保存時に自動的に解決されます
+- 問題が継続する場合は、ページを再読み込みしてください
+
+#### 3. プレビューに反映されない
+
+**解決方法**：
+- カスタマイザーで設定を保存
+- プレビューが自動的にリフレッシュされます
+
+## デバッグ方法
+
+### デバッグログの有効化
+
+URLパラメータに `?debug=true` を追加すると、詳細なログが出力されます：
+
+```
+/wp-admin/customize.php?debug=true
 ```
 
-### 2. フロントエンド（JavaScript）処理
+### ブラウザコンソール確認
 
-#### 2.1 初期化プロセス
-- **ファイル**: `js/customizer.js`
-- **実行タイミング**: DOM読み込み完了後（1秒遅延）
+開発者ツール（F12）のコンソールタブで以下を確認：
 
-```javascript
-$(document).ready(function() {
-    setTimeout(function() {
-        // URL入力フィールドにイベントリスナーを設定
-        for (let i = 1; i <= 3; i++) {
-            setupVideoUrlHandler(i);
-        }
-    }, 1000);
-});
-```
+- JavaScript エラーがないか
+- AJAX リクエスト・レスポンスの内容
+- カスタマイザー設定値の変更ログ
 
-#### 2.2 URL入力監視
-```javascript
-urlInput.on('input blur paste change', function() {
-    const url = $(this).val().trim();
-    
-    // デバウンス処理（500ms）
-    timeoutId = setTimeout(function() {
-        fetchVideoInfo(url, i);
-    }, 500);
-});
-```
+## API仕様
 
-#### 2.3 YouTube URL検証
-```javascript
-const youtubeRegex = /(?:youtube\.com|youtu\.be)/;
-if (!youtubeRegex.test(url)) {
-    return; // YouTube URLでない場合は処理しない
+### AJAX エンドポイント
+
+**URL**: `/wp-admin/admin-ajax.php`  
+**Action**: `get_video_info`  
+**Method**: POST
+
+**リクエストパラメータ**:
+```json
+{
+    "action": "get_video_info",
+    "url": "https://www.youtube.com/watch?v=VIDEO_ID",
+    "nonce": "SECURITY_NONCE"
 }
 ```
 
-#### 2.4 重複チェック
-```javascript
-const currentTitle = titleInput.val().trim();
-if (currentTitle && currentTitle !== '取得中...' && currentTitle !== '取得失敗') {
-    return; // すでにタイトルが設定されている場合はスキップ
+**レスポンス（成功時）**:
+```json
+{
+    "success": true,
+    "data": {
+        "title": "動画タイトル",
+        "thumbnail": "サムネイルURL",
+        "channel_title": "チャンネル名"
+    }
 }
 ```
 
-### 3. AJAX通信
-
-#### 3.1 リクエスト送信
-```javascript
-$.ajax({
-    url: vtuberAjax.ajaxurl,
-    type: 'POST',
-    data: {
-        action: 'get_video_info',
-        url: url,
-        nonce: vtuberAjax.nonce
-    },
-    timeout: 15000,
-    // ... レスポンス処理
-});
-```
-
-#### 3.2 セキュリティ
-- **Nonce検証**: `wp_ajax_nonce` を使用
-- **権限チェック**: `current_user_can('customize')`
-
-### 4. バックエンド（PHP）処理
-
-#### 4.1 AJAX ハンドラー
-- **関数**: `ajax_get_video_info()` (functions.php 行1137-1203)
-- **アクション**: `wp_ajax_get_video_info`
-
-#### 4.2 セキュリティチェック
-```php
-if (!check_ajax_referer('video_info_nonce', 'nonce', false)) {
-    wp_send_json_error(array(
-        'message' => 'セキュリティチェックに失敗しました。',
-        'debug' => 'Invalid nonce'
-    ));
-    return;
+**レスポンス（エラー時）**:
+```json
+{
+    "success": false,
+    "data": {
+        "message": "エラーメッセージ",
+        "setup_url": "設定ページURL（APIキー未設定時）"
+    }
 }
 ```
 
-#### 4.3 URL検証とAPIキーチェック
-```php
-// YouTube URLかチェック
-if (!preg_match('/(?:youtube\.com|youtu\.be)/', $url)) {
-    wp_send_json_error(...);
-}
+## 保守・拡張
 
-// APIキーの存在チェック
-$api_key = get_theme_mod('youtube_api_key');
-if (empty($api_key)) {
-    wp_send_json_error(...);
-}
-```
+### 将来の拡張案
 
-### 5. YouTube Data API 通信
+1. **チャンネル情報の表示**: チャンネル名・登録者数の表示
+2. **動画統計情報**: 再生回数・高評価数の取得
+3. **プレイリスト対応**: YouTube プレイリストからの一括取得
+4. **キャッシュ機能**: API呼び出し回数の削減
 
-#### 5.1 動画情報取得関数
+### カスタマイゼーション
+
+動画セクションの設定は `functions.php` の以下の箇所で変更可能です：
+
+- カスタマイザー設定: 行490-650
+- AJAX ハンドラー: 行1130-1210
+- API通信処理: 行1250-1320
+
+---
+
+**最終更新**: 2024年12月
+**バージョン**: 1.0
 - **関数**: `get_youtube_video_info($url)` (functions.php 行1002-1120)
 
 #### 5.2 動画ID抽出
