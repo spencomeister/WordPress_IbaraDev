@@ -187,7 +187,7 @@ get_header(); ?>
                 </div>
                 
                 <div class="hero-image">
-                    <img src="<?php echo get_template_directory_uri(); ?>/images/ibaradevilroze-keyvisual-trans.png" 
+                    <img src="<?php echo get_template_directory_uri(); ?>/images/ibaradevilroze-keyvisual-trans.avif" 
                          alt="<?php echo get_theme_mod('vtuber_name', 'IbaraDevilRoze'); ?>" 
                          loading="lazy">
                 </div>
@@ -201,7 +201,7 @@ get_header(); ?>
             <h2>自己紹介</h2>
             <div class="about-content">
                 <div class="about-image">
-                    <img src="<?php echo get_template_directory_uri(); ?>/images/<?php echo get_theme_mod('about_image', 'about-icon-trans.png'); ?>" 
+                    <img src="<?php echo get_template_directory_uri(); ?>/images/<?php echo get_theme_mod('about_image', 'about-icon-trans.avif'); ?>" 
                          alt="About <?php echo get_theme_mod('vtuber_name', 'IbaraDevilRoze'); ?>" 
                          loading="lazy">
                 </div>

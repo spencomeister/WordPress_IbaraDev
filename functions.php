@@ -300,7 +300,7 @@ function vtuber_customize_register($wp_customize) {
     
     // キービジュアル画像設定
     $wp_customize->add_setting('hero_image', array(
-        'default' => 'ibaradevilroze-keyvisual-trans.png',
+        'default' => 'ibaradevilroze-keyvisual-trans.avif',
         'sanitize_callback' => 'sanitize_text_field',
         'transport' => 'refresh',
     ));
@@ -438,7 +438,7 @@ function vtuber_customize_register($wp_customize) {
     
     // 自己紹介画像
     $wp_customize->add_setting('about_image', array(
-        'default' => 'about-icon-trans.png',
+        'default' => 'about-icon-trans.avif',
         'sanitize_callback' => 'sanitize_text_field',
     ));
     $wp_customize->add_control('about_image', array(
