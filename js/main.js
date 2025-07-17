@@ -3,6 +3,7 @@
  * Version 2.1
  * 
  * Features:
+ * - Loading screen functionality
  * - Theme toggle functionality
  * - Sidebar menu functionality
  * - Smooth scroll navigation
@@ -13,11 +14,144 @@
 
 'use strict';
 
+// Loading Screen Manager
+class LoadingManager {
+    constructor() {
+        this.loadingScreen = null;
+        this.isLoading = false;
+        this.config = window.vtuber_ajax?.loading_config || {
+            enabled: true,
+            min_loading_time: 800,
+            enable_transitions: true,
+            show_for_external: false
+        };
+        this.loadStartTime = Date.now();
+        
+        if (this.config.enabled) {
+            this.init();
+        }
+    }
+    
+    init() {
+        // Show loading screen immediately
+        this.show();
+        
+        // Hide loading screen when page is fully loaded
+        if (document.readyState === 'complete') {
+            this.hide();
+        } else {
+            window.addEventListener('load', () => this.hide());
+        }
+        
+        // Handle page transitions
+        this.setupPageTransitions();
+    }
+    
+    show() {
+        this.loadingScreen = document.getElementById('loading-screen');
+        if (this.loadingScreen) {
+            this.loadingScreen.classList.remove('hidden');
+            this.isLoading = true;
+            this.loadStartTime = Date.now();
+            
+            // Prevent scrolling during loading
+            document.body.style.overflow = 'hidden';
+            
+            console.log('🔄 Loading screen shown');
+        }
+    }
+    
+    hide() {
+        if (!this.loadingScreen || !this.isLoading || !this.config.enabled) return;
+        
+        const elapsedTime = Date.now() - this.loadStartTime;
+        const remainingTime = Math.max(0, this.config.min_loading_time - elapsedTime);
+        
+        setTimeout(() => {
+            this.loadingScreen.classList.add('hidden');
+            this.isLoading = false;
+            
+            // Re-enable scrolling
+            document.body.style.overflow = '';
+            
+            // Remove loading screen from DOM after animation
+            setTimeout(() => {
+                if (this.loadingScreen && this.loadingScreen.parentNode) {
+                    this.loadingScreen.style.display = 'none';
+                }
+            }, 500);
+            
+            console.log('✅ Loading screen hidden');
+        }, remainingTime);
+    }
+    
+    setupPageTransitions() {
+        if (!this.config.enable_transitions) return;
+        
+        // Show loading screen for internal link clicks
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (link && this.shouldShowLoadingForLink(link)) {
+                // Small delay to show loading screen before navigation
+                setTimeout(() => this.show(), 50);
+            }
+        });
+        
+        // Handle form submissions
+        document.addEventListener('submit', (e) => {
+            const form = e.target;
+            if (form && this.shouldShowLoadingForForm(form)) {
+                this.show();
+            }
+        });
+    }
+    
+    shouldShowLoadingForLink(link) {
+        const href = link.getAttribute('href');
+        if (!href) return false;
+        
+        // Skip external links
+        if (href.startsWith('http') && !href.includes(window.location.hostname)) {
+            return false;
+        }
+        
+        // Skip anchor links
+        if (href.startsWith('#')) return false;
+        
+        // Skip mailto, tel, etc.
+        if (href.includes(':') && !href.startsWith('/') && !href.startsWith(window.location.origin)) {
+            return false;
+        }
+        
+        // Skip download links
+        if (link.hasAttribute('download')) return false;
+        
+        // Skip target="_blank" links
+        if (link.getAttribute('target') === '_blank') return false;
+        
+        return true;
+    }
+    
+    shouldShowLoadingForForm(form) {
+        // Skip search forms
+        if (form.getAttribute('role') === 'search') return false;
+        
+        // Skip contact forms that use AJAX
+        if (form.classList.contains('ajax-form')) return false;
+        
+        return true;
+    }
+}
+
+// Initialize loading manager
+const loadingManager = new LoadingManager();
+
 (function() {
     // Global theme utilities
     window.VTuberTheme = {
         version: '2.1',
         initialized: false,
+        loadingManager: loadingManager,
         
         toggleTheme() {
             const themeToggle = document.getElementById('theme-toggle');
@@ -45,6 +179,14 @@
             }
             
             return true;
+        },
+        
+        showLoading() {
+            loadingManager.show();
+        },
+        
+        hideLoading() {
+            loadingManager.hide();
         },
         
         toggleSidebar() {

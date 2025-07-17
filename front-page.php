@@ -67,7 +67,7 @@ get_header(); ?>
                              width="600"
                              height="auto">
                     <?php else : ?>
-                        <img src="<?php echo esc_url(get_template_directory_uri() . '/images/ibaradevilroze-keyvisual-trans.png'); ?>" 
+                        <img src="<?php echo esc_url(get_template_directory_uri() . '/images/ibaradevilroze-keyvisual-trans.avif'); ?>" 
                              alt="<?php echo esc_attr(get_theme_mod('vtuber_name', 'IbaraDevilRoze')); ?>" 
                              loading="lazy"
                              width="600"
@@ -84,7 +84,7 @@ get_header(); ?>
             <h2>ABOUT</h2>
             <div class="about-content">
                 <div class="about-image">
-                    <img src="<?php echo esc_url(get_template_directory_uri() . '/images/' . get_theme_mod('about_image', 'about-icon-trans.png')); ?>" 
+                    <img src="<?php echo esc_url(get_template_directory_uri() . '/images/' . get_theme_mod('about_image', 'about-icon-trans.avif')); ?>" 
                          alt="<?php echo esc_attr(get_theme_mod('profile_name', 'IbaraDevilRoze')); ?>"
                          loading="lazy"
                          width="280"

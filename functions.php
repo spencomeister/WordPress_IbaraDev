@@ -201,6 +201,12 @@ function vtuber_scripts() {
         'theme_url' => get_template_directory_uri(),
         'debug' => defined('WP_DEBUG') && WP_DEBUG,
         'video_data' => $video_data,
+        'loading_config' => array(
+            'enabled' => get_theme_mod('loading_screen_enabled', true),
+            'min_loading_time' => get_theme_mod('loading_screen_min_time', 800),
+            'enable_transitions' => true,
+            'show_for_external' => false,
+        ),
     ));
 }
 add_action('wp_enqueue_scripts', 'vtuber_scripts');
@@ -300,7 +306,7 @@ function vtuber_customize_register($wp_customize) {
     
     // キービジュアル画像設定
     $wp_customize->add_setting('hero_image', array(
-        'default' => 'ibaradevilroze-keyvisual-trans.png',
+        'default' => 'ibaradevilroze-keyvisual-trans.avif',
         'sanitize_callback' => 'sanitize_text_field',
         'transport' => 'refresh',
     ));
@@ -335,6 +341,36 @@ function vtuber_customize_register($wp_customize) {
         'section' => 'main_page_settings',
         'type' => 'checkbox',
         'description' => __('ヘッダーにダークモード切替ボタンを表示するかどうか', 'vtuber-theme'),
+    ));
+    
+    // ローディング画面設定
+    $wp_customize->add_setting('loading_screen_enabled', array(
+        'default' => true,
+        'sanitize_callback' => 'wp_validate_boolean',
+        'transport' => 'refresh',
+    ));
+    $wp_customize->add_control('loading_screen_enabled', array(
+        'label' => __('ローディング画面を有効にする', 'vtuber-theme'),
+        'section' => 'main_page_settings',
+        'type' => 'checkbox',
+        'description' => __('ページ読み込み時とページ遷移時にローディング画面を表示', 'vtuber-theme'),
+    ));
+    
+    $wp_customize->add_setting('loading_screen_min_time', array(
+        'default' => 800,
+        'sanitize_callback' => 'absint',
+        'transport' => 'refresh',
+    ));
+    $wp_customize->add_control('loading_screen_min_time', array(
+        'label' => __('最小表示時間（ミリ秒）', 'vtuber-theme'),
+        'section' => 'main_page_settings',
+        'type' => 'number',
+        'description' => __('ローディング画面の最小表示時間（800-3000推奨）', 'vtuber-theme'),
+        'input_attrs' => array(
+            'min' => 300,
+            'max' => 5000,
+            'step' => 100,
+        ),
     ));
     
     // VTuber情報セクション
@@ -438,7 +474,7 @@ function vtuber_customize_register($wp_customize) {
     
     // 自己紹介画像
     $wp_customize->add_setting('about_image', array(
-        'default' => 'about-icon-trans.png',
+        'default' => 'about-icon-trans.avif',
         'sanitize_callback' => 'sanitize_text_field',
     ));
     $wp_customize->add_control('about_image', array(

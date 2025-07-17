@@ -1,14 +1,14 @@
 /*
 Theme Name: IbaraDev VTuber Landing Page
 Theme URI: https://github.com/spencomeister/WordPress_IbaraDev
-Description: Modern VTuber Landing Page Theme for Content Creators - Features YouTube Data API integration, responsive design, and customizer controls for easy content management.
-Version: 2.0.0
+Description: Modern VTuber Landing Page Theme for Content Creators - Features YouTube Data API integration, responsive design, and customizer controls for easy content management. Version 2.0.1: パフォーマンス向上のため画像をAVIF形式に変更、ローディング画面追加
+Version: 2.0.1
 Author: Marusawa Kenta
 Author URI: https://github.com/spencomeister
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: vtuber-theme
-Tags: blog, entertainment, vtuber, youtube, responsive-design, custom-colors, custom-logo, custom-menu, featured-images, api-integration
+Tags: blog, entertainment, vtuber, youtube, responsive-design, custom-colors, custom-logo, custom-menu, featured-images, api-integration, avif, performance, loading-screen
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
@@ -1508,6 +1508,8 @@ footer p {
 .page-header {
   text-align: center;
   margin-bottom: 3rem;
+  position: relative;
+  z-index: 1; /* ヘッダーより低いz-index */
 }
 
 .page-header h1 {
@@ -2095,11 +2097,145 @@ body[data-theme="dark"] .share-btn.x {
   }
 }
 
-/* ===============================================
-   UTILITY CLASSES & ACCESSIBILITY IMPROVEMENTS
-   =============================================== */
+/* ===========================
+   LOADING SCREEN STYLES
+=========================== */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+}
 
-/* Screen Reader Only Content */
+.loading-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-content {
+  text-align: center;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.loading-logo {
+  width: 120px;
+  height: auto;
+  margin: 0 auto 2rem;
+  position: relative;
+}
+
+.loading-logo img {
+  width: 100%;
+  height: auto;
+  transition: opacity 0.3s ease;
+}
+
+/* Logo Theme Switching */
+.loading-logo-light {
+  display: block;
+  opacity: 1;
+}
+
+.loading-logo-dark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  opacity: 0;
+}
+
+body[data-theme="dark"] .loading-logo-light {
+  opacity: 0;
+}
+
+body[data-theme="dark"] .loading-logo-dark {
+  opacity: 1;
+}
+
+/* System preference dark mode */
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme]) .loading-logo-light {
+    opacity: 0;
+  }
+  
+  body:not([data-theme]) .loading-logo-dark {
+    opacity: 1;
+  }
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  margin: 1.5rem auto;
+  width: 40px;
+  height: 40px;
+}
+
+.spinner {
+  width: 100%;
+  height: 100%;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent-purple);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 1rem 0 0 0;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+
+/* Loading Animations */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Loading Screen */
+@media (max-width: 768px) {
+  .loading-logo {
+    width: 100px;
+    margin-bottom: 1.5rem;
+  }
+  
+  .loading-spinner {
+    width: 35px;
+    height: 35px;
+    margin: 1rem auto;
+  }
+  
+  .loading-text {
+    font-size: 0.8rem;
+  }
+}
+
+/* ===========================
+   END LOADING SCREEN STYLES
+=========================== */
+
+/* Utility Classes */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -2112,7 +2248,6 @@ body[data-theme="dark"] .share-btn.x {
   border: 0;
 }
 
-/* Skip to main content link for keyboard navigation */
 .skip-link {
   position: absolute;
   top: -40px;
@@ -2320,3 +2455,244 @@ body[data-theme="dark"] .form-loading::after {
   text-align: center;
   margin: 3rem 0;
 }
+
+/* ===========================
+   404 ERROR PAGE STYLES
+=========================== */
+/* 404ページ専用のスタイル - ヘッダーが隠れる問題の修正 */
+.error-404 .blog-main,
+.error-page-main {
+  padding-top: 160px; /* さらに大きな上部余白を確保 */
+}
+
+.error-404 .page-header,
+.error-page-main .page-header {
+  margin-top: 2rem; /* 追加の上部マージン */
+  margin-bottom: 4rem;
+  padding-top: 1rem; /* 上部パディング追加 */
+  position: relative;
+  z-index: 1; /* ヘッダーより低いz-index */
+  text-align: center;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.error-404 .breadcrumb,
+.error-page-main .breadcrumb {
+  margin-bottom: 2rem;
+  padding: 2rem 0; /* より大きなパディング */
+  position: relative;
+  z-index: 1; /* ヘッダーより低いz-index */
+}
+
+/* 404ページのエラーコンテンツスタイル */
+.error-content {
+  text-align: center;
+}
+
+.error-content .article-content {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+.error-actions {
+  margin: 2rem 0;
+}
+
+.error-actions p {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin-bottom: 3rem;
+  font-weight: 500;
+}
+
+.error-actions nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 3rem auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.error-actions nav li {
+  margin: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.error-actions .read-more {
+  display: inline-block;
+  width: 280px;
+  max-width: 100%;
+  text-align: center;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  border: 2px solid var(--accent-purple);
+  background: transparent;
+  color: var(--accent-purple);
+  cursor: pointer;
+  font-family: inherit;
+  margin: 0 auto;
+}
+
+.error-actions .read-more:hover {
+  background: var(--accent-purple);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+}
+
+/* 404ページの検索フォーム */
+.error-content .search-section {
+  margin: 4rem 0;
+  padding: 2rem;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.error-content .search-section h2 {
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.error-content .search-form {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.error-content .search-form .search-input-group {
+  display: flex;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.error-content .search-form input[type="search"] {
+  flex: 1;
+  padding: 1rem 1.25rem;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 1rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.error-content .search-form input[type="search"]:focus {
+  outline: none;
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.error-content .search-form .submit-btn {
+  padding: 1rem 1.5rem;
+  margin: 0;
+  white-space: nowrap;
+  min-width: auto;
+}
+
+/* モバイル用の404ページスタイル */
+@media (max-width: 768px) {
+  .error-404 .blog-main,
+  .error-page-main {
+    padding-top: 140px; /* モバイルでも十分な余白 */
+  }
+  
+  .error-404 .page-header,
+  .error-page-main .page-header {
+    margin-top: 1.5rem;
+    margin-bottom: 3rem;
+  }
+  
+  .error-404 .breadcrumb,
+  .error-page-main .breadcrumb {
+    padding: 1.5rem 0;
+  }
+  
+  .error-content .article-content {
+    padding: 2rem 1rem;
+  }
+  
+  .error-actions nav ul {
+    gap: 1rem;
+    margin: 2rem auto;
+  }
+  
+  .error-actions nav li {
+    max-width: 100%;
+  }
+  
+  .error-actions .read-more {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .error-content .search-form .search-input-group {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .error-404 .blog-main,
+  .error-page-main {
+    padding-top: 130px;
+  }
+  
+  .error-404 .page-header h1,
+  .error-page-main .page-header h1 {
+    font-size: 2.2rem; /* モバイルでのタイトルサイズ調整 */
+  }
+  
+  .error-content .article-content {
+    padding: 1.5rem 0.5rem;
+  }
+  
+  .error-actions p {
+    font-size: 1.1rem;
+  }
+  
+  .error-actions nav ul {
+    margin: 1.5rem auto;
+  }
+  
+  .error-actions .read-more {
+    width: 100%;
+    max-width: 280px;
+    padding: 0.9rem 1.5rem;
+  }
+  
+  .error-content .search-section {
+    margin: 3rem 0;
+    padding: 1.5rem;
+  }
+}
+
+/* 404ページのボタンアイコンスタイル */
+.error-actions .read-more i {
+  margin-right: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.error-content .search-form .submit-btn i {
+  margin-right: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* ===========================
+   END 404 ERROR PAGE STYLES
+=========================== */
