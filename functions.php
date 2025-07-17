@@ -1,12 +1,12 @@
 <?php
 /**
- * IbaraDevilRoze VTuber Landing Page Theme Functions
- * Modern White/Black + Purple Accent with Dark Mode
- * Version 2.1
+ * IbaraDev VTuber Landing Page Theme Functions
+ * YouTube Data API Integration & Modern Responsive Design
+ * Version 2.0.0
  * 
  * @package VTuberTheme
- * @author IbaraDev
- * @since 2.0
+ * @author GitHub Copilot AI Assistant
+ * @since 2.0.0
  */
 
 // Prevent direct access
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define theme constants
-define('VTUBER_THEME_VERSION', '2.1');
+define('VTUBER_THEME_VERSION', '2.0.0');
 define('VTUBER_THEME_PATH', get_template_directory());
 define('VTUBER_THEME_URL', get_template_directory_uri());
 

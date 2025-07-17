@@ -1,3 +1,7 @@
+<!--
+IbaraDev VTuber Landing Page Theme v2.0.0
+Footer Template
+-->
 <!-- Footer -->
 <footer role="contentinfo">
     <div class="container">
