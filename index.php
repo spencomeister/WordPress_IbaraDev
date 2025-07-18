@@ -224,6 +224,44 @@ get_header(); ?>
         </div>
     </section>
 
+    <!-- Recommended Videos Section -->
+    <section class="section" id="videos">
+        <div class="container">
+            <h2>おすすめ動画</h2>
+            <div class="videos-grid">
+                <div class="video-card fade-in">
+                    <div class="video-thumbnail">
+                        <i class="fas fa-play"></i>
+                    </div>
+                    <div class="video-info">
+                        <h3><?php echo get_theme_mod('video_1_title', 'First Gaming Stream'); ?></h3>
+                        <p><?php echo get_theme_mod('video_1_desc', 'My very first gaming stream where I introduced myself and played my favorite indie game. A perfect starting point for new viewers!'); ?></p>
+                    </div>
+                </div>
+                
+                <div class="video-card fade-in">
+                    <div class="video-thumbnail">
+                        <i class="fas fa-play"></i>
+                    </div>
+                    <div class="video-info">
+                        <h3><?php echo get_theme_mod('video_2_title', 'Chat & Chill Session'); ?></h3>
+                        <p><?php echo get_theme_mod('video_2_desc', 'A relaxing chat session where I talk about various topics and interact with my amazing community members.'); ?></p>
+                    </div>
+                </div>
+                
+                <div class="video-card fade-in">
+                    <div class="video-thumbnail">
+                        <i class="fas fa-play"></i>
+                    </div>
+                    <div class="video-info">
+                        <h3><?php echo get_theme_mod('video_3_title', 'Special Collaboration'); ?></h3>
+                        <p><?php echo get_theme_mod('video_3_desc', 'An exciting collaboration stream with fellow VTubers featuring fun games and lots of laughs.'); ?></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Achievements Section -->
     <section class="section" id="achievements">
         <div class="container">
@@ -423,43 +461,7 @@ get_header(); ?>
         </div>
     </section>
 
-    <!-- Recommended Videos Section -->
-    <section class="section" id="videos">
-        <div class="container">
-            <h2>おすすめ動画</h2>
-            <div class="videos-grid">
-                <div class="video-card fade-in">
-                    <div class="video-thumbnail">
-                        <i class="fas fa-play"></i>
-                    </div>
-                    <div class="video-info">
-                        <h3><?php echo get_theme_mod('video_1_title', 'First Gaming Stream'); ?></h3>
-                        <p><?php echo get_theme_mod('video_1_desc', 'My very first gaming stream where I introduced myself and played my favorite indie game. A perfect starting point for new viewers!'); ?></p>
-                    </div>
-                </div>
-                
-                <div class="video-card fade-in">
-                    <div class="video-thumbnail">
-                        <i class="fas fa-play"></i>
-                    </div>
-                    <div class="video-info">
-                        <h3><?php echo get_theme_mod('video_2_title', 'Chat & Chill Session'); ?></h3>
-                        <p><?php echo get_theme_mod('video_2_desc', 'A relaxing chat session where I talk about various topics and interact with my amazing community members.'); ?></p>
-                    </div>
-                </div>
-                
-                <div class="video-card fade-in">
-                    <div class="video-thumbnail">
-                        <i class="fas fa-play"></i>
-                    </div>
-                    <div class="video-info">
-                        <h3><?php echo get_theme_mod('video_3_title', 'Special Collaboration'); ?></h3>
-                        <p><?php echo get_theme_mod('video_3_desc', 'An exciting collaboration stream with fellow VTubers featuring fun games and lots of laughs.'); ?></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+
 
     <!-- Contact Section -->
     <section class="section" id="contact">

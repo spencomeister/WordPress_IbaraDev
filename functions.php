@@ -137,6 +137,7 @@ function vtuber_fallback_menu() {
     $menu_items = array(
         'ホーム' => home_url(),
         '自己紹介' => home_url() . '/#about',
+        'おすすめ動画' => home_url() . '/#videos',
         '実績' => home_url() . '/achievements/',
         'ニュース' => home_url() . '/blog/',
         'お問合せ' => home_url() . '/#contact'

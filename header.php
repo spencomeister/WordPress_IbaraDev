@@ -178,6 +178,12 @@ WordPress Theme for Content Creators
                 </a>
             </li>
             <li class="sidebar-menu-item">
+                <a href="<?php echo esc_url(home_url('/#videos')); ?>" class="sidebar-menu-link">
+                    <i class="fas fa-play" aria-hidden="true"></i>
+                    <span>おすすめ動画</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
                 <a href="<?php echo esc_url(home_url('/achievements/')); ?>" class="sidebar-menu-link">
                     <i class="fas fa-trophy" aria-hidden="true"></i>
                     <span>実績</span>
