@@ -1150,6 +1150,17 @@ footer p {
     gap: 3rem;
   }
   
+  .about-image {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+  }
+  
+  .about-image img {
+    margin: 0 auto;
+  }
+  
   .profile-table {
     max-width: 100%;
     margin: 0 auto;
