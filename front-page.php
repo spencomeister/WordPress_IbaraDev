@@ -67,11 +67,14 @@ get_header(); ?>
                              width="600"
                              height="auto">
                     <?php else : ?>
-                        <img src="<?php echo esc_url(get_template_directory_uri() . '/images/ibaradevilroze-keyvisual-trans.png'); ?>" 
-                             alt="<?php echo esc_attr(get_theme_mod('vtuber_name', 'IbaraDevilRoze')); ?>" 
-                             loading="lazy"
-                             width="600"
-                             height="auto">
+                        <picture>
+                            <source srcset="<?php echo esc_url(get_template_directory_uri() . '/images/ibaradevilroze-keyvisual-trans.avif'); ?>" type="image/avif">
+                            <img src="<?php echo esc_url(get_template_directory_uri() . '/images/ibaradevilroze-keyvisual-trans.png'); ?>" 
+                                 alt="<?php echo esc_attr(get_theme_mod('vtuber_name', 'IbaraDevilRoze')); ?>" 
+                                 loading="lazy"
+                                 width="600"
+                                 height="auto">
+                        </picture>
                     <?php endif; ?>
                 </div>
             </div>
@@ -84,11 +87,18 @@ get_header(); ?>
             <h2>ABOUT</h2>
             <div class="about-content">
                 <div class="about-image">
-                    <img src="<?php echo esc_url(get_template_directory_uri() . '/images/' . get_theme_mod('about_image', 'about-icon-trans.png')); ?>" 
-                         alt="<?php echo esc_attr(get_theme_mod('profile_name', 'IbaraDevilRoze')); ?>"
-                         loading="lazy"
-                         width="280"
-                         height="280">
+                    <?php 
+                    $about_image = get_theme_mod('about_image', 'about-icon-trans.avif');
+                    $image_name = pathinfo($about_image, PATHINFO_FILENAME);
+                    ?>
+                    <picture>
+                        <source srcset="<?php echo esc_url(get_template_directory_uri() . '/images/' . $image_name . '.avif'); ?>" type="image/avif">
+                        <img src="<?php echo esc_url(get_template_directory_uri() . '/images/' . $image_name . '.png'); ?>" 
+                             alt="<?php echo esc_attr(get_theme_mod('profile_name', 'IbaraDevilRoze')); ?>"
+                             loading="lazy"
+                             width="280"
+                             height="280">
+                    </picture>
                 </div>
                 <div class="about-profile">
                     <table class="profile-table">
