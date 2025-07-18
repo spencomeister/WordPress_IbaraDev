@@ -142,21 +142,6 @@ get_header(); ?>
         </div>
     </section>
 
-    <!-- Achievements Section -->
-    <section class="section" id="achievements">
-        <div class="container">
-            <h2>実績</h2>
-            <div style="text-align: center; padding: 3rem 0;">
-                <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 2rem;">
-                    これまでの個人で行った活動実績と企業様との様々な案件実績をご覧いただけます！
-                </p>
-                <a href="<?php echo esc_url(home_url('/achievements/')); ?>" class="btn btn-primary">
-                    <i class="fas fa-trophy"></i> 実績を見る
-                </a>
-            </div>
-        </div>
-    </section>
-
     <!-- Videos Section -->
     <section class="section" id="videos">
         <div class="container">
@@ -245,6 +230,21 @@ get_header(); ?>
                     <i class="fab fa-youtube"></i> YouTubeチャンネルを見る
                 </a>
                 <?php endif; ?>
+            </div>
+        </div>
+    </section>
+
+    <!-- Achievements Section -->
+    <section class="section" id="achievements">
+        <div class="container">
+            <h2>実績</h2>
+            <div style="text-align: center; padding: 3rem 0;">
+                <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 2rem;">
+                    これまでの個人で行った活動実績と企業様との様々な案件実績をご覧いただけます！
+                </p>
+                <a href="<?php echo esc_url(home_url('/achievements/')); ?>" class="btn btn-primary">
+                    <i class="fas fa-trophy"></i> 実績を見る
+                </a>
             </div>
         </div>
     </section>
