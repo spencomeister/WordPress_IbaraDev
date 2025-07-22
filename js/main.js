@@ -335,52 +335,67 @@ const loadingManager = new LoadingManager();
     async function setSidebarBackground(sidebar) {
         console.log('Setting sidebar background...');
         
-        // Check if vtuber_ajax object exists with theme_url
-        if (typeof vtuber_ajax !== 'undefined' && vtuber_ajax.theme_url) {
-            const baseUrl = vtuber_ajax.theme_url + '/images/';
-            console.log('Theme base URL:', baseUrl);
+        // Get settings from data attributes (set by PHP)
+        const bgImage = sidebar.dataset.bgImage;
+        const bgPosition = sidebar.dataset.bgPosition || 'center center';
+        const bgSize = sidebar.dataset.bgSize || 'cover';
+
+        if (bgImage) {
+            console.log('Using customizer background image:', bgImage);
             
-            // Test AVIF support
+            // Check if browser supports AVIF and if AVIF version exists
             const avifSupported = await checkAVIFSupport();
-            console.log('AVIF supported:', avifSupported);
             
-            let imageUrl;
-            if (avifSupported) {
-                imageUrl = `${baseUrl}ibaradevilroze-keyvisual-trans.avif`;
-                console.log('Attempting to use AVIF image:', imageUrl);
+            if (avifSupported && bgImage.includes('.png')) {
+                const avifImage = bgImage.replace('.png', '.avif');
+                console.log('Testing AVIF version:', avifImage);
+                
+                const img = new Image();
+                img.onload = function() {
+                    console.log('✅ AVIF image loaded successfully:', avifImage);
+                    sidebar.style.backgroundImage = `url('${avifImage}')`;
+                    sidebar.style.backgroundPosition = bgPosition;
+                    sidebar.style.backgroundSize = bgSize;
+                };
+                img.onerror = function() {
+                    console.log('AVIF not available, using original:', bgImage);
+                    sidebar.style.backgroundImage = `url('${bgImage}')`;
+                    sidebar.style.backgroundPosition = bgPosition;
+                    sidebar.style.backgroundSize = bgSize;
+                };
+                img.src = avifImage;
             } else {
-                imageUrl = `${baseUrl}ibaradevilroze-keyvisual-trans.png`;
-                console.log('Attempting to use PNG image:', imageUrl);
+                sidebar.style.backgroundImage = `url('${bgImage}')`;
+                sidebar.style.backgroundPosition = bgPosition;
+                sidebar.style.backgroundSize = bgSize;
+                console.log('✅ Using background image:', bgImage);
             }
-            
-            // Test if image loads before setting it
-            const img = new Image();
-            img.onload = () => {
-                sidebar.style.backgroundImage = `url('${imageUrl}')`;
-                console.log('✅ Successfully loaded and set background image:', imageUrl);
-            };
-            img.onerror = () => {
-                console.error('❌ Failed to load image:', imageUrl);
-                // Fallback to PNG if AVIF fails
-                if (avifSupported && imageUrl.includes('.avif')) {
-                    const pngUrl = `${baseUrl}ibaradevilroze-keyvisual-trans.png`;
-                    console.log('Falling back to PNG:', pngUrl);
-                    const fallbackImg = new Image();
-                    fallbackImg.onload = () => {
-                        sidebar.style.backgroundImage = `url('${pngUrl}')`;
-                        console.log('✅ Successfully loaded fallback PNG image');
-                    };
-                    fallbackImg.onerror = () => {
-                        console.error('❌ Both AVIF and PNG failed to load');
-                    };
-                    fallbackImg.src = pngUrl;
-                }
-            };
-            img.src = imageUrl;
-            
         } else {
-            console.warn('vtuber_ajax or theme_url not available, using fallback');
-            sidebar.style.backgroundImage = "url('../images/ibaradevilroze-keyvisual-trans.png')";
+            console.warn('No background image set in customizer, using fallback');
+            // Fallback to original logic if no customizer image is set
+            if (typeof vtuber_ajax !== 'undefined' && vtuber_ajax.theme_url) {
+                const baseUrl = vtuber_ajax.theme_url + '/images/';
+                const avifSupported = await checkAVIFSupport();
+                
+                let imageUrl;
+                if (avifSupported) {
+                    imageUrl = `${baseUrl}ibaradevilroze-keyvisual-trans.avif`;
+                } else {
+                    imageUrl = `${baseUrl}ibaradevilroze-keyvisual-trans.png`;
+                }
+                
+                const img = new Image();
+                img.onload = () => {
+                    sidebar.style.backgroundImage = `url('${imageUrl}')`;
+                    console.log('✅ Successfully loaded fallback image:', imageUrl);
+                };
+                img.onerror = () => {
+                    console.error('❌ Failed to load fallback image:', imageUrl);
+                };
+                img.src = imageUrl;
+            } else {
+                sidebar.style.backgroundImage = "url('../images/ibaradevilroze-keyvisual-trans.png')";
+            }
         }
     }
 

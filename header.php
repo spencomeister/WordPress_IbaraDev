@@ -136,8 +136,16 @@ WordPress Theme for Content Creators
 </header>
 
 <!-- Left Sidebar Menu -->
+<?php 
+$sidebar_bg_image = get_theme_mod('sidebar_background_image', get_template_directory_uri() . '/images/ibaradevilroze-keyvisual-trans.png');
+$sidebar_bg_position = get_theme_mod('sidebar_background_position', 'center center');
+$sidebar_bg_size = get_theme_mod('sidebar_background_size', 'cover');
+?>
 <aside id="left-sidebar" class="left-sidebar" role="complementary" 
-       style="background-image: url('<?php echo esc_url(get_template_directory_uri() . '/images/ibaradevilroze-keyvisual-trans.png'); ?>');">
+       style="background-image: url('<?php echo esc_url($sidebar_bg_image); ?>'); background-position: <?php echo esc_attr($sidebar_bg_position); ?>; background-size: <?php echo esc_attr($sidebar_bg_size); ?>;"
+       data-bg-image="<?php echo esc_url($sidebar_bg_image); ?>"
+       data-bg-position="<?php echo esc_attr($sidebar_bg_position); ?>"
+       data-bg-size="<?php echo esc_attr($sidebar_bg_size); ?>">
     <div class="sidebar-header">
         <button class="sidebar-close" 
                 id="sidebar-close" 
