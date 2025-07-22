@@ -232,13 +232,11 @@ const loadingManager = new LoadingManager();
      */
     function openSidebar() {
         const sidebar = document.getElementById('left-sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
         const menuToggle = document.getElementById('mobile-menu-toggle');
         const body = document.body;
         
-        if (sidebar && overlay) {
+        if (sidebar) {
             sidebar.classList.add('active');
-            overlay.classList.add('active');
             body.style.overflow = 'hidden';
             
             // Add active class to hamburger menu
@@ -261,13 +259,11 @@ const loadingManager = new LoadingManager();
      */
     function closeSidebar() {
         const sidebar = document.getElementById('left-sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
         const menuToggle = document.getElementById('mobile-menu-toggle');
         const body = document.body;
         
-        if (sidebar && overlay) {
+        if (sidebar) {
             sidebar.classList.remove('active');
-            overlay.classList.remove('active');
             body.style.overflow = '';
             
             // Remove active class from hamburger menu
@@ -287,10 +283,15 @@ const loadingManager = new LoadingManager();
     /**
      * Initialize sidebar functionality
      */
-    function initSidebar() {
+    async function initSidebar() {
         const menuToggle = document.getElementById('mobile-menu-toggle');
         const sidebarClose = document.getElementById('sidebar-close');
-        const overlay = document.getElementById('sidebar-overlay');
+        const sidebar = document.getElementById('left-sidebar');
+        
+        // Set background image with proper format detection
+        if (sidebar) {
+            await setSidebarBackground(sidebar);
+        }
         
         // Menu toggle click handler
         if (menuToggle) {
@@ -306,12 +307,16 @@ const loadingManager = new LoadingManager();
             });
         }
         
-        // Overlay click handler
-        if (overlay) {
-            overlay.addEventListener('click', function() {
-                closeSidebar();
+        // Auto-close sidebar when menu item is clicked
+        const sidebarMenuLinks = document.querySelectorAll('.sidebar-menu-link');
+        sidebarMenuLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                // Close sidebar after a short delay to allow the navigation to start
+                setTimeout(() => {
+                    closeSidebar();
+                }, 150);
             });
-        }
+        });
         
         // Escape key handler
         document.addEventListener('keydown', function(e) {
@@ -321,6 +326,72 @@ const loadingManager = new LoadingManager();
                     closeSidebar();
                 }
             }
+        });
+    }
+
+    /**
+     * Set sidebar background image with format detection
+     */
+    async function setSidebarBackground(sidebar) {
+        console.log('Setting sidebar background...');
+        
+        // Check if vtuber_ajax object exists with theme_url
+        if (typeof vtuber_ajax !== 'undefined' && vtuber_ajax.theme_url) {
+            const baseUrl = vtuber_ajax.theme_url + '/images/';
+            console.log('Theme base URL:', baseUrl);
+            
+            // Test AVIF support
+            const avifSupported = await checkAVIFSupport();
+            console.log('AVIF supported:', avifSupported);
+            
+            let imageUrl;
+            if (avifSupported) {
+                imageUrl = `${baseUrl}ibaradevilroze-keyvisual-trans.avif`;
+                console.log('Attempting to use AVIF image:', imageUrl);
+            } else {
+                imageUrl = `${baseUrl}ibaradevilroze-keyvisual-trans.png`;
+                console.log('Attempting to use PNG image:', imageUrl);
+            }
+            
+            // Test if image loads before setting it
+            const img = new Image();
+            img.onload = () => {
+                sidebar.style.backgroundImage = `url('${imageUrl}')`;
+                console.log('✅ Successfully loaded and set background image:', imageUrl);
+            };
+            img.onerror = () => {
+                console.error('❌ Failed to load image:', imageUrl);
+                // Fallback to PNG if AVIF fails
+                if (avifSupported && imageUrl.includes('.avif')) {
+                    const pngUrl = `${baseUrl}ibaradevilroze-keyvisual-trans.png`;
+                    console.log('Falling back to PNG:', pngUrl);
+                    const fallbackImg = new Image();
+                    fallbackImg.onload = () => {
+                        sidebar.style.backgroundImage = `url('${pngUrl}')`;
+                        console.log('✅ Successfully loaded fallback PNG image');
+                    };
+                    fallbackImg.onerror = () => {
+                        console.error('❌ Both AVIF and PNG failed to load');
+                    };
+                    fallbackImg.src = pngUrl;
+                }
+            };
+            img.src = imageUrl;
+            
+        } else {
+            console.warn('vtuber_ajax or theme_url not available, using fallback');
+            sidebar.style.backgroundImage = "url('../images/ibaradevilroze-keyvisual-trans.png')";
+        }
+    }
+
+    /**
+     * Check AVIF support
+     */
+    function checkAVIFSupport() {
+        return new Promise((resolve) => {
+            const avif = new Image();
+            avif.onload = avif.onerror = () => resolve(avif.height === 2);
+            avif.src = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAIAAAACAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQ0MAAAAABNjb2xybmNseAACAAIAAYAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgABogQEAwgMg8f8D///8WfhwB8+ErK42A=';
         });
     }
 

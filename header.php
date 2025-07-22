@@ -136,24 +136,9 @@ WordPress Theme for Content Creators
 </header>
 
 <!-- Left Sidebar Menu -->
-<aside id="left-sidebar" class="left-sidebar" role="complementary">
+<aside id="left-sidebar" class="left-sidebar" role="complementary" 
+       style="background-image: url('<?php echo esc_url(get_template_directory_uri() . '/images/ibaradevilroze-keyvisual-trans.png'); ?>');">
     <div class="sidebar-header">
-        <div class="sidebar-logo">
-            <a href="<?php echo esc_url(home_url('/')); ?>" rel="home">
-                <picture class="sidebar-logo-light">
-                    <source srcset="<?php echo get_template_directory_uri(); ?>/images/logo-black-trans.avif" type="image/avif">
-                    <img src="<?php echo get_template_directory_uri(); ?>/images/logo-black-trans.png" 
-                         alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
-                         loading="lazy">
-                </picture>
-                <picture class="sidebar-logo-dark">
-                    <source srcset="<?php echo get_template_directory_uri(); ?>/images/logo-white-trans.avif" type="image/avif">
-                    <img src="<?php echo get_template_directory_uri(); ?>/images/logo-white-trans.png" 
-                         alt="<?php echo esc_attr(get_bloginfo('name')); ?>" 
-                         loading="lazy">
-                </picture>
-            </a>
-        </div>
         <button class="sidebar-close" 
                 id="sidebar-close" 
                 type="button"
@@ -167,101 +152,35 @@ WordPress Theme for Content Creators
         <ul class="sidebar-menu">
             <li class="sidebar-menu-item">
                 <a href="<?php echo esc_url(home_url('/')); ?>" class="sidebar-menu-link">
-                    <i class="fas fa-home" aria-hidden="true"></i>
-                    <span>ホーム</span>
+                    <span>HOME</span>
                 </a>
             </li>
             <li class="sidebar-menu-item">
                 <a href="<?php echo esc_url(home_url('/#about')); ?>" class="sidebar-menu-link">
-                    <i class="fas fa-user" aria-hidden="true"></i>
-                    <span>自己紹介</span>
+                    <span>ABOUT</span>
                 </a>
             </li>
             <li class="sidebar-menu-item">
                 <a href="<?php echo esc_url(home_url('/#videos')); ?>" class="sidebar-menu-link">
-                    <i class="fas fa-play" aria-hidden="true"></i>
-                    <span>おすすめ動画</span>
+                    <span>RECOMMENDED</span>
                 </a>
             </li>
             <li class="sidebar-menu-item">
                 <a href="<?php echo esc_url(home_url('/achievements/')); ?>" class="sidebar-menu-link">
-                    <i class="fas fa-trophy" aria-hidden="true"></i>
-                    <span>実績</span>
+                    <span>ACHIEVEMENTS</span>
                 </a>
             </li>
             <li class="sidebar-menu-item">
                 <a href="<?php echo esc_url(home_url('/blog/')); ?>" class="sidebar-menu-link">
-                    <i class="fas fa-newspaper" aria-hidden="true"></i>
-                    <span>ニュース</span>
+                    <span>NEWS</span>
                 </a>
             </li>
             <li class="sidebar-menu-item">
                 <a href="<?php echo esc_url(home_url('/#contact')); ?>" class="sidebar-menu-link">
-                    <i class="fas fa-envelope" aria-hidden="true"></i>
-                    <span>お問合せ</span>
+                    <span>CONTACT</span>
                 </a>
             </li>
-            <?php
-            // Get custom menu items if they exist (additional items only)
-            $menu_items = wp_get_nav_menu_items('primary');
-            if ($menu_items) {
-                // Get default menu items to avoid duplicates
-                $default_items = array('ホーム', '自己紹介', '実績', 'ニュース', 'お問合せ');
-                
-                foreach ($menu_items as $item) {
-                    // Skip items that are already in the default menu
-                    if (in_array($item->title, $default_items)) {
-                        continue;
-                    }
-                    
-                    $icon_class = 'fas fa-link'; // Default icon
-                    
-                    // Customize icons based on menu item title
-                    switch (strtolower($item->title)) {
-                        case 'about':
-                        case 'プロフィール':
-                            $icon_class = 'fas fa-user';
-                            break;
-                        case 'contact':
-                        case 'お問い合わせ':
-                            $icon_class = 'fas fa-envelope';
-                            break;
-                        case 'stream':
-                        case 'ライブ':
-                        case 'live':
-                            $icon_class = 'fas fa-broadcast-tower';
-                            break;
-                        case 'schedule':
-                        case 'スケジュール':
-                            $icon_class = 'fas fa-calendar';
-                            break;
-                        case 'gallery':
-                        case 'ギャラリー':
-                            $icon_class = 'fas fa-images';
-                            break;
-                        case 'shop':
-                        case 'ショップ':
-                            $icon_class = 'fas fa-shopping-cart';
-                            break;
-                        case 'videos':
-                        case '動画':
-                        case 'おすすめ動画':
-                            $icon_class = 'fas fa-play';
-                            break;
-                    }
-                    
-                    echo '<li class="sidebar-menu-item">';
-                    echo '<a href="' . esc_url($item->url) . '" class="sidebar-menu-link">';
-                    echo '<i class="' . esc_attr($icon_class) . '" aria-hidden="true"></i>';
-                    echo '<span>' . esc_html($item->title) . '</span>';
-                    echo '</a>';
-                    echo '</li>';
-                }
-            }
-            ?>
         </ul>
     </nav>
 </aside>
 
-<!-- Sidebar Overlay -->
-<div id="sidebar-overlay" class="sidebar-overlay"></div>
