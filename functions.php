@@ -587,6 +587,73 @@ function vtuber_customize_register($wp_customize) {
             'priority' => 22 + ($i * 10),
         ));
     }
+    
+    // モバイルサイドバー設定セクション
+    $wp_customize->add_section('mobile_sidebar_settings', array(
+        'title' => __('モバイルサイドバー設定', 'vtuber-theme'),
+        'description' => __('モバイル表示時のサイドバーの背景画像を設定します', 'vtuber-theme'),
+        'priority' => 36,
+    ));
+    
+    // サイドバー背景画像設定
+    $wp_customize->add_setting('sidebar_background_image', array(
+        'default' => get_template_directory_uri() . '/images/ibaradevilroze-keyvisual-trans.png',
+        'sanitize_callback' => 'esc_url_raw',
+        'transport' => 'refresh',
+    ));
+    
+    $wp_customize->add_control(new WP_Customize_Image_Control($wp_customize, 'sidebar_background_image', array(
+        'label' => __('サイドバー背景画像', 'vtuber-theme'),
+        'description' => __('モバイルサイドバーの背景に表示される画像を設定します。推奨サイズ: 1080x1920px', 'vtuber-theme'),
+        'section' => 'mobile_sidebar_settings',
+        'priority' => 10,
+    )));
+    
+    // サイドバー背景画像のポジション設定
+    $wp_customize->add_setting('sidebar_background_position', array(
+        'default' => 'center center',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport' => 'refresh',
+    ));
+    
+    $wp_customize->add_control('sidebar_background_position', array(
+        'label' => __('背景画像の位置', 'vtuber-theme'),
+        'description' => __('背景画像の表示位置を調整します', 'vtuber-theme'),
+        'section' => 'mobile_sidebar_settings',
+        'type' => 'select',
+        'choices' => array(
+            'center center' => __('中央', 'vtuber-theme'),
+            'top center' => __('上部中央', 'vtuber-theme'),
+            'bottom center' => __('下部中央', 'vtuber-theme'),
+            'center left' => __('左中央', 'vtuber-theme'),
+            'center right' => __('右中央', 'vtuber-theme'),
+            'top left' => __('左上', 'vtuber-theme'),
+            'top right' => __('右上', 'vtuber-theme'),
+            'bottom left' => __('左下', 'vtuber-theme'),
+            'bottom right' => __('右下', 'vtuber-theme'),
+        ),
+        'priority' => 20,
+    ));
+    
+    // サイドバー背景画像のサイズ設定
+    $wp_customize->add_setting('sidebar_background_size', array(
+        'default' => 'cover',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport' => 'refresh',
+    ));
+    
+    $wp_customize->add_control('sidebar_background_size', array(
+        'label' => __('背景画像のサイズ', 'vtuber-theme'),
+        'description' => __('背景画像の表示サイズを調整します', 'vtuber-theme'),
+        'section' => 'mobile_sidebar_settings',
+        'type' => 'select',
+        'choices' => array(
+            'cover' => __('カバー（画面全体に表示）', 'vtuber-theme'),
+            'contain' => __('コンテイン（画像全体を表示）', 'vtuber-theme'),
+            'auto' => __('オリジナルサイズ', 'vtuber-theme'),
+        ),
+        'priority' => 30,
+    ));
 }
 
 // Register the customizer function
