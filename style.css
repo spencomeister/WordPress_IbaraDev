@@ -98,6 +98,20 @@ header {
   transition: all 0.3s ease;
 }
 
+/* Ensure header elements don't interfere with page scrolling */
+header * {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+header a:focus,
+header button:focus {
+  outline: 2px solid var(--accent-purple);
+  outline-offset: 2px;
+}
+
 body[data-theme="dark"] header {
   background-color: rgba(0, 0, 0, 0.95);
 }

@@ -202,6 +202,10 @@ function vtuber_scripts() {
         'theme_url' => get_template_directory_uri(),
         'debug' => defined('WP_DEBUG') && WP_DEBUG,
         'video_data' => $video_data,
+        'debug_settings' => array(
+            'enabled' => get_theme_mod('debug_logging_enabled', false),
+            'level' => get_theme_mod('debug_log_level', 'basic'),
+        ),
         'loading_config' => array(
             'enabled' => get_theme_mod('loading_screen_enabled', true),
             'min_loading_time' => get_theme_mod('loading_screen_min_time', 800),
@@ -653,6 +657,51 @@ function vtuber_customize_register($wp_customize) {
             'auto' => __('オリジナルサイズ', 'vtuber-theme'),
         ),
         'priority' => 30,
+    ));
+
+    // Developer Settings Section
+    $wp_customize->add_section('developer_settings', array(
+        'title'       => __('開発者設定', 'vtuber-theme'),
+        'priority'    => 200,
+        'description' => __('開発およびデバッグ用の設定です。本番環境では慎重に設定してください。', 'vtuber-theme'),
+    ));
+
+    // Debug Logging
+    $wp_customize->add_setting('debug_logging_enabled', array(
+        'default'           => false,
+        'sanitize_callback' => 'wp_validate_boolean',
+        'transport'         => 'refresh',
+    ));
+
+    $wp_customize->add_control('debug_logging_enabled', array(
+        'label'       => __('デバッグログを表示', 'vtuber-theme'),
+        'description' => __('ブラウザのコンソールにデバッグ情報を表示します。本番環境では無効にしてください。', 'vtuber-theme'),
+        'section'     => 'developer_settings',
+        'type'        => 'checkbox',
+        'priority'    => 10,
+    ));
+
+    // Console Log Level
+    $wp_customize->add_setting('debug_log_level', array(
+        'default'           => 'basic',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'         => 'refresh',
+    ));
+
+    $wp_customize->add_control('debug_log_level', array(
+        'label'       => __('ログレベル', 'vtuber-theme'),
+        'description' => __('表示するデバッグ情報の詳細度を選択してください。', 'vtuber-theme'),
+        'section'     => 'developer_settings',
+        'type'        => 'select',
+        'choices'     => array(
+            'minimal' => __('最小限（エラーのみ）', 'vtuber-theme'),
+            'basic'   => __('基本（重要な情報のみ）', 'vtuber-theme'),
+            'verbose' => __('詳細（すべての情報）', 'vtuber-theme'),
+        ),
+        'priority'    => 20,
+        'active_callback' => function() {
+            return get_theme_mod('debug_logging_enabled', false);
+        },
     ));
 }
 
