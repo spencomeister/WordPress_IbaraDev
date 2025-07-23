@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-IbaraDev VTuber Landing Page Theme v2.0.0
+IbaraDev VTuber Landing Page Theme v2.1.0
 WordPress Theme for Content Creators
 -->
 <html <?php language_attributes(); ?>>
