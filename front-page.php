@@ -103,38 +103,33 @@ get_header(); ?>
                 <div class="about-profile">
                     <table class="profile-table">
                         <tbody>
+                            <?php 
+                            $profile_data = get_theme_mod('profile_table_data', json_encode(array(
+                                array('label' => '名前', 'value' => 'IbaraDevilRoze'),
+                                array('label' => '年齢', 'value' => '？？歳'),
+                                array('label' => '誕生日', 'value' => '？月？日'),
+                                array('label' => '身長', 'value' => '？？？cm'),
+                                array('label' => '好きな色', 'value' => '紫'),
+                                array('label' => '好きな食べ物', 'value' => 'パンケーキ'),
+                                array('label' => '趣味', 'value' => 'ゲーム、お絵描き'),
+                                array('label' => '特技', 'value' => 'ゲーム実況、歌')
+                            )));
+                            
+                            $profile_items = json_decode($profile_data, true);
+                            
+                            if (!empty($profile_items) && is_array($profile_items)) :
+                                foreach ($profile_items as $item) :
+                                    if (!empty($item['label']) && !empty($item['value'])) :
+                            ?>
                             <tr>
-                                <td class="profile-label">名前</td>
-                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_name', 'IbaraDevilRoze')); ?></td>
+                                <td class="profile-label"><?php echo esc_html($item['label']); ?></td>
+                                <td class="profile-value"><?php echo nl2br(esc_html($item['value'])); ?></td>
                             </tr>
-                            <tr>
-                                <td class="profile-label">年齢</td>
-                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_age', '？？歳')); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="profile-label">誕生日</td>
-                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_birthday', '？月？日')); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="profile-label">身長</td>
-                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_height', '？？？cm')); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="profile-label">好きな色</td>
-                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_favorite_color', '紫')); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="profile-label">好きな食べ物</td>
-                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_favorite_food', 'パンケーキ')); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="profile-label">趣味</td>
-                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_hobby', 'ゲーム、お絵描き')); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="profile-label">特技</td>
-                                <td class="profile-value"><?php echo esc_html(get_theme_mod('profile_skill', 'ゲーム実況、歌')); ?></td>
-                            </tr>
+                            <?php 
+                                    endif;
+                                endforeach;
+                            endif;
+                            ?>
                         </tbody>
                     </table>
                 </div>
