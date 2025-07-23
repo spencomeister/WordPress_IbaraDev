@@ -454,31 +454,28 @@ function vtuber_customize_register($wp_customize) {
         'description' => __('プロフィール情報をテーブル形式で管理します', 'vtuber-theme'),
     ));
     
-    // プロフィール情報の設定項目
-    $profile_fields = array(
-        'name' => array('label' => '名前', 'default' => 'IbaraDevilRoze'),
-        'age' => array('label' => '年齢', 'default' => '？？歳'),
-        'birthday' => array('label' => '誕生日', 'default' => '？月？日'),
-        'height' => array('label' => '身長', 'default' => '？？？cm'),
-        'favorite_color' => array('label' => '好きな色', 'default' => '紫'),
-        'favorite_food' => array('label' => '好きな食べ物', 'default' => 'パンケーキ'),
-        'hobby' => array('label' => '趣味', 'default' => 'ゲーム、お絵描き'),
-        'skill' => array('label' => '特技', 'default' => 'ゲーム実況、歌')
-    );
+    // 動的なプロフィールテーブル設定
+    $wp_customize->add_setting('profile_table_data', array(
+        'default' => json_encode(array(
+            array('label' => '名前', 'value' => 'IbaraDevilRoze'),
+            array('label' => '年齢', 'value' => '？？歳'),
+            array('label' => '誕生日', 'value' => '？月？日'),
+            array('label' => '身長', 'value' => '？？？cm'),
+            array('label' => '好きな色', 'value' => '紫'),
+            array('label' => '好きな食べ物', 'value' => 'パンケーキ'),
+            array('label' => '趣味', 'value' => 'ゲーム、お絵描き'),
+            array('label' => '特技', 'value' => 'ゲーム実況、歌')
+        )),
+        'sanitize_callback' => 'sanitize_profile_table_data',
+        'transport' => 'refresh',
+    ));
     
-    foreach ($profile_fields as $key => $field) {
-        $wp_customize->add_setting('profile_' . $key, array(
-            'default' => $field['default'],
-            'sanitize_callback' => 'sanitize_text_field',
-            'transport' => 'refresh',
-        ));
-        $wp_customize->add_control('profile_' . $key, array(
-            'label' => __($field['label'], 'vtuber-theme'),
-            'section' => 'about_section',
-            'type' => 'text',
-            'description' => __($field['label'] . 'を入力してください', 'vtuber-theme'),
-        ));
-    }
+    $profile_control = new Profile_Table_Repeater_Control($wp_customize, 'profile_table_data', array(
+        'label' => __('プロフィール情報', 'vtuber-theme'),
+        'section' => 'about_section',
+        'description' => __('プロフィールテーブルの項目を追加・編集・削除できます。項目名（ラベル）と値を設定してください。', 'vtuber-theme'),
+    ));
+    $wp_customize->add_control($profile_control);
     
     // 自己紹介画像
     $wp_customize->add_setting('about_image', array(
@@ -972,6 +969,189 @@ function sanitize_achievements_data($input) {
     }
     
     return json_encode($sanitized);
+}
+
+// Sanitize profile table data
+function sanitize_profile_table_data($input) {
+    $data = json_decode($input, true);
+    if (!is_array($data)) {
+        return json_encode(array());
+    }
+    
+    $sanitized = array();
+    foreach ($data as $item) {
+        if (is_array($item)) {
+            $sanitized[] = array(
+                'label' => sanitize_text_field(isset($item['label']) ? $item['label'] : ''),
+                'value' => sanitize_textarea_field(isset($item['value']) ? $item['value'] : ''),
+            );
+        }
+    }
+    
+    return json_encode($sanitized);
+}
+
+// Profile Table Repeater Control Class
+if (class_exists('WP_Customize_Control')) {
+    class Profile_Table_Repeater_Control extends WP_Customize_Control {
+        public $type = 'profile_table_repeater';
+        
+        public function render_content() {
+            $value = $this->value() ? json_decode($this->value(), true) : array();
+            
+            ?>
+            <label>
+                <span class="customize-control-title"><?php echo esc_html($this->label); ?></span>
+                <?php if (!empty($this->description)) : ?>
+                    <span class="description customize-control-description"><?php echo $this->description; ?></span>
+                <?php endif; ?>
+            </label>
+            
+            <div class="profile-table-repeater-container">
+                <div class="profile-table-items" data-setting="<?php echo esc_attr($this->id); ?>">
+                    <?php if (!empty($value)) : ?>
+                        <?php foreach ($value as $index => $item) : ?>
+                            <div class="profile-table-item" data-index="<?php echo $index; ?>">
+                                <div class="profile-table-header">
+                                    <h4>項目 #<?php echo ($index + 1); ?></h4>
+                                    <button type="button" class="button remove-profile-item">削除</button>
+                                </div>
+                                <div class="profile-table-fields">
+                                    <p>
+                                        <label>項目名（ラベル）:</label>
+                                        <input type="text" class="profile-item-label" value="<?php echo esc_attr(isset($item['label']) ? $item['label'] : ''); ?>" placeholder="例: 名前、年齢、趣味など">
+                                    </p>
+                                    <p>
+                                        <label>値:</label>
+                                        <textarea class="profile-item-value" placeholder="項目の値を入力してください"><?php echo esc_textarea(isset($item['value']) ? $item['value'] : ''); ?></textarea>
+                                    </p>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+                <button type="button" class="button button-primary add-profile-item">新しい項目を追加</button>
+            </div>
+            
+            <style>
+            .profile-table-repeater-container {
+                margin-top: 10px;
+            }
+            .profile-table-item {
+                border: 1px solid #ddd;
+                margin-bottom: 15px;
+                padding: 15px;
+                background: #f9f9f9;
+            }
+            .profile-table-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                border-bottom: 1px solid #ddd;
+                padding-bottom: 10px;
+            }
+            .profile-table-header h4 {
+                margin: 0;
+                font-size: 14px;
+            }
+            .profile-table-fields p {
+                margin-bottom: 10px;
+            }
+            .profile-table-fields label {
+                display: block;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
+            .profile-table-fields input,
+            .profile-table-fields textarea {
+                width: 100%;
+                padding: 5px;
+            }
+            .profile-table-fields textarea {
+                height: 60px;
+                resize: vertical;
+            }
+            .add-profile-item {
+                margin-top: 10px;
+            }
+            .remove-profile-item {
+                background: #dc3232;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                cursor: pointer;
+                font-size: 12px;
+            }
+            </style>
+            
+            <script type="text/javascript">
+            jQuery(document).ready(function($) {
+                var controlId = '<?php echo esc_js($this->id); ?>';
+                var container = $('[data-setting="' + controlId + '"]').closest('.profile-table-repeater-container');
+                
+                // Add new profile item (only for this specific control)
+                container.on('click', '.add-profile-item', function() {
+                    var itemsContainer = $(this).siblings('.profile-table-items');
+                    var index = itemsContainer.children().length;
+                    var newItem = `
+                        <div class="profile-table-item" data-index="${index}">
+                            <div class="profile-table-header">
+                                <h4>項目 #${index + 1}</h4>
+                                <button type="button" class="button remove-profile-item">削除</button>
+                            </div>
+                            <div class="profile-table-fields">
+                                <p>
+                                    <label>項目名（ラベル）:</label>
+                                    <input type="text" class="profile-item-label" value="" placeholder="例: 名前、年齢、趣味など">
+                                </p>
+                                <p>
+                                    <label>値:</label>
+                                    <textarea class="profile-item-value" placeholder="項目の値を入力してください"></textarea>
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                    itemsContainer.append(newItem);
+                    updateProfileTableData(itemsContainer);
+                });
+                
+                // Remove profile item
+                container.on('click', '.remove-profile-item', function() {
+                    var itemsContainer = $(this).closest('.profile-table-items');
+                    $(this).closest('.profile-table-item').remove();
+                    // Re-index items
+                    itemsContainer.children('.profile-table-item').each(function(index) {
+                        $(this).attr('data-index', index);
+                        $(this).find('h4').text('項目 #' + (index + 1));
+                    });
+                    updateProfileTableData(itemsContainer);
+                });
+                
+                // Update data when fields change
+                container.on('input change', '.profile-item-label, .profile-item-value', function() {
+                    var itemsContainer = $(this).closest('.profile-table-items');
+                    updateProfileTableData(itemsContainer);
+                });
+                
+                function updateProfileTableData(itemsContainer) {
+                    var data = [];
+                    itemsContainer.children('.profile-table-item').each(function() {
+                        var item = {
+                            label: $(this).find('.profile-item-label').val(),
+                            value: $(this).find('.profile-item-value').val()
+                        };
+                        data.push(item);
+                    });
+                    
+                    var settingId = itemsContainer.data('setting');
+                    wp.customize(settingId).set(JSON.stringify(data));
+                }
+            });
+            </script>
+            <?php
+        }
+    }
 }
 
 // Add contact form messages
