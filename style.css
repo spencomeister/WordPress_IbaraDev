@@ -1,14 +1,14 @@
 /*
 Theme Name: IbaraDev VTuber Landing Page
 Theme URI: https://github.com/spencomeister/WordPress_IbaraDev
-Description: Modern VTuber Landing Page Theme for Content Creators - Features YouTube Data API integration, responsive design, and customizer controls for easy content management. Version 2.0.1: パフォーマンス向上のため画像をAVIF形式に変更、ローディング画面追加
-Version: 2.0.1
+Description: Modern VTuber Landing Page Theme for Content Creators - Features YouTube Data API integration, responsive design, and customizer controls for easy content management. Version 2.1.0: プロフィールテーブル動的管理、デバッグ制御システム、モバイルサイドバー改善
+Version: 2.1.0
 Author: Marusawa Kenta
 Author URI: https://github.com/spencomeister
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: vtuber-theme
-Tags: blog, entertainment, vtuber, youtube, responsive-design, custom-colors, custom-logo, custom-menu, featured-images, api-integration, avif, performance, loading-screen
+Tags: blog, entertainment, vtuber, youtube, responsive-design, custom-colors, custom-logo, custom-menu, featured-images, api-integration, avif, performance, loading-screen, profile-table, debug-controls
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
