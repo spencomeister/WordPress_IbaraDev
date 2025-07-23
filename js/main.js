@@ -14,6 +14,30 @@
 
 'use strict';
 
+// Debug configuration
+const DEBUG_CONFIG = {
+    enabled: window.vtuber_ajax?.debug_settings?.enabled || false,
+    level: window.vtuber_ajax?.debug_settings?.level || 'basic'
+};
+
+// Debug logging function
+function debugLog(message, data = null, level = 'basic') {
+    if (!DEBUG_CONFIG.enabled) return;
+    
+    // Check log level
+    const levels = ['minimal', 'basic', 'verbose'];
+    const currentLevel = levels.indexOf(DEBUG_CONFIG.level);
+    const messageLevel = levels.indexOf(level);
+    
+    if (messageLevel > currentLevel) return;
+    
+    if (data) {
+        console.log(message, data);
+    } else {
+        console.log(message);
+    }
+}
+
 // Loading Screen Manager
 class LoadingManager {
     constructor() {
@@ -57,7 +81,7 @@ class LoadingManager {
             // Prevent scrolling during loading
             document.body.style.overflow = 'hidden';
             
-            console.log('🔄 Loading screen shown');
+            debugLog('🔄 Loading screen shown', null, 'basic');
         }
     }
     
@@ -73,6 +97,7 @@ class LoadingManager {
             
             // Re-enable scrolling
             document.body.style.overflow = '';
+            debugLog('🔄 Loading screen: Re-enabled scrolling', null, 'verbose');
             
             // Remove loading screen from DOM after animation
             setTimeout(() => {
@@ -81,7 +106,7 @@ class LoadingManager {
                 }
             }, 500);
             
-            console.log('✅ Loading screen hidden');
+            debugLog('✅ Loading screen hidden', null, 'basic');
         }, remainingTime);
     }
     
@@ -92,8 +117,11 @@ class LoadingManager {
         document.addEventListener('click', (e) => {
             const link = e.target.closest('a');
             if (link && this.shouldShowLoadingForLink(link)) {
+                debugLog('🔄 LoadingManager: Showing loading screen for link:', link.getAttribute('href'), 'verbose');
                 // Small delay to show loading screen before navigation
                 setTimeout(() => this.show(), 50);
+            } else if (link) {
+                debugLog('🚫 LoadingManager: Skipping loading screen for link:', link.getAttribute('href'), 'verbose');
             }
         });
         
@@ -101,6 +129,7 @@ class LoadingManager {
         document.addEventListener('submit', (e) => {
             const form = e.target;
             if (form && this.shouldShowLoadingForForm(form)) {
+                debugLog('🔄 LoadingManager: Showing loading screen for form submission', null, 'verbose');
                 this.show();
             }
         });
@@ -108,27 +137,53 @@ class LoadingManager {
     
     shouldShowLoadingForLink(link) {
         const href = link.getAttribute('href');
-        if (!href) return false;
+        debugLog('🔍 LoadingManager: Checking link:', href, 'verbose');
         
-        // Skip external links
-        if (href.startsWith('http') && !href.includes(window.location.hostname)) {
+        if (!href) {
+            debugLog('🚫 LoadingManager: No href found', null, 'verbose');
             return false;
         }
         
-        // Skip anchor links
-        if (href.startsWith('#')) return false;
+        // Parse URL to handle complex cases
+        let url;
+        try {
+            url = new URL(href, window.location.origin);
+        } catch (e) {
+            debugLog('🚫 LoadingManager: Invalid URL:', href, 'verbose');
+            return false;
+        }
         
-        // Skip mailto, tel, etc.
-        if (href.includes(':') && !href.startsWith('/') && !href.startsWith(window.location.origin)) {
+        // Skip anchor links (any URL with a hash fragment)
+        if (url.hash) {
+            debugLog('🚫 LoadingManager: Skipping anchor link with hash:', url.hash, 'verbose');
+            return false;
+        }
+        
+        // Skip if it's the same page (same pathname)
+        if (url.pathname === window.location.pathname && url.origin === window.location.origin) {
+            debugLog('🚫 LoadingManager: Skipping same page link', null, 'verbose');
+            return false;
+        }
+        
+        // Skip external links
+        if (url.origin !== window.location.origin) {
+            debugLog('🚫 LoadingManager: Skipping external link:', url.origin, 'verbose');
             return false;
         }
         
         // Skip download links
-        if (link.hasAttribute('download')) return false;
+        if (link.hasAttribute('download')) {
+            debugLog('🚫 LoadingManager: Skipping download link', null, 'verbose');
+            return false;
+        }
         
         // Skip target="_blank" links
-        if (link.getAttribute('target') === '_blank') return false;
+        if (link.getAttribute('target') === '_blank') {
+            debugLog('🚫 LoadingManager: Skipping _blank link', null, 'verbose');
+            return false;
+        }
         
+        debugLog('✅ LoadingManager: Will show loading screen for:', href, 'verbose');
         return true;
     }
     
@@ -265,6 +320,7 @@ const loadingManager = new LoadingManager();
         if (sidebar) {
             sidebar.classList.remove('active');
             body.style.overflow = '';
+            console.log('🔄 Sidebar closed: Re-enabled scrolling');
             
             // Remove active class from hamburger menu
             if (menuToggle) {
@@ -446,6 +502,8 @@ const loadingManager = new LoadingManager();
         
         // Theme toggle click handler
         themeToggle.addEventListener('click', function() {
+            console.log('🎨 Theme toggle clicked');
+            
             const currentTheme = body.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             
@@ -453,10 +511,16 @@ const loadingManager = new LoadingManager();
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme, icon);
             
+            console.log(`🎨 Theme changed: ${currentTheme} → ${newTheme}`);
+            
             // Smooth transition
             body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
             setTimeout(() => {
                 body.style.transition = '';
+                // Ensure scrolling remains enabled and remove focus
+                document.body.style.overflow = '';
+                this.blur();
+                console.log('🎨 Theme toggle cleanup completed');
             }, 300);
         });
         
@@ -479,6 +543,7 @@ const loadingManager = new LoadingManager();
         navLinks.forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
+                console.log('🎯 Smooth scroll: Navigation to', this.getAttribute('href'));
                 
                 const targetId = this.getAttribute('href').substring(1);
                 const targetElement = document.getElementById(targetId);
@@ -495,6 +560,13 @@ const loadingManager = new LoadingManager();
                     
                     updateActiveNavLink(this);
                 }
+                
+                // Ensure page remains scrollable after navigation
+                setTimeout(() => {
+                    document.body.style.overflow = '';
+                    this.blur(); // Remove focus from the clicked link
+                    console.log('🎯 Smooth scroll: Cleanup completed');
+                }, 100);
             });
         });
     }
@@ -891,13 +963,132 @@ const loadingManager = new LoadingManager();
         initVideoSection();
         initWindowLoadHandler();
         preloadCriticalImages();
+        initHeaderFocusManagement();
         
         window.VTuberTheme.initialized = true;
         
-        console.log('%c🎮 Welcome to IbaraDevilRoze\'s Landing Page! 🎮', 
-                    'color: #8b5cf6; font-size: 16px; font-weight: bold;');
-        console.log('%cTheme: Modern White/Black + Purple Accent with Dark Mode', 
-                    'color: #6c757d; font-size: 12px;');
+        debugLog('%c🎮 Welcome to IbaraDevilRoze\'s Landing Page! 🎮', 
+                    'color: #8b5cf6; font-size: 16px; font-weight: bold;', 'basic');
+        debugLog('%cTheme: Modern White/Black + Purple Accent with Dark Mode', 
+                    'color: #6c757d; font-size: 12px;', 'basic');
+    }
+
+    /**
+     * Initialize header focus management to prevent scroll issues
+     */
+    function initHeaderFocusManagement() {
+        const header = document.getElementById('main-header');
+        if (!header) return;
+
+        debugLog('🔧 Initializing header focus management...', null, 'basic');
+
+        // Global scroll state monitoring
+        let scrollDisabled = false;
+        
+        function checkScrollState() {
+            const bodyOverflow = getComputedStyle(document.body).overflow;
+            const htmlOverflow = getComputedStyle(document.documentElement).overflow;
+            debugLog('📊 Scroll state check:', {
+                bodyOverflow,
+                htmlOverflow,
+                scrollDisabled,
+                bodyStyleOverflow: document.body.style.overflow,
+                documentHeight: document.documentElement.scrollHeight,
+                windowHeight: window.innerHeight
+            }, 'verbose');
+        }
+
+        // Monitor scroll events
+        let lastScrollY = window.scrollY;
+        window.addEventListener('scroll', () => {
+            const currentScrollY = window.scrollY;
+            debugLog('🖱️ Scroll event:', {
+                from: lastScrollY,
+                to: currentScrollY,
+                delta: currentScrollY - lastScrollY
+            }, 'verbose');
+            lastScrollY = currentScrollY;
+        });
+
+        // Monitor wheel events specifically
+        window.addEventListener('wheel', (e) => {
+            debugLog('🎡 Wheel event:', {
+                deltaY: e.deltaY,
+                deltaX: e.deltaX,
+                ctrlKey: e.ctrlKey,
+                prevented: e.defaultPrevented,
+                target: e.target.tagName,
+                targetClass: e.target.className
+            }, 'verbose');
+        });
+
+        // Handle all clickable elements in header
+        const headerElements = header.querySelectorAll('a, button');
+        debugLog(`🎯 Found ${headerElements.length} clickable elements in header`, null, 'verbose');
+        
+        headerElements.forEach((element, index) => {
+            debugLog(`📍 Element ${index}:`, {
+                tag: element.tagName,
+                class: element.className,
+                id: element.id,
+                text: element.textContent?.trim()
+            }, 'verbose');
+
+            element.addEventListener('click', function(e) {
+                debugLog('🖱️ Header element clicked:', {
+                    tag: this.tagName,
+                    class: this.className,
+                    id: this.id,
+                    text: this.textContent?.trim(),
+                    href: this.getAttribute('href'),
+                    currentBodyOverflow: document.body.style.overflow,
+                    timestamp: Date.now()
+                }, 'basic');
+
+                // Check scroll state before and after
+                checkScrollState();
+                
+                // Ensure scrolling remains enabled after any header interaction
+                setTimeout(() => {
+                    document.body.style.overflow = '';
+                    debugLog('🔄 Reset body overflow after header click', null, 'verbose');
+                    checkScrollState();
+                    
+                    // Remove focus to prevent keyboard event capture issues
+                    if (!this.classList.contains('mobile-menu-toggle')) {
+                        this.blur();
+                        debugLog('👁️ Removed focus from element', null, 'verbose');
+                    }
+                }, 50);
+            });
+        });
+
+        // Specific handling for logo links
+        const logoLinks = header.querySelectorAll('.logo a');
+        logoLinks.forEach((logoLink, index) => {
+            logoLink.addEventListener('click', function(e) {
+                console.log('🏠 Logo clicked:', {
+                    index,
+                    href: this.getAttribute('href'),
+                    beforeBodyOverflow: document.body.style.overflow
+                });
+                
+                checkScrollState();
+                
+                // Ensure page scrollability after logo click
+                setTimeout(() => {
+                    document.body.style.overflow = '';
+                    this.blur();
+                    console.log('🏠 Logo click cleanup completed');
+                    checkScrollState();
+                }, 100);
+            });
+        });
+
+        // Initial scroll state check
+        setTimeout(checkScrollState, 1000);
+        
+        console.log('✅ Header focus management initialized');
     }
 
     // Initialize when DOM is ready
