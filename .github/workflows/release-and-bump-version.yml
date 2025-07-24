@@ -56,7 +56,11 @@ jobs:
 
       - name: Create ZIP archive
         run: |
-          zip -r WordPress_IbaraDev.zip . -x '*.git*' '.github*' 'node_modules*'
+          zip -r WordPress_IbaraDev.zip \
+            404.php category.php footer.php front-page.php functions.php \
+            header.php home.php index.php page-achievements.php page.php \
+            README.md screenshot.png search.php single.php style.css \
+            images js
 
       - name: Create and push tag (main branch only)
         if: github.ref_name == 'main'
