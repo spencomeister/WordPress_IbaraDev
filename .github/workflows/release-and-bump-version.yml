@@ -56,7 +56,8 @@ jobs:
         run: |
           zip -r WordPress_IbaraDev.zip . -x '*.git*' '.github*' 'node_modules*'
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release (main branch only)
+        if: github.ref == 'refs/heads/main'
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
@@ -67,7 +68,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload ZIP to Release
+      - name: Upload ZIP to Release (main branch only)
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           files: WordPress_IbaraDev.zip
