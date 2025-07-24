@@ -99,10 +99,10 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.bump_version.outputs.version }}
-          name: Release v${{ steps.bump_version.outputs.version }}
+          tag_name: v${{ steps.create_tag.outputs.version }}
+          name: Release v${{ steps.create_tag.outputs.version }}
           body: |
-            Automated release for version ${{ steps.bump_version.outputs.version }}.
+            Automated release for version ${{ steps.create_tag.outputs.version }}.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -110,6 +110,7 @@ jobs:
         if: github.ref_name == 'main'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.create_tag.outputs.version }}
           files: WordPress_IbaraDev.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
