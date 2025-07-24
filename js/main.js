@@ -320,7 +320,7 @@ const loadingManager = new LoadingManager();
         if (sidebar) {
             sidebar.classList.remove('active');
             body.style.overflow = '';
-            console.log('🔄 Sidebar closed: Re-enabled scrolling');
+            debugLog('🔄 Sidebar closed: Re-enabled scrolling', null, 'verbose');
             
             // Remove active class from hamburger menu
             if (menuToggle) {
@@ -389,7 +389,7 @@ const loadingManager = new LoadingManager();
      * Set sidebar background image with format detection
      */
     async function setSidebarBackground(sidebar) {
-        console.log('Setting sidebar background...');
+        debugLog('Setting sidebar background...', null, 'verbose');
         
         // Get settings from data attributes (set by PHP)
         const bgImage = sidebar.dataset.bgImage;
@@ -397,24 +397,24 @@ const loadingManager = new LoadingManager();
         const bgSize = sidebar.dataset.bgSize || 'cover';
 
         if (bgImage) {
-            console.log('Using customizer background image:', bgImage);
+            debugLog('Using customizer background image:', bgImage, 'basic');
             
             // Check if browser supports AVIF and if AVIF version exists
             const avifSupported = await checkAVIFSupport();
             
             if (avifSupported && bgImage.includes('.png')) {
                 const avifImage = bgImage.replace('.png', '.avif');
-                console.log('Testing AVIF version:', avifImage);
+                debugLog('Testing AVIF version:', avifImage, 'verbose');
                 
                 const img = new Image();
                 img.onload = function() {
-                    console.log('✅ AVIF image loaded successfully:', avifImage);
+                    debugLog('✅ AVIF image loaded successfully:', avifImage, 'basic');
                     sidebar.style.backgroundImage = `url('${avifImage}')`;
                     sidebar.style.backgroundPosition = bgPosition;
                     sidebar.style.backgroundSize = bgSize;
                 };
                 img.onerror = function() {
-                    console.log('AVIF not available, using original:', bgImage);
+                    debugLog('AVIF not available, using original:', bgImage, 'basic');
                     sidebar.style.backgroundImage = `url('${bgImage}')`;
                     sidebar.style.backgroundPosition = bgPosition;
                     sidebar.style.backgroundSize = bgSize;
@@ -424,7 +424,7 @@ const loadingManager = new LoadingManager();
                 sidebar.style.backgroundImage = `url('${bgImage}')`;
                 sidebar.style.backgroundPosition = bgPosition;
                 sidebar.style.backgroundSize = bgSize;
-                console.log('✅ Using background image:', bgImage);
+                debugLog('✅ Using background image:', bgImage, 'basic');
             }
         } else {
             console.warn('No background image set in customizer, using fallback');
@@ -443,7 +443,7 @@ const loadingManager = new LoadingManager();
                 const img = new Image();
                 img.onload = () => {
                     sidebar.style.backgroundImage = `url('${imageUrl}')`;
-                    console.log('✅ Successfully loaded fallback image:', imageUrl);
+                    debugLog('✅ Successfully loaded fallback image:', imageUrl, 'basic');
                 };
                 img.onerror = () => {
                     console.error('❌ Failed to load fallback image:', imageUrl);
@@ -502,7 +502,7 @@ const loadingManager = new LoadingManager();
         
         // Theme toggle click handler
         themeToggle.addEventListener('click', function() {
-            console.log('🎨 Theme toggle clicked');
+            debugLog('🎨 Theme toggle clicked', null, 'verbose');
             
             const currentTheme = body.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -511,7 +511,7 @@ const loadingManager = new LoadingManager();
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme, icon);
             
-            console.log(`🎨 Theme changed: ${currentTheme} → ${newTheme}`);
+            debugLog(`🎨 Theme changed: ${currentTheme} → ${newTheme}`, null, 'basic');
             
             // Smooth transition
             body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
@@ -520,7 +520,7 @@ const loadingManager = new LoadingManager();
                 // Ensure scrolling remains enabled and remove focus
                 document.body.style.overflow = '';
                 this.blur();
-                console.log('🎨 Theme toggle cleanup completed');
+                debugLog('🎨 Theme toggle cleanup completed', null, 'verbose');
             }, 300);
         });
         
@@ -543,7 +543,7 @@ const loadingManager = new LoadingManager();
         navLinks.forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
-                console.log('🎯 Smooth scroll: Navigation to', this.getAttribute('href'));
+                debugLog('🎯 Smooth scroll: Navigation to', this.getAttribute('href'), 'verbose');
                 
                 const targetId = this.getAttribute('href').substring(1);
                 const targetElement = document.getElementById(targetId);
@@ -565,7 +565,7 @@ const loadingManager = new LoadingManager();
                 setTimeout(() => {
                     document.body.style.overflow = '';
                     this.blur(); // Remove focus from the clicked link
-                    console.log('🎯 Smooth scroll: Cleanup completed');
+                    debugLog('🎯 Smooth scroll: Cleanup completed', null, 'verbose');
                 }, 100);
             });
         });
@@ -860,7 +860,7 @@ const loadingManager = new LoadingManager();
                             titleElement.setAttribute('data-original-title', titleElement.textContent);
                         }
                         titleElement.textContent = data.title;
-                        console.log(`Applied title "${data.title}" to video card ${index + 1}`);
+                        debugLog(`Applied title "${data.title}" to video card ${index + 1}`, null, 'verbose');
                     }
                 }
                 
@@ -873,7 +873,7 @@ const loadingManager = new LoadingManager();
                             descElement.setAttribute('data-original-desc', descElement.textContent);
                         }
                         descElement.textContent = data.description;
-                        console.log(`Applied description "${data.description}" to video card ${index + 1}`);
+                        debugLog(`Applied description "${data.description}" to video card ${index + 1}`, null, 'verbose');
                     }
                 }
                 
@@ -886,15 +886,15 @@ const loadingManager = new LoadingManager();
                             linkElement.setAttribute('data-original-url', linkElement.href);
                         }
                         linkElement.href = data.url;
-                        console.log(`Applied URL "${data.url}" to video card ${index + 1}`);
+                        debugLog(`Applied URL "${data.url}" to video card ${index + 1}`, null, 'verbose');
                     }
                 }
             }
         });
         
         // Debug information
-        console.log('Video data from customizer:', videoData);
-        console.log('Found video cards:', videoCards.length);
+        debugLog('Video data from customizer:', videoData, 'verbose');
+        debugLog('Found video cards:', videoCards.length, 'verbose');
     }
 
     /**
@@ -941,14 +941,14 @@ const loadingManager = new LoadingManager();
         
         // Debug: Check if video data is available
         if (typeof vtuber_ajax !== 'undefined' && vtuber_ajax.video_data) {
-            console.log('Video data available:', vtuber_ajax.video_data);
+            debugLog('Video data available:', vtuber_ajax.video_data, 'verbose');
         } else {
             console.warn('Video data not available in vtuber_ajax');
         }
         
         // Legacy check for video titles
         if (typeof vtuber_ajax !== 'undefined' && vtuber_ajax.video_titles) {
-            console.log('Video titles available:', vtuber_ajax.video_titles);
+            debugLog('Video titles available:', vtuber_ajax.video_titles, 'verbose');
         }
         
         // Initialize all features
@@ -1067,11 +1067,11 @@ const loadingManager = new LoadingManager();
         const logoLinks = header.querySelectorAll('.logo a');
         logoLinks.forEach((logoLink, index) => {
             logoLink.addEventListener('click', function(e) {
-                console.log('🏠 Logo clicked:', {
+                debugLog('🏠 Logo clicked:', {
                     index,
                     href: this.getAttribute('href'),
                     beforeBodyOverflow: document.body.style.overflow
-                });
+                }, 'verbose');
                 
                 checkScrollState();
                 
@@ -1079,7 +1079,7 @@ const loadingManager = new LoadingManager();
                 setTimeout(() => {
                     document.body.style.overflow = '';
                     this.blur();
-                    console.log('🏠 Logo click cleanup completed');
+                    debugLog('🏠 Logo click cleanup completed', null, 'verbose');
                     checkScrollState();
                 }, 100);
             });
@@ -1088,7 +1088,12 @@ const loadingManager = new LoadingManager();
         // Initial scroll state check
         setTimeout(checkScrollState, 1000);
         
-        console.log('✅ Header focus management initialized');
+        debugLog('✅ Header focus management initialized', null, 'basic');
+        
+        // Log initial theme if available
+        if (window.initialTheme) {
+            debugLog('🎨 Theme initialized:', window.initialTheme, 'basic');
+        }
     }
 
     // Initialize when DOM is ready

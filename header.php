@@ -50,7 +50,8 @@ WordPress Theme for Content Creators
     // Apply theme immediately
     body.setAttribute('data-theme', currentTheme);
     
-    console.log('🎨 Theme initialized:', currentTheme);
+    // Store theme for later debug logging
+    window.initialTheme = currentTheme;
 })();
 </script>
 

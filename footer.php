@@ -36,7 +36,7 @@ if ('performance' in window && 'measure' in window.performance) {
     window.addEventListener('load', function() {
         // Log performance metrics for debugging
         const perfData = performance.getEntriesByType('navigation')[0];
-        if (perfData) {
+        if (perfData && typeof vtuber_ajax !== 'undefined' && vtuber_ajax.debug_settings && vtuber_ajax.debug_settings.enabled) {
             console.log('🚀 Page Load Performance:', {
                 domContentLoaded: Math.round(perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart),
                 loadComplete: Math.round(perfData.loadEventEnd - perfData.loadEventStart),
