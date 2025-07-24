@@ -53,9 +53,18 @@ jobs:
           git diff --cached --quiet || git commit -m "chore: bump style.css version to ${{ steps.bump_version.outputs.version }}"
           git push || echo "No changes to push."
 
+
       - name: Create ZIP archive
         run: |
           zip -r WordPress_IbaraDev.zip . -x '*.git*' '.github*' 'node_modules*'
+
+      - name: Create and push tag (main branch only)
+        if: github.ref_name == 'main'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git tag v${{ steps.bump_version.outputs.version }}
+          git push origin v${{ steps.bump_version.outputs.version }}
 
       - name: Create GitHub Release (main branch only)
         if: github.ref_name == 'main'
