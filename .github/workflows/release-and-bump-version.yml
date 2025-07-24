@@ -62,13 +62,32 @@ jobs:
             README.md screenshot.png search.php single.php style.css \
             images js
 
-      - name: Create and push tag (main branch only)
+      - name: Create and push tag (main branch only, with auto-increment if exists)
         if: github.ref_name == 'main'
+        id: create_tag
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git tag v${{ steps.bump_version.outputs.version }}
-          git push origin v${{ steps.bump_version.outputs.version }}
+          version=${{ steps.bump_version.outputs.version }}
+          tag_exists=$(git ls-remote --tags origin v$version | wc -l)
+          if [ "$tag_exists" -gt 0 ]; then
+            # バージョンをインクリメント
+            major=$(echo $version | cut -d. -f1)
+            minor=$(echo $version | cut -d. -f2)
+            patch=$(echo $version | cut -d. -f3)
+            if [[ -z "$patch" ]]; then patch=0; fi
+            patch=$((patch+1))
+            new_version="$major.$minor.$patch"
+            echo "Tag v$new_version will be created instead (v$version already exists)"
+            sed -i "s/^Version: .*/Version: $new_version/" style.css
+            git add style.css
+            git commit -m "chore: bump style.css version to $new_version (auto-incremented)" || echo "No changes to commit."
+            git push || echo "No changes to push."
+            version=$new_version
+          fi
+          git tag v$version
+          git push origin v$version
+          echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Fetch tags after push (main branch only)
         if: github.ref_name == 'main'
