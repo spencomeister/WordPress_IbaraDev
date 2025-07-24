@@ -70,6 +70,11 @@ jobs:
           git tag v${{ steps.bump_version.outputs.version }}
           git push origin v${{ steps.bump_version.outputs.version }}
 
+      - name: Fetch tags after push (main branch only)
+        if: github.ref_name == 'main'
+        run: |
+          git fetch --tags
+
       - name: Create GitHub Release (main branch only)
         if: github.ref_name == 'main'
         id: create_release
