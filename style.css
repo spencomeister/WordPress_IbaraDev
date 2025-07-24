@@ -2919,7 +2919,7 @@ body[data-theme="dark"] .form-loading::after {
 
 .guidelines-intro {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 4rem;
 }
 
 .guidelines-description {
@@ -2927,7 +2927,7 @@ body[data-theme="dark"] .form-loading::after {
   line-height: 1.8;
   color: var(--text-secondary);
   max-width: 700px;
-  margin: 0 auto;
+  margin: 0 auto 3rem auto;
 }
 
 .guidelines-cards {
@@ -3005,6 +3005,7 @@ body[data-theme="dark"] .form-loading::after {
 
 .guidelines-cta {
   text-align: center;
+  margin-top: 2rem;
 }
 
 .btn-large {
@@ -3045,7 +3046,15 @@ body[data-theme="dark"] .form-loading::after {
 
   .guidelines-description {
     font-size: 1rem;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .guidelines-intro {
+    margin-bottom: 3rem;
+  }
+
+  .guidelines-cta {
+    margin-top: 1.5rem;
   }
 
   .btn-large {
