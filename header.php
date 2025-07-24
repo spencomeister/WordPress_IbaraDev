@@ -185,6 +185,11 @@ $sidebar_bg_size = get_theme_mod('sidebar_background_size', 'cover');
                 </a>
             </li>
             <li class="sidebar-menu-item">
+                <a href="<?php echo esc_url(home_url('/#guidelines')); ?>" class="sidebar-menu-link">
+                    <span>GUIDELINES</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
                 <a href="<?php echo esc_url(home_url('/#contact')); ?>" class="sidebar-menu-link">
                     <span>CONTACT</span>
                 </a>

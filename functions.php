@@ -111,6 +111,18 @@ function vtuber_setup_blog_page() {
         ));
     }
     
+    // Create guidelines page if it doesn't exist
+    $guidelines_page = get_page_by_path('guidelines');
+    if (!$guidelines_page) {
+        wp_insert_post(array(
+            'post_title' => 'ガイドライン',
+            'post_name' => 'guidelines',
+            'post_content' => '',
+            'post_status' => 'publish',
+            'post_type' => 'page'
+        ));
+    }
+    
     // Ensure front page is set to show a static page (not posts)
     update_option('show_on_front', 'page');
     
@@ -140,6 +152,7 @@ function vtuber_fallback_menu() {
         'おすすめ動画' => home_url() . '/#videos',
         '実績' => home_url() . '/achievements/',
         'ニュース' => home_url() . '/blog/',
+        'ガイドライン' => home_url() . '/#guidelines',
         'お問合せ' => home_url() . '/#contact'
     );
     
