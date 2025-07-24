@@ -1,3 +1,26 @@
+// Utility: Scroll Lock Manager
+const ScrollLockManager = (function() {
+    let lockCount = 0;
+    return {
+        lock() {
+            lockCount++;
+            document.body.style.overflow = 'hidden';
+        },
+        unlock() {
+            if (lockCount > 0) lockCount--;
+            if (lockCount === 0) {
+                document.body.style.overflow = '';
+            }
+        },
+        reset() {
+            lockCount = 0;
+            document.body.style.overflow = '';
+        },
+        getCount() {
+            return lockCount;
+        }
+    };
+})();
 /**
  * IbaraDevilRoze VTuber Theme - Main JavaScript
  * Version 2.1
@@ -79,7 +102,7 @@ class LoadingManager {
             this.loadStartTime = Date.now();
             
             // Prevent scrolling during loading
-            document.body.style.overflow = 'hidden';
+            ScrollLockManager.lock();
             
             debugLog('🔄 Loading screen shown', null, 'basic');
         }
@@ -96,7 +119,7 @@ class LoadingManager {
             this.isLoading = false;
             
             // Re-enable scrolling
-            document.body.style.overflow = '';
+            ScrollLockManager.unlock();
             debugLog('🔄 Loading screen: Re-enabled scrolling', null, 'verbose');
             
             // Remove loading screen from DOM after animation
@@ -292,7 +315,7 @@ const loadingManager = new LoadingManager();
         
         if (sidebar) {
             sidebar.classList.add('active');
-            body.style.overflow = 'hidden';
+            ScrollLockManager.lock();
             
             // Add active class to hamburger menu
             if (menuToggle) {
@@ -319,7 +342,7 @@ const loadingManager = new LoadingManager();
         
         if (sidebar) {
             sidebar.classList.remove('active');
-            body.style.overflow = '';
+            ScrollLockManager.unlock();
             debugLog('🔄 Sidebar closed: Re-enabled scrolling', null, 'verbose');
             
             // Remove active class from hamburger menu

@@ -1,0 +1,77 @@
+name: Release and Bump Version
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get last commit message
+        id: last_commit
+        run: |
+          echo "msg=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+
+      - name: Bump style.css version
+        id: bump_version
+        run: |
+          # Extract current version
+          version_line=$(grep -m1 '^Version:' style.css)
+          version=$(echo "$version_line" | awk '{print $2}')
+          major=$(echo $version | cut -d. -f1)
+          minor=$(echo $version | cut -d. -f2)
+          patch=$(echo $version | cut -d. -f3)
+          if [[ -z "$patch" ]]; then patch=0; fi
+          msg="${{ steps.last_commit.outputs.msg }}"
+          if echo "$msg" | grep -iE 'feature'; then
+            minor=$((minor+1))
+            patch=0
+          elif echo "$msg" | grep -iE 'fix|bug'; then
+            patch=$((patch+1))
+          fi
+          new_version="$major.$minor.$patch"
+          echo "New version: $new_version"
+          sed -i "s/^Version: .*/Version: $new_version/" style.css
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Commit version bump if changed
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add style.css
+          git diff --cached --quiet || git commit -m "chore: bump style.css version to ${{ steps.bump_version.outputs.version }}"
+          git push || echo "No changes to push."
+
+      - name: Create ZIP archive
+        run: |
+          zip -r WordPress_IbaraDev.zip . -x '*.git*' '.github*' 'node_modules*'
+
+      - name: Create GitHub Release (main branch only)
+        if: github.ref == 'refs/heads/main'
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.bump_version.outputs.version }}
+          name: Release v${{ steps.bump_version.outputs.version }}
+          body: |
+            Automated release for version ${{ steps.bump_version.outputs.version }}.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload ZIP to Release (main branch only)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: WordPress_IbaraDev.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
