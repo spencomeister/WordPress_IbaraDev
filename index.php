@@ -461,7 +461,52 @@ get_header(); ?>
         </div>
     </section>
 
-
+    <!-- Guidelines Section -->
+    <section class="section" id="guidelines">
+        <div class="container">
+            <h2>ガイドライン</h2>
+            <div class="guidelines-content">
+                <div class="guidelines-intro">
+                    <p class="guidelines-description">
+                        配信や二次創作をされる方へ向けたガイドラインをご用意しております。<br>
+                        ファンアートやクリップ作成、配信での言及などをお考えの際は、ぜひご一読ください。
+                    </p>
+                </div>
+                
+                <div class="guidelines-cards">
+                    <div class="guideline-card fade-in">
+                        <div class="guideline-icon">
+                            <i class="fas fa-palette"></i>
+                        </div>
+                        <h3>ファンアート・二次創作</h3>
+                        <p>イラストや動画、音楽などの二次創作に関するガイドラインです。</p>
+                    </div>
+                    
+                    <div class="guideline-card fade-in">
+                        <div class="guideline-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <h3>クリップ・切り抜き</h3>
+                        <p>配信の切り抜き動画作成に関するルールとガイドラインです。</p>
+                    </div>
+                    
+                    <div class="guideline-card fade-in">
+                        <div class="guideline-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h3>配信でのお約束</h3>
+                        <p>配信中のコメント、スパチャなどのマナーやルールについてです。</p>
+                    </div>
+                </div>
+                
+                <div class="guidelines-cta">
+                    <a href="<?php echo home_url('/guidelines/'); ?>" class="btn btn-primary btn-large">
+                        <i class="fas fa-book-open"></i> 詳細なガイドラインを確認する
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Contact Section -->
     <section class="section" id="contact">
