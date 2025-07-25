@@ -232,7 +232,7 @@ function vtuber_scripts() {
 }
 add_action('wp_enqueue_scripts', 'vtuber_scripts');
 
-// Contact form handling
+// Contact form handling with WP Mail SMTP support
 function handle_contact_form_submission() {
     // Verify nonce
     if (!isset($_POST['contact_nonce']) || !wp_verify_nonce($_POST['contact_nonce'], 'contact_form_nonce')) {
@@ -247,35 +247,124 @@ function handle_contact_form_submission() {
     
     // Validate required fields
     if (empty($name) || empty($email) || empty($subject) || empty($message)) {
-        wp_redirect(home_url('/?contact=error'));
+        vtuber_log_contact_error('必須フィールドが不足しています', array(
+            'name' => $name,
+            'email' => $email,
+            'subject' => $subject,
+            'message_length' => strlen($message)
+        ));
+        wp_redirect(home_url('/?contact=error&reason=required_fields'));
         exit;
     }
     
-    // Prepare email
-    $to = get_option('admin_email');
+    // Validate email format
+    if (!is_email($email)) {
+        vtuber_log_contact_error('無効なメールアドレス形式', array('email' => $email));
+        wp_redirect(home_url('/?contact=error&reason=invalid_email'));
+        exit;
+    }
+    
+    // Get recipient email from customizer or use admin email as fallback
+    $to = get_theme_mod('contact_recipient_email', get_option('admin_email'));
+    
+    // Prepare email with enhanced formatting
     $email_subject = '[' . get_bloginfo('name') . '] ' . $subject;
-    $email_message = "お名前: {$name}\n";
-    $email_message .= "メールアドレス: {$email}\n\n";
-    $email_message .= "メッセージ:\n{$message}";
+    $email_message = "━━━ お問い合わせ内容 ━━━\n\n";
+    $email_message .= "お名前: {$name}\n";
+    $email_message .= "メールアドレス: {$email}\n";
+    $email_message .= "件名: {$subject}\n";
+    $email_message .= "送信日時: " . current_time('Y-m-d H:i:s') . "\n\n";
+    $email_message .= "メッセージ:\n" . str_repeat('-', 40) . "\n";
+    $email_message .= $message . "\n";
+    $email_message .= str_repeat('-', 40) . "\n\n";
+    $email_message .= "━━━ 送信情報 ━━━\n";
+    $email_message .= "送信者IP: " . $_SERVER['REMOTE_ADDR'] . "\n";
+    $email_message .= "ユーザーエージェント: " . $_SERVER['HTTP_USER_AGENT'] . "\n";
     
     $headers = array(
         'Content-Type: text/plain; charset=UTF-8',
-        'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>',
+        'From: ' . get_bloginfo('name') . ' <' . $to . '>',
         'Reply-To: ' . $name . ' <' . $email . '>'
     );
     
-    // Send email
+    // Log attempt if debug mode is enabled
+    if (get_theme_mod('debug_log_enabled', false)) {
+        vtuber_log_contact_info('メール送信を試行中', array(
+            'to' => $to,
+            'subject' => $email_subject,
+            'from_name' => $name,
+            'from_email' => $email,
+            'wp_mail_smtp_active' => is_plugin_active('wp-mail-smtp/wp_mail_smtp.php')
+        ));
+    }
+    
+    // Send email with error capturing
     $sent = wp_mail($to, $email_subject, $email_message, $headers);
     
     if ($sent) {
+        vtuber_log_contact_info('メール送信成功', array(
+            'to' => $to,
+            'from' => $email,
+            'subject' => $subject
+        ));
         wp_redirect(home_url('/?contact=success'));
     } else {
-        wp_redirect(home_url('/?contact=error'));
+        // Capture detailed error information
+        $error_info = array(
+            'to' => $to,
+            'from' => $email,
+            'subject' => $subject,
+            'wp_mail_smtp_active' => is_plugin_active('wp-mail-smtp/wp_mail_smtp.php'),
+            'admin_email' => get_option('admin_email'),
+            'bloginfo_name' => get_bloginfo('name')
+        );
+        
+        // Check for common issues
+        if (!is_plugin_active('wp-mail-smtp/wp_mail_smtp.php')) {
+            $error_info['recommendation'] = 'WP Mail SMTPプラグインのインストールを推奨します';
+        }
+        
+        vtuber_log_contact_error('メール送信失敗', $error_info);
+        wp_redirect(home_url('/?contact=error&reason=send_failed'));
     }
     exit;
 }
 add_action('admin_post_contact_form_submission', 'handle_contact_form_submission');
 add_action('admin_post_nopriv_contact_form_submission', 'handle_contact_form_submission');
+
+// Contact form logging functions
+function vtuber_log_contact_info($message, $data = array()) {
+    if (!get_theme_mod('debug_log_enabled', false)) {
+        return;
+    }
+    
+    $log_entry = array(
+        'timestamp' => current_time('c'),
+        'level' => 'INFO',
+        'category' => 'CONTACT',
+        'message' => $message,
+        'data' => $data,
+        'user_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+    );
+    
+    error_log('[VTUBER CONTACT INFO] ' . json_encode($log_entry, JSON_UNESCAPED_UNICODE));
+}
+
+function vtuber_log_contact_error($message, $data = array()) {
+    $log_entry = array(
+        'timestamp' => current_time('c'),
+        'level' => 'ERROR',
+        'category' => 'CONTACT',
+        'message' => $message,
+        'data' => $data,
+        'user_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+    );
+    
+    // Always log errors regardless of debug setting
+    error_log('[VTUBER CONTACT ERROR] ' . json_encode($log_entry, JSON_UNESCAPED_UNICODE));
+}
 
 // Theme Customizer
 function vtuber_customize_register($wp_customize) {
@@ -712,6 +801,67 @@ function vtuber_customize_register($wp_customize) {
         'active_callback' => function() {
             return get_theme_mod('debug_logging_enabled', false);
         },
+    ));
+    
+    // Contact Settings Section
+    $wp_customize->add_section('contact_settings', array(
+        'title'    => __('お問い合わせ設定', 'vtuber-theme'),
+        'description' => __('Contactフォームの送信先メールアドレスやWP Mail SMTP連携設定を管理します。', 'vtuber-theme'),
+        'priority' => 140,
+    ));
+    
+    // Contact recipient email setting
+    $wp_customize->add_setting('contact_recipient_email', array(
+        'default'    => get_option('admin_email'),
+        'sanitize_callback' => 'sanitize_email',
+        'transport'  => 'refresh',
+    ));
+    
+    $wp_customize->add_control('contact_recipient_email', array(
+        'label'       => __('送信先メールアドレス', 'vtuber-theme'),
+        'description' => __('お問い合わせフォームからのメールを受信するメールアドレスを設定してください。空の場合は管理者メールアドレスが使用されます。', 'vtuber-theme'),
+        'section'     => 'contact_settings',
+        'type'        => 'email',
+        'priority'    => 10,
+    ));
+    
+    // WP Mail SMTP status info (read-only)
+    $wp_customize->add_setting('wp_mail_smtp_status', array(
+        'default'    => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'  => 'postMessage',
+    ));
+    
+    $wp_mail_smtp_active = is_plugin_active('wp-mail-smtp/wp_mail_smtp.php');
+    $status_text = $wp_mail_smtp_active ? 
+        __('✓ WP Mail SMTPプラグインが有効です', 'vtuber-theme') : 
+        __('⚠ WP Mail SMTPプラグインが無効です。メール送信の信頼性向上のため、インストールを推奨します。', 'vtuber-theme');
+    
+    $wp_customize->add_control('wp_mail_smtp_status', array(
+        'label'       => __('WP Mail SMTP 状態', 'vtuber-theme'),
+        'description' => $status_text,
+        'section'     => 'contact_settings',
+        'type'        => 'text',
+        'priority'    => 20,
+        'input_attrs' => array(
+            'readonly' => 'readonly',
+            'style' => 'background-color: #f1f1f1; cursor: not-allowed;'
+        ),
+    ));
+    
+    // Contact form test setting
+    $wp_customize->add_setting('contact_test_mode', array(
+        'default'    => false,
+        'sanitize_callback' => 'rest_sanitize_boolean',
+        'transport'  => 'refresh',
+    ));
+    
+    $wp_customize->add_control('contact_test_mode', array(
+        'label'       => __('テストモード', 'vtuber-theme'),
+        'description' => __('有効にすると、お問い合わせフォームの送信時に詳細なデバッグ情報がログに記録されます。', 'vtuber-theme'),
+        'section'     => 'contact_settings',
+        'type'        => 'checkbox',
+        'priority'    => 30,
     ));
 }
 
@@ -1167,13 +1317,40 @@ if (class_exists('WP_Customize_Control')) {
     }
 }
 
-// Add contact form messages
+// Add contact form messages with enhanced error handling
 function display_contact_messages() {
     if (isset($_GET['contact'])) {
         if ($_GET['contact'] === 'success') {
-            echo '<div class="contact-message success">お問い合わせありがとうございます！近日中にお返事いたします。</div>';
+            echo '<div class="contact-message success">';
+            echo '<i class="fas fa-check-circle"></i> ';
+            echo 'お問い合わせありがとうございます！近日中にお返事いたします。';
+            echo '</div>';
         } elseif ($_GET['contact'] === 'error') {
-            echo '<div class="contact-message error">申し訳ございません。メッセージの送信でエラーが発生しました。もう一度お試しください。</div>';
+            $error_reason = isset($_GET['reason']) ? sanitize_text_field($_GET['reason']) : '';
+            
+            echo '<div class="contact-message error">';
+            echo '<i class="fas fa-exclamation-triangle"></i> ';
+            
+            switch ($error_reason) {
+                case 'required_fields':
+                    echo '必須フィールドがすべて入力されていません。お名前、メールアドレス、件名、メッセージをすべて入力してください。';
+                    break;
+                case 'invalid_email':
+                    echo 'メールアドレスの形式が正しくありません。正しいメールアドレスを入力してください。';
+                    break;
+                case 'send_failed':
+                    echo 'メッセージの送信でエラーが発生しました。';
+                    if (!is_plugin_active('wp-mail-smtp/wp_mail_smtp.php')) {
+                        echo '<br><small>※ メール送信の信頼性向上のため、WP Mail SMTPプラグインのご利用を推奨いたします。</small>';
+                    }
+                    echo '<br><small>問題が続く場合は、しばらく時間をおいてから再度お試しください。</small>';
+                    break;
+                default:
+                    echo '申し訳ございません。メッセージの送信でエラーが発生しました。もう一度お試しください。';
+                    break;
+            }
+            
+            echo '</div>';
         }
     }
 }
@@ -1185,6 +1362,175 @@ function vtuber_security_headers() {
     header('X-XSS-Protection: 1; mode=block');
 }
 add_action('send_headers', 'vtuber_security_headers');
+
+// WP Mail SMTP integration notice for administrators
+function vtuber_wp_mail_smtp_admin_notice() {
+    // Only show to administrators
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    
+    // Only show if WP Mail SMTP is not active
+    if (is_plugin_active('wp-mail-smtp/wp_mail_smtp.php')) {
+        return;
+    }
+    
+    // Check if notice was dismissed
+    if (get_user_meta(get_current_user_id(), 'vtuber_wp_mail_smtp_notice_dismissed', true)) {
+        return;
+    }
+    
+    ?>
+    <div class="notice notice-warning is-dismissible" id="vtuber-wp-mail-smtp-notice">
+        <h3>📧 お問い合わせフォームの信頼性向上について</h3>
+        <p>
+            <strong>VTuberテーマ</strong>のお問い合わせフォームをより確実に動作させるため、
+            <strong>WP Mail SMTP</strong>プラグインのインストールを推奨いたします。
+        </p>
+        <p>
+            <strong>WP Mail SMTP</strong>を使用することで：
+        </p>
+        <ul>
+            <li>✅ メール送信の信頼性が大幅に向上します</li>
+            <li>✅ Gmail、Outlook、SendGridなど様々なメールサービスに対応</li>
+            <li>✅ 送信ログで問題を素早く特定できます</li>
+            <li>✅ SPFやDKIMでメールの認証が向上します</li>
+        </ul>
+        <p>
+            <a href="<?php echo admin_url('plugin-install.php?s=wp+mail+smtp&tab=search&type=term'); ?>" class="button button-primary">
+                WP Mail SMTPをインストール
+            </a>
+            <a href="#" class="button" onclick="vtuberDismissWpMailSmtpNotice()">
+                後で確認する
+            </a>
+        </p>
+    </div>
+    
+    <script>
+    function vtuberDismissWpMailSmtpNotice() {
+        document.getElementById('vtuber-wp-mail-smtp-notice').style.display = 'none';
+        
+        // Send AJAX request to dismiss notice
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', ajaxurl);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.send('action=vtuber_dismiss_wp_mail_smtp_notice&nonce=<?php echo wp_create_nonce('vtuber_dismiss_notice'); ?>');
+    }
+    </script>
+    <?php
+}
+add_action('admin_notices', 'vtuber_wp_mail_smtp_admin_notice');
+
+// Handle notice dismissal
+function vtuber_handle_dismiss_wp_mail_smtp_notice() {
+    if (!wp_verify_nonce($_POST['nonce'], 'vtuber_dismiss_notice')) {
+        wp_die('Security check failed');
+    }
+    
+    update_user_meta(get_current_user_id(), 'vtuber_wp_mail_smtp_notice_dismissed', true);
+    wp_die('OK');
+}
+add_action('wp_ajax_vtuber_dismiss_wp_mail_smtp_notice', 'vtuber_handle_dismiss_wp_mail_smtp_notice');
+
+// Contact form test functionality for administrators
+function vtuber_contact_form_test_page() {
+    if (!current_user_can('manage_options')) {
+        wp_die('権限がありません');
+    }
+    
+    if (isset($_POST['test_contact_form'])) {
+        $test_email = sanitize_email($_POST['test_email']);
+        if (empty($test_email)) {
+            $test_email = get_option('admin_email');
+        }
+        
+        $subject = '[テスト送信] ' . get_bloginfo('name') . ' お問い合わせフォーム';
+        $message = "これはお問い合わせフォームのテスト送信です。\n\n";
+        $message .= "送信日時: " . current_time('Y-m-d H:i:s') . "\n";
+        $message .= "WordPress管理者: " . wp_get_current_user()->display_name . "\n";
+        $message .= "WP Mail SMTP有効: " . (is_plugin_active('wp-mail-smtp/wp_mail_smtp.php') ? 'はい' : 'いいえ') . "\n";
+        $message .= "PHPバージョン: " . PHP_VERSION . "\n";
+        $message .= "WordPressバージョン: " . get_bloginfo('version') . "\n\n";
+        $message .= "このメールが届いた場合、お問い合わせフォームは正常に動作しています。";
+        
+        $headers = array(
+            'Content-Type: text/plain; charset=UTF-8',
+            'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>'
+        );
+        
+        $sent = wp_mail($test_email, $subject, $message, $headers);
+        
+        if ($sent) {
+            echo '<div class="notice notice-success"><p>✅ テストメールを送信しました: ' . esc_html($test_email) . '</p></div>';
+        } else {
+            echo '<div class="notice notice-error"><p>❌ テストメールの送信に失敗しました。WP Mail SMTPプラグインの設定を確認してください。</p></div>';
+        }
+    }
+    
+    ?>
+    <div class="wrap">
+        <h1>📧 お問い合わせフォーム テスト送信</h1>
+        <div class="card">
+            <h2>メール送信テスト</h2>
+            <p>お問い合わせフォームが正常に動作するかテストできます。</p>
+            
+            <form method="post">
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">送信先メールアドレス</th>
+                        <td>
+                            <input type="email" name="test_email" value="<?php echo esc_attr(get_option('admin_email')); ?>" class="regular-text" />
+                            <p class="description">テストメールを送信するメールアドレスを入力してください。</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p class="submit">
+                    <input type="submit" name="test_contact_form" class="button-primary" value="テストメールを送信" />
+                </p>
+            </form>
+        </div>
+        
+        <div class="card">
+            <h2>📊 現在の設定</h2>
+            <table class="widefat">
+                <tr>
+                    <th>WP Mail SMTP</th>
+                    <td><?php echo is_plugin_active('wp-mail-smtp/wp_mail_smtp.php') ? '✅ 有効' : '❌ 無効'; ?></td>
+                </tr>
+                <tr>
+                    <th>管理者メール</th>
+                    <td><?php echo esc_html(get_option('admin_email')); ?></td>
+                </tr>
+                <tr>
+                    <th>Contact送信先</th>
+                    <td><?php echo esc_html(get_theme_mod('contact_recipient_email', get_option('admin_email'))); ?></td>
+                </tr>
+                <tr>
+                    <th>デバッグログ</th>
+                    <td><?php echo get_theme_mod('debug_log_enabled', false) ? '✅ 有効' : '❌ 無効'; ?></td>
+                </tr>
+                <tr>
+                    <th>Contactテストモード</th>
+                    <td><?php echo get_theme_mod('contact_test_mode', false) ? '✅ 有効' : '❌ 無効'; ?></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <?php
+}
+
+// Add menu item for contact test
+function vtuber_add_contact_test_menu() {
+    add_management_page(
+        'お問い合わせテスト',
+        'お問い合わせテスト',
+        'manage_options',
+        'vtuber-contact-test',
+        'vtuber_contact_form_test_page'
+    );
+}
+add_action('admin_menu', 'vtuber_add_contact_test_menu');
 
 // Performance optimizations
 function vtuber_optimize_performance() {
