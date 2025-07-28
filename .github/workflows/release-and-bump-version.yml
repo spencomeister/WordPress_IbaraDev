@@ -105,11 +105,22 @@ jobs:
       - name: Delete existing release if exists
         run: |
           version=${{ steps.create_tag.outputs.version }}
-          # GitHub APIを使用して既存リリースを削除
-          curl -X DELETE \
+          # GitHub APIを使用して既存リリースIDを取得し削除
+          release_id=$(curl -s \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/v$version" || echo "Release v$version does not exist or already deleted"
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/v$version" | jq -r '.id // empty')
+          
+          if [ -n "$release_id" ] && [ "$release_id" != "null" ]; then
+            echo "Deleting existing release with ID: $release_id"
+            curl -X DELETE \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$release_id"
+            echo "Release v$version deleted successfully"
+          else
+            echo "Release v$version does not exist"
+          fi
 
       - name: Create GitHub Release
         id: create_release
