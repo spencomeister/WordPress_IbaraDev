@@ -62,8 +62,8 @@ jobs:
             README.md screenshot.png search.php single.php style.css \
             images js
 
-      - name: Create and push tag (main branch only, with auto-increment if exists)
-        if: github.ref_name == 'main'
+
+      - name: Create and push tag (with auto-increment if exists)
         id: create_tag
         run: |
           git config --global user.name 'github-actions[bot]'
@@ -89,13 +89,11 @@ jobs:
           git push origin v$version
           echo "version=$version" >> $GITHUB_OUTPUT
 
-      - name: Fetch tags after push (main branch only)
-        if: github.ref_name == 'main'
+      - name: Fetch tags after push
         run: |
           git fetch --tags
 
-      - name: Create GitHub Release (main branch only)
-        if: github.ref_name == 'main'
+      - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
@@ -106,8 +104,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload ZIP to Release (main branch only)
-        if: github.ref_name == 'main'
+      - name: Upload ZIP to Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.create_tag.outputs.version }}
