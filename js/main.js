@@ -111,13 +111,6 @@ const THEME_CONFIG = Object.freeze({
     }
 });
 
-// Legacy aliases for backward compatibility (deprecated)
-const ANIMATION_CONFIG = THEME_CONFIG.ANIMATION;
-const SCROLL_CONFIG = THEME_CONFIG.SCROLL;
-const VISUAL_CONFIG = THEME_CONFIG.VISUAL;
-const CSS_SELECTORS = THEME_CONFIG.SELECTORS;
-const DEBUG_CONFIG = THEME_CONFIG.DEBUG;
-
 // Utility Functions
 const DOMUtils = {
     /**
@@ -406,11 +399,11 @@ const appState = new ApplicationState();
 
 // Debug logging function
 function debugLog(message, data = null, level = 'basic') {
-    if (!DEBUG_CONFIG.enabled) return;
+    if (!THEME_CONFIG.DEBUG.enabled) return;
     
     // Check log level
     const levels = ['minimal', 'basic', 'verbose'];
-    const currentLevel = levels.indexOf(DEBUG_CONFIG.level);
+    const currentLevel = levels.indexOf(THEME_CONFIG.DEBUG.level);
     const messageLevel = levels.indexOf(level);
     
     if (messageLevel > currentLevel) return;
@@ -614,7 +607,7 @@ function initScrollLockManagement() {
                 debugLog('🔄 Window focus detected with active scroll lock, resetting', null, 'basic');
                 ScrollLockManager.reset();
             }
-        }, ANIMATION_CONFIG.SCROLL_LOCK_RESET_DELAY);
+        }, THEME_CONFIG.ANIMATION.SCROLL_LOCK_RESET_DELAY);
     });
     
     // Reset scroll lock on visibility change (when tab becomes visible again)
@@ -625,7 +618,7 @@ function initScrollLockManagement() {
                     debugLog('🔄 Tab became visible with active scroll lock, resetting', null, 'basic');
                     ScrollLockManager.reset();
                 }
-            }, ANIMATION_CONFIG.SCROLL_LOCK_RESET_DELAY);
+            }, THEME_CONFIG.ANIMATION.SCROLL_LOCK_RESET_DELAY);
         }
     });
 }
@@ -774,17 +767,17 @@ initScrollLockManagement();
      * Open sidebar menu
      */
     function openSidebar() {
-        const sidebar = document.getElementById(CSS_SELECTORS.LEFT_SIDEBAR);
-        const menuToggle = document.getElementById(CSS_SELECTORS.MOBILE_MENU_TOGGLE);
+        const sidebar = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.LEFT_SIDEBAR);
+        const menuToggle = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.MOBILE_MENU_TOGGLE);
         const body = document.body;
         
         if (sidebar) {
-            sidebar.classList.add(CSS_SELECTORS.ACTIVE_CLASS);
+            sidebar.classList.add(THEME_CONFIG.SELECTORS.ACTIVE_CLASS);
             ScrollLockManager.lock();
             
             // Add active class to hamburger menu
             if (menuToggle) {
-                menuToggle.classList.add(CSS_SELECTORS.ACTIVE_CLASS);
+                menuToggle.classList.add(THEME_CONFIG.SELECTORS.ACTIVE_CLASS);
                 menuToggle.setAttribute('aria-label', 'メニューを閉じる');
                 menuToggle.setAttribute('title', 'メニューを閉じる');
             }
@@ -801,18 +794,18 @@ initScrollLockManagement();
      * Close sidebar menu
      */
     function closeSidebar() {
-        const sidebar = document.getElementById(CSS_SELECTORS.LEFT_SIDEBAR);
-        const menuToggle = document.getElementById(CSS_SELECTORS.MOBILE_MENU_TOGGLE);
+        const sidebar = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.LEFT_SIDEBAR);
+        const menuToggle = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.MOBILE_MENU_TOGGLE);
         const body = document.body;
         
         if (sidebar) {
-            sidebar.classList.remove(CSS_SELECTORS.ACTIVE_CLASS);
+            sidebar.classList.remove(THEME_CONFIG.SELECTORS.ACTIVE_CLASS);
             ScrollLockManager.unlock();
             debugLog('🔄 Sidebar closed: Re-enabled scrolling', null, 'verbose');
             
             // Remove active class from hamburger menu
             if (menuToggle) {
-                menuToggle.classList.remove(CSS_SELECTORS.ACTIVE_CLASS);
+                menuToggle.classList.remove(THEME_CONFIG.SELECTORS.ACTIVE_CLASS);
                 menuToggle.setAttribute('aria-label', 'メニューを開く');
                 menuToggle.setAttribute('title', 'メニューを開く');
             }
@@ -828,9 +821,9 @@ initScrollLockManagement();
      * Initialize sidebar functionality
      */
     async function initSidebar() {
-        const menuToggle = document.getElementById(CSS_SELECTORS.MOBILE_MENU_TOGGLE);
+        const menuToggle = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.MOBILE_MENU_TOGGLE);
         const sidebarClose = document.getElementById('sidebar-close');
-        const sidebar = document.getElementById(CSS_SELECTORS.LEFT_SIDEBAR);
+        const sidebar = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.LEFT_SIDEBAR);
         
         // Set background image with proper format detection
         if (sidebar) {
@@ -858,15 +851,15 @@ initScrollLockManagement();
                 // Close sidebar after a short delay to allow the navigation to start
                 setTimeout(() => {
                     closeSidebar();
-                }, ANIMATION_CONFIG.SIDEBAR_CLOSE_DELAY);
+                }, THEME_CONFIG.ANIMATION.SIDEBAR_CLOSE_DELAY);
             });
         });
         
         // Escape key handler
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                const sidebar = document.getElementById(CSS_SELECTORS.LEFT_SIDEBAR);
-                if (sidebar && sidebar.classList.contains(CSS_SELECTORS.ACTIVE_CLASS)) {
+                const sidebar = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.LEFT_SIDEBAR);
+                if (sidebar && sidebar.classList.contains(THEME_CONFIG.SELECTORS.ACTIVE_CLASS)) {
                     closeSidebar();
                 }
             }
@@ -949,7 +942,7 @@ initScrollLockManagement();
     function checkAVIFSupport() {
         return new Promise((resolve) => {
             const avif = new Image();
-            avif.onload = avif.onerror = () => resolve(avif.height === VISUAL_CONFIG.AVIF_TEST_HEIGHT);
+            avif.onload = avif.onerror = () => resolve(avif.height === THEME_CONFIG.VISUAL.AVIF_TEST_HEIGHT);
             avif.src = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAIAAAACAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQ0MAAAAABNjb2xybmNseAACAAIAAYAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgABogQEAwgMg8f8D///8WfhwB8+ErK42A=';
         });
     }
@@ -1049,9 +1042,9 @@ initScrollLockManagement();
                 const targetElement = DOMUtils.getElementById(targetId);
                 
                 if (targetElement) {
-                    const header = DOMUtils.getElementById(CSS_SELECTORS.MAIN_HEADER);
+                    const header = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.MAIN_HEADER);
                     const headerHeight = header ? header.offsetHeight : 0;
-                    const targetPosition = targetElement.offsetTop - headerHeight - SCROLL_CONFIG.SMOOTH_SCROLL_OFFSET;
+                    const targetPosition = targetElement.offsetTop - headerHeight - THEME_CONFIG.SCROLL.SMOOTH_SCROLL_OFFSET;
                     
                     window.scrollTo({
                         top: targetPosition,
@@ -1066,7 +1059,7 @@ initScrollLockManagement();
                     document.body.style.overflow = '';
                     this.blur(); // Remove focus from the clicked link
                     debugLog('🎯 Smooth scroll: Cleanup completed', null, 'verbose');
-                }, ANIMATION_CONFIG.SMOOTH_SCROLL_CLEANUP_DELAY);
+                }, THEME_CONFIG.ANIMATION.SMOOTH_SCROLL_CLEANUP_DELAY);
             });
         });
     }
@@ -1076,8 +1069,8 @@ initScrollLockManagement();
      */
     function updateActiveNavLink(activeLink) {
         const navLinks = document.querySelectorAll('.nav-links a');
-        navLinks.forEach(link => link.classList.remove(CSS_SELECTORS.ACTIVE_CLASS));
-        activeLink.classList.add(CSS_SELECTORS.ACTIVE_CLASS);
+        navLinks.forEach(link => link.classList.remove(THEME_CONFIG.SELECTORS.ACTIVE_CLASS));
+        activeLink.classList.add(THEME_CONFIG.SELECTORS.ACTIVE_CLASS);
     }
 
     /**
@@ -1089,14 +1082,14 @@ initScrollLockManagement();
         if (!fadeElements.length) return;
         
         const observerOptions = {
-            threshold: VISUAL_CONFIG.FADE_IN_THRESHOLD,
-            rootMargin: VISUAL_CONFIG.FADE_IN_ROOT_MARGIN
+            threshold: THEME_CONFIG.VISUAL.FADE_IN_THRESHOLD,
+            rootMargin: THEME_CONFIG.VISUAL.FADE_IN_ROOT_MARGIN
         };
         
         const observer = new IntersectionObserver(function(entries) {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    DOMUtils.toggleClass(entry.target, CSS_SELECTORS.VISIBLE_CLASS, true);
+                    DOMUtils.toggleClass(entry.target, THEME_CONFIG.SELECTORS.VISIBLE_CLASS, true);
                     
                     // Add staggered delay for grid items
                     if (entry.target.classList.contains('achievement-card') || 
@@ -1104,7 +1097,7 @@ initScrollLockManagement();
                         entry.target.classList.contains('news-card')) {
                         const siblings = Array.from(entry.target.parentNode.children);
                         const index = siblings.indexOf(entry.target);
-                        entry.target.style.transitionDelay = `${index * VISUAL_CONFIG.STAGGER_DELAY_MULTIPLIER}s`;
+                        entry.target.style.transitionDelay = `${index * THEME_CONFIG.VISUAL.STAGGER_DELAY_MULTIPLIER}s`;
                     }
                     
                     // Unobserve after animation to improve performance
@@ -1123,7 +1116,7 @@ initScrollLockManagement();
      * Initialize header scroll effects
      */
     function initHeaderScroll() {
-        const header = DOMUtils.getElementById(CSS_SELECTORS.MAIN_HEADER);
+        const header = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.MAIN_HEADER);
         if (!header) return;
         
         let lastScroll = 0;
@@ -1133,13 +1126,13 @@ initScrollLockManagement();
             const currentScroll = window.pageYOffset;
             
             // Add/remove scrolled class for styling
-            DOMUtils.toggleClass(header, CSS_SELECTORS.SCROLLED_CLASS, currentScroll > SCROLL_CONFIG.HEADER_SCROLLED_THRESHOLD);
+            DOMUtils.toggleClass(header, THEME_CONFIG.SELECTORS.SCROLLED_CLASS, currentScroll > THEME_CONFIG.SCROLL.HEADER_SCROLLED_THRESHOLD);
             
             // Hide/show header on scroll
-            if (currentScroll > lastScroll && currentScroll > SCROLL_CONFIG.HEADER_HIDE_THRESHOLD) {
-                AnimationUtils.setTransform(header, SCROLL_CONFIG.HEADER_HIDDEN_TRANSFORM);
+            if (currentScroll > lastScroll && currentScroll > THEME_CONFIG.SCROLL.HEADER_HIDE_THRESHOLD) {
+                AnimationUtils.setTransform(header, THEME_CONFIG.SCROLL.HEADER_HIDDEN_TRANSFORM);
             } else {
-                AnimationUtils.setTransform(header, SCROLL_CONFIG.HEADER_VISIBLE_TRANSFORM);
+                AnimationUtils.setTransform(header, THEME_CONFIG.SCROLL.HEADER_VISIBLE_TRANSFORM);
             }
             
             lastScroll = currentScroll;
@@ -1163,13 +1156,13 @@ initScrollLockManagement();
     function updateActiveSection() {
         const sections = document.querySelectorAll('section[id]');
         const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
-        const header = DOMUtils.getElementById(CSS_SELECTORS.MAIN_HEADER);
+        const header = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.MAIN_HEADER);
         const headerHeight = header ? header.offsetHeight : 0;
         
         let currentSection = '';
         
         sections.forEach(section => {
-            const sectionTop = section.offsetTop - headerHeight - SCROLL_CONFIG.SECTION_OFFSET_BUFFER;
+            const sectionTop = section.offsetTop - headerHeight - THEME_CONFIG.SCROLL.SECTION_OFFSET_BUFFER;
             const sectionHeight = section.offsetHeight;
             
             if (window.pageYOffset >= sectionTop && 
@@ -1180,7 +1173,7 @@ initScrollLockManagement();
         
         navLinks.forEach(link => {
             const isActive = link.getAttribute('href') === `#${currentSection}`;
-            DOMUtils.toggleClass(link, CSS_SELECTORS.ACTIVE_CLASS, isActive);
+            DOMUtils.toggleClass(link, THEME_CONFIG.SELECTORS.ACTIVE_CLASS, isActive);
         });
     }
 
@@ -1201,32 +1194,32 @@ initScrollLockManagement();
             // Show loading state
             submitBtn.textContent = '送信中...';
             submitBtn.disabled = true;
-            AnimationUtils.setOpacity(submitBtn, VISUAL_CONFIG.CONTACT_FORM_DISABLED_OPACITY);
+            AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
             
             // Reset button after response (or timeout)
             DOMUtils.delay(() => {
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
-                AnimationUtils.setOpacity(submitBtn, VISUAL_CONFIG.CONTACT_FORM_ENABLED_OPACITY);
-            }, ANIMATION_CONFIG.CONTACT_FORM_RESET_TIMEOUT);
+                AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
+            }, THEME_CONFIG.ANIMATION.CONTACT_FORM_RESET_TIMEOUT);
         });
         
         // Enhanced input focus effects
         const inputs = contactForm.querySelectorAll('input, textarea');
         inputs.forEach(input => {
             input.addEventListener('focus', function() {
-                DOMUtils.toggleClass(this.parentNode, CSS_SELECTORS.FOCUSED_CLASS, true);
+                DOMUtils.toggleClass(this.parentNode, THEME_CONFIG.SELECTORS.FOCUSED_CLASS, true);
             });
             
             input.addEventListener('blur', function() {
                 if (!this.value.trim()) {
-                    DOMUtils.toggleClass(this.parentNode, CSS_SELECTORS.FOCUSED_CLASS, false);
+                    DOMUtils.toggleClass(this.parentNode, THEME_CONFIG.SELECTORS.FOCUSED_CLASS, false);
                 }
             });
             
             // Check if input has value on load
             if (input.value.trim()) {
-                DOMUtils.toggleClass(input.parentNode, CSS_SELECTORS.FOCUSED_CLASS, true);
+                DOMUtils.toggleClass(input.parentNode, THEME_CONFIG.SELECTORS.FOCUSED_CLASS, true);
             }
         });
     }
@@ -1239,11 +1232,11 @@ initScrollLockManagement();
         
         socialLinks.forEach(link => {
             link.addEventListener('mouseenter', function() {
-                AnimationUtils.setTransform(this, VISUAL_CONFIG.SOCIAL_LINK_HOVER_TRANSFORM);
+                AnimationUtils.setTransform(this, THEME_CONFIG.VISUAL.SOCIAL_LINK_HOVER_TRANSFORM);
             });
             
             link.addEventListener('mouseleave', function() {
-                AnimationUtils.setTransform(this, VISUAL_CONFIG.SOCIAL_LINK_NORMAL_TRANSFORM);
+                AnimationUtils.setTransform(this, THEME_CONFIG.VISUAL.SOCIAL_LINK_NORMAL_TRANSFORM);
             });
         });
     }
@@ -1323,7 +1316,7 @@ initScrollLockManagement();
             applyVideoData();
             setTimeout(() => {
                 try { applyVideoData(); } catch (err) { console.error('[VideoSection] applyVideoData error (delayed):', err); }
-            }, 100);
+            }, THEME_CONFIG.ANIMATION.VIDEO_DATA_APPLY_DELAY);
         } catch (err) {
             console.error('[VideoSection] applyVideoData error:', err);
         }
@@ -1597,14 +1590,9 @@ initScrollLockManagement();
         });
 
         // Initial scroll state check
-        setTimeout(checkScrollState, 1000);
+        setTimeout(checkScrollState, THEME_CONFIG.ANIMATION.SCROLL_STATE_CHECK_DELAY);
         
         debugLog('✅ Header focus management initialized', null, 'basic');
-        
-        // Log initial theme if available
-        if (window.initialTheme) {
-            debugLog('🎨 Theme initialized:', window.initialTheme, 'basic');
-        }
     }
 
     // Initialize when DOM is ready
@@ -1615,18 +1603,6 @@ initScrollLockManagement();
     }
 
 })();
-
-// Initialize Image Loading Manager
-let themeImageManager;
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        themeImageManager = new ImageLoadingManager();
-    });
-} else {
-    themeImageManager = new ImageLoadingManager();
-}
-
-// Enhanced Image Loading Manager for AVIF/PNG fallback
 
 // Phase 4: Refactored ImageLoadingManager with encapsulation, naming, error handling, and performance improvements
 class ThemeImageLoader {
