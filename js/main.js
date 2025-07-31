@@ -1300,7 +1300,51 @@ window.VTuberTheme = Object.freeze({
     }
     
     /**
-     * Initialize Turnstile validation handling with improved error handling
+     * Classify Turnstile error for appropriate user feedback
+     */
+    function classifyTurnstileError(errorCode) {
+        // Network-related errors
+        if (errorCode === 'network-error' || errorCode === 'timeout' || errorCode === 'fetch-error') {
+            return {
+                type: 'network',
+                title: 'ネットワークエラー',
+                message: 'インターネット接続に問題があります。',
+                recommendation: '• ネットワーク接続を確認してください<br>• ページを更新してお試しください'
+            };
+        }
+        
+        // Authentication/Authorization errors
+        if (errorCode === 401 || errorCode === 'unauthorized' || errorCode === 'forbidden' ||
+            (typeof errorCode === 'string' && errorCode.toLowerCase().includes('auth'))) {
+            return {
+                type: 'auth',
+                title: '認証エラー',
+                message: 'セキュリティ認証で問題が発生しました。',
+                recommendation: '• ページを更新してお試しください<br>• ブラウザのキャッシュをクリアしてください<br>• 別のブラウザでお試しください'
+            };
+        }
+        
+        // Rate limiting
+        if (errorCode === 'rate-limited' || errorCode === 'too-many-requests') {
+            return {
+                type: 'rate_limit',
+                title: 'アクセス制限',
+                message: '短時間に多くのリクエストが送信されました。',
+                recommendation: '• しばらく待ってからお試しください<br>• ページを更新してお試しください'
+            };
+        }
+        
+        // Generic errors
+        return {
+            type: 'generic',
+            title: 'セキュリティ確認エラー',
+            message: '認証システムで予期しないエラーが発生しました。',
+            recommendation: '• ページを更新してお試しください<br>• 問題が続く場合は別の方法でお問い合わせください'
+        };
+    }
+
+    /**
+     * Initialize Turnstile validation handling with strict security enforcement
      */
     function initTurnstileValidation(contactForm) {
         const turnstileWidget = contactForm.querySelector('.cf-turnstile');
@@ -1358,66 +1402,100 @@ window.VTuberTheme = Object.freeze({
             }
         }, 500); // Check every 500ms
         
-        // Set up progressive fallback system with better UX
-        let fallbackStage = 0;
+        // Set up secure waiting system (no automatic fallback)
+        let challengeAttempts = 0;
+        const maxChallengeWaitTime = 60000; // 60 seconds max wait
+        let challengeStartTime = Date.now();
         
-        // Stage 1: Warning message at 8 seconds
-        const warningTimeout = setTimeout(() => {
-            if (turnstileWidget.dataset.verified !== 'true' && !turnstileWidget.dataset.fallbackEnabled) {
-                fallbackStage = 1;
-                debugLog('⚠️ Turnstile warning: Slow loading detected', {
-                    stage: fallbackStage,
+        // Stage 1: Information message at 8 seconds
+        const infoTimeout = setTimeout(() => {
+            if (turnstileWidget.dataset.verified !== 'true') {
+                challengeAttempts++;
+                debugLog('🔐 Turnstile info: Challenge in progress, waiting for completion', {
                     timeElapsed: '8s',
-                    possibleCause: 'Network delay or Cloudflare Access challenge'
+                    challengeAttempts,
+                    status: 'waiting_for_challenge_completion'
+                }, 'basic');
+                turnstileWidget.style.border = '2px solid #3b82f6';
+                turnstileWidget.style.borderRadius = '8px';
+                turnstileWidget.innerHTML = `
+                    <div style="padding: 12px; text-align: center; color: #3b82f6; font-size: 12px; line-height: 1.4;">
+                        <div style="font-weight: bold; margin-bottom: 4px;">� セキュリティ確認処理中...</div>
+                        <div style="opacity: 0.8;">Cloudflareの認証プロセスが実行されています。完了までお待ちください。</div>
+                    </div>
+                `;
+            }
+        }, 8000);
+        
+        // Stage 2: Extended waiting message at 30 seconds
+        const extendedWaitTimeout = setTimeout(() => {
+            if (turnstileWidget.dataset.verified !== 'true') {
+                challengeAttempts++;
+                debugLog('🔐 Turnstile extended wait: Still processing challenge', {
+                    timeElapsed: '30s',
+                    challengeAttempts,
+                    status: 'extended_challenge_processing',
+                    possibleCause: 'Complex Private Access Token challenge'
                 }, 'basic');
                 turnstileWidget.style.border = '2px solid #f59e0b';
                 turnstileWidget.style.borderRadius = '8px';
                 turnstileWidget.innerHTML = `
-                    <div style="padding: 10px; text-align: center; color: #f59e0b; font-size: 12px; line-height: 1.4;">
-                        <div style="font-weight: bold; margin-bottom: 4px;">🔄 セキュリティ確認を読み込み中...</div>
-                        <div style="opacity: 0.8;">ネットワークの状況により時間がかかっています</div>
+                    <div style="padding: 12px; text-align: center; color: #f59e0b; font-size: 12px; line-height: 1.4;">
+                        <div style="font-weight: bold; margin-bottom: 4px;">⏳ 認証処理が継続中です</div>
+                        <div style="opacity: 0.8;">高度なセキュリティ確認のため、通常より時間がかかっています。</div>
+                        <div style="margin-top: 4px; font-style: italic;">ページの更新はお控えください。</div>
                     </div>
                 `;
             }
-        }, 8000); // 8 second warning
+        }, 30000);
         
-        // Stage 2: Enable form at 15 seconds with better messaging
-        const fallbackTimeout = setTimeout(() => {
-            if (turnstileWidget.dataset.verified !== 'true' && !turnstileWidget.dataset.fallbackEnabled) {
-                fallbackStage = 2;
-                debugLog('⚠️ Turnstile fallback: Enabling form due to extended loading timeout', {
-                    stage: fallbackStage,
-                    timeElapsed: '15s',
-                    reason: 'extended_timeout'
+        // Final timeout: Security requirement enforcement
+        const securityTimeout = setTimeout(() => {
+            if (turnstileWidget.dataset.verified !== 'true') {
+                challengeAttempts++;
+                debugLog('🚨 Turnstile security timeout: Authentication required but not completed', {
+                    timeElapsed: '60s',
+                    challengeAttempts,
+                    status: 'authentication_timeout',
+                    securityEnforced: true,
+                    recommendation: 'page_refresh_or_network_check'
                 }, 'basic');
                 
-                submitBtn.disabled = false;
-                AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
-                turnstileWidget.dataset.fallbackEnabled = 'true';
-                
-                // Enhanced visual indication with better messaging
-                turnstileWidget.style.border = '2px solid #10b981';
+                turnstileWidget.style.border = '2px solid #ef4444';
                 turnstileWidget.style.borderRadius = '8px';
                 turnstileWidget.innerHTML = `
-                    <div style="padding: 12px; text-align: center; color: #10b981; font-size: 12px; line-height: 1.4;">
-                        <div style="font-weight: bold; margin-bottom: 4px;">✓ フォーム送信が可能になりました</div>
-                        <div style="opacity: 0.8;">セキュリティ確認の読み込みに時間がかかりましたが、送信可能です。</div>
+                    <div style="padding: 12px; text-align: center; color: #ef4444; font-size: 12px; line-height: 1.4;">
+                        <div style="font-weight: bold; margin-bottom: 6px;">🚨 セキュリティ認証が必要です</div>
+                        <div style="opacity: 0.9; margin-bottom: 6px;">認証が完了しませんでした。フォーム送信にはセキュリティ確認が必須です。</div>
+                        <div style="background: rgba(239, 68, 68, 0.1); padding: 6px; border-radius: 4px; margin-top: 6px;">
+                            <strong>対処方法:</strong><br>
+                            • ページを更新してもう一度お試しください<br>
+                            • ネットワーク接続を確認してください<br>
+                            • 別のブラウザでお試しください
+                        </div>
                     </div>
                 `;
+                
+                // Keep button disabled - security requirement
+                submitBtn.disabled = true;
+                AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
             }
-        }, 15000); // 15 second fallback
+        }, maxChallengeWaitTime);
         
-        // Store fallback timeouts for cleanup
-        turnstileWidget.dataset.warningTimeout = warningTimeout;
-        turnstileWidget.dataset.fallbackTimeout = fallbackTimeout;
+        // Store timeout IDs for cleanup
+        turnstileWidget.dataset.infoTimeout = infoTimeout;
+        turnstileWidget.dataset.extendedWaitTimeout = extendedWaitTimeout;
+        turnstileWidget.dataset.securityTimeout = securityTimeout;
         
-        debugLog('🔒 Enhanced Turnstile validation initialized with progressive fallback', {
+        debugLog('🔒 Secure Turnstile validation initialized - authentication required', {
             hasWidget: !!turnstileWidget,
             hasSubmitBtn: !!submitBtn,
             siteKey: turnstileWidget?.dataset?.sitekey || 'not found',
-            warningAt: '8s',
-            fallbackAt: '15s',
-            progressiveFallback: true
+            infoAt: '8s',
+            extendedWaitAt: '30s',
+            maxWaitTime: '60s',
+            securityEnforced: true,
+            noFallback: true
         }, 'basic');
     }
     
@@ -1458,21 +1536,40 @@ window.VTuberTheme = Object.freeze({
                     turnstileWidget.dataset.verified = 'true';
                     turnstileWidget.dataset.token = token;
                     
-                    // Clear any pending fallback timers since we succeeded
-                    const warningTimeout = turnstileWidget.dataset.warningTimeout;
-                    const fallbackTimeout = turnstileWidget.dataset.fallbackTimeout;
-                    if (warningTimeout) {
-                        clearTimeout(parseInt(warningTimeout));
-                        delete turnstileWidget.dataset.warningTimeout;
+                    // Clear all waiting timeouts since authentication succeeded
+                    const infoTimeout = turnstileWidget.dataset.infoTimeout;
+                    const extendedWaitTimeout = turnstileWidget.dataset.extendedWaitTimeout;
+                    const securityTimeout = turnstileWidget.dataset.securityTimeout;
+                    if (infoTimeout) {
+                        clearTimeout(parseInt(infoTimeout));
+                        delete turnstileWidget.dataset.infoTimeout;
                     }
-                    if (fallbackTimeout) {
-                        clearTimeout(parseInt(fallbackTimeout));
-                        delete turnstileWidget.dataset.fallbackTimeout;
+                    if (extendedWaitTimeout) {
+                        clearTimeout(parseInt(extendedWaitTimeout));
+                        delete turnstileWidget.dataset.extendedWaitTimeout;
+                    }
+                    if (securityTimeout) {
+                        clearTimeout(parseInt(securityTimeout));
+                        delete turnstileWidget.dataset.securityTimeout;
                     }
                     
-                    // Reset visual state to success
+                    // Show success state
                     turnstileWidget.style.border = '2px solid #10b981';
                     turnstileWidget.style.borderRadius = '8px';
+                    
+                    // Add success message
+                    const successDiv = document.createElement('div');
+                    successDiv.style.cssText = 'padding: 8px; text-align: center; color: #10b981; font-size: 12px; font-weight: bold; background: rgba(16, 185, 129, 0.1); border-radius: 4px; margin-top: 4px;';
+                    successDiv.innerHTML = '✅ セキュリティ認証が完了しました';
+                    
+                    // Find existing success message and replace or add
+                    const existingSuccess = turnstileWidget.querySelector('[data-success-message]');
+                    if (existingSuccess) {
+                        existingSuccess.replaceWith(successDiv);
+                    } else {
+                        successDiv.dataset.successMessage = 'true';
+                        turnstileWidget.appendChild(successDiv);
+                    }
                     
                     // Handle hidden input
                     let tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
@@ -1503,11 +1600,12 @@ window.VTuberTheme = Object.freeze({
             window.turnstileProcessing = true;
             
             try {
-                debugLog('❌ Enhanced Turnstile ERROR with fallback handling', { 
+                debugLog('❌ Turnstile ERROR - Security enforcement maintained', { 
                     errorCode,
                     errorType: typeof errorCode,
                     timestamp: new Date().toISOString(),
-                    possibleCause: 'Cloudflare Access challenge or network issue'
+                    securityMaintained: true,
+                    formAccessible: false
                 }, 'basic');
                 
                 if (turnstileWidget && submitBtn) {
@@ -1519,61 +1617,41 @@ window.VTuberTheme = Object.freeze({
                         tokenInput.value = '';
                     }
                     
-                    // Check for various types of authentication/network errors
-                    const isAuthError = (
-                        errorCode === 401 || 
-                        errorCode === 'unauthorized' || 
-                        errorCode === 'authentication_failed' ||
-                        errorCode === 'network_error' ||
-                        errorCode === 'token_validation_failed' ||
-                        (typeof errorCode === 'string' && (
-                            errorCode.toLowerCase().includes('unauthorized') ||
-                            errorCode.toLowerCase().includes('access') ||
-                            errorCode.toLowerCase().includes('challenge')
-                        ))
-                    );
+                    // Classify error type for user feedback
+                    const errorInfo = classifyTurnstileError(errorCode);
                     
-                    if (isAuthError) {
-                        debugLog('🔐 Authentication/Access error detected, enabling fallback mode', { 
-                            errorCode,
-                            errorClassification: 'auth_or_access_error'
-                        }, 'basic');
-                        
-                        // Clear any existing fallback timeouts since we're handling the error
-                        const warningTimeout = turnstileWidget.dataset.warningTimeout;
-                        const fallbackTimeoutId = turnstileWidget.dataset.fallbackTimeout;
-                        if (warningTimeout) {
-                            clearTimeout(parseInt(warningTimeout));
-                            delete turnstileWidget.dataset.warningTimeout;
-                        }
-                        if (fallbackTimeoutId) {
-                            clearTimeout(parseInt(fallbackTimeoutId));
-                            delete turnstileWidget.dataset.fallbackTimeout;
-                        }
-                        
-                        // Enable form submission despite auth error
-                        submitBtn.disabled = false;
-                        AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
-                        turnstileWidget.dataset.fallbackEnabled = 'true';
-                        
-                        // Show user-friendly message for auth/access errors
-                        turnstileWidget.style.border = '2px solid #10b981';
-                        turnstileWidget.style.borderRadius = '8px';
-                        turnstileWidget.innerHTML = `
-                            <div style="padding: 12px; text-align: center; color: #10b981; font-size: 12px; line-height: 1.4;">
-                                <div style="font-weight: bold; margin-bottom: 4px;">✓ フォーム送信が可能です</div>
-                                <div style="opacity: 0.8;">セキュリティ確認をスキップしてフォームを送信できます。</div>
+                    debugLog('🔐 Turnstile error classified', { 
+                        errorCode,
+                        classification: errorInfo.type,
+                        userMessage: errorInfo.message,
+                        recommendation: errorInfo.recommendation
+                    }, 'basic');
+                    
+                    // Always keep button disabled for security
+                    submitBtn.disabled = true;
+                    AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
+                    
+                    // Show appropriate error message
+                    turnstileWidget.style.border = '2px solid #ef4444';
+                    turnstileWidget.style.borderRadius = '8px';
+                    turnstileWidget.innerHTML = `
+                        <div style="padding: 12px; text-align: center; color: #ef4444; font-size: 12px; line-height: 1.4;">
+                            <div style="font-weight: bold; margin-bottom: 6px;">🚨 ${errorInfo.title}</div>
+                            <div style="opacity: 0.9; margin-bottom: 6px;">${errorInfo.message}</div>
+                            <div style="background: rgba(239, 68, 68, 0.1); padding: 6px; border-radius: 4px; margin-top: 6px;">
+                                <strong>推奨対応:</strong><br>
+                                ${errorInfo.recommendation}
                             </div>
-                        `;
-                    } else {
-                        // For other errors, keep button disabled
-                        submitBtn.disabled = true;
-                        AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
-                        debugLog('❌ Submit button DISABLED due to non-auth error', { errorCode }, 'basic');
-                    }
+                        </div>
+                    `;
+                    
+                    debugLog('❌ Submit button DISABLED due to security requirement', { 
+                        errorCode,
+                        securityEnforced: true 
+                    }, 'basic');
                 }
             } catch (error) {
-                console.error('Error in enhanced turnstileOnError:', error);
+                console.error('Error in secure turnstileOnError:', error);
                 debugLog('❌ Critical error in Turnstile error handler', { error: error.message }, 'basic');
             } finally {
                 setTimeout(() => {
@@ -1587,7 +1665,10 @@ window.VTuberTheme = Object.freeze({
             window.turnstileProcessing = true;
             
             try {
-                debugLog('⏰ SAFE Turnstile EXPIRED', null, 'basic');
+                debugLog('⏰ Turnstile EXPIRED - Security maintained', {
+                    timestamp: new Date().toISOString(),
+                    securityMaintained: true
+                }, 'basic');
                 
                 if (turnstileWidget && submitBtn) {
                     turnstileWidget.dataset.verified = 'false';
@@ -1598,9 +1679,22 @@ window.VTuberTheme = Object.freeze({
                         tokenInput.value = '';
                     }
                     
+                    // Keep security enforcement
                     submitBtn.disabled = true;
                     AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
-                    debugLog('⏰ Submit button DISABLED safely', null, 'basic');
+                    
+                    // Show expiration message
+                    turnstileWidget.style.border = '2px solid #f59e0b';
+                    turnstileWidget.style.borderRadius = '8px';
+                    turnstileWidget.innerHTML = `
+                        <div style="padding: 12px; text-align: center; color: #f59e0b; font-size: 12px; line-height: 1.4;">
+                            <div style="font-weight: bold; margin-bottom: 6px;">⏰ セキュリティ認証の有効期限切れ</div>
+                            <div style="opacity: 0.9;">認証の有効期限が切れました。再度確認が必要です。</div>
+                            <div style="margin-top: 6px;">ページを更新してもう一度お試しください。</div>
+                        </div>
+                    `;
+                    
+                    debugLog('⏰ Submit button DISABLED due to expiration', null, 'basic');
                 }
             } catch (error) {
                 console.error('Error in turnstileOnExpired:', error);
@@ -1611,7 +1705,7 @@ window.VTuberTheme = Object.freeze({
             }
         };
         
-        debugLog('� Turnstile callbacks configured', null, 'basic');
+        debugLog('🔒 Secure Turnstile callbacks configured', null, 'basic');
     }
 
     /**
