@@ -37,75 +37,86 @@ const ScrollLockManager = (function() {
 
 'use strict';
 
-// Theme constants
-const THEME_CONFIG = {
+/**
+ * Unified Theme Configuration
+ * Centralizes all theme settings for better maintainability
+ */
+const THEME_CONFIG = Object.freeze({
+    // Basic theme information
     VERSION: '2.1',
     THEMES: {
         LIGHT: 'light',
         DARK: 'dark'
+    },
+    
+    // Animation and timing settings
+    ANIMATION: {
+        LOADING_MIN_TIME: 800,
+        LOADING_HIDE_DELAY: 500,
+        LOADING_SHOW_DELAY: 50,
+        THEME_TRANSITION_DURATION: 300,
+        SIDEBAR_CLOSE_DELAY: 150,
+        SCROLL_LOCK_RESET_DELAY: 100,
+        SMOOTH_SCROLL_CLEANUP_DELAY: 100,
+        CONTACT_FORM_RESET_TIMEOUT: 3000,
+        VIDEO_DATA_APPLY_DELAY: 100,
+        HERO_ANIMATION_DELAY: 100,
+        HEADER_FOCUS_CLEANUP_DELAY: 50,
+        LOGO_CLEANUP_DELAY: 100,
+        SCROLL_STATE_CHECK_DELAY: 1000
+    },
+    
+    // Scroll and layout settings
+    SCROLL: {
+        HEADER_SCROLLED_THRESHOLD: 100,
+        HEADER_HIDE_THRESHOLD: 200,
+        SECTION_OFFSET_BUFFER: 100,
+        SMOOTH_SCROLL_OFFSET: 20,
+        HEADER_HIDDEN_TRANSFORM: 'translateY(-100%)',
+        HEADER_VISIBLE_TRANSFORM: 'translateY(0)'
+    },
+    
+    // Visual and animation settings
+    VISUAL: {
+        FADE_IN_THRESHOLD: 0.15,
+        FADE_IN_ROOT_MARGIN: '0px 0px -50px 0px',
+        STAGGER_DELAY_MULTIPLIER: 0.1,
+        SOCIAL_LINK_HOVER_TRANSFORM: 'translateY(-3px) scale(1.05)',
+        SOCIAL_LINK_NORMAL_TRANSFORM: 'translateY(0) scale(1)',
+        CONTACT_FORM_DISABLED_OPACITY: '0.7',
+        CONTACT_FORM_ENABLED_OPACITY: '1',
+        IMAGE_ERROR_OPACITY: '0.7',
+        AVIF_TEST_HEIGHT: 2
+    },
+    
+    // CSS selectors and classes
+    SELECTORS: {
+        LOADING_SCREEN: 'loading-screen',
+        THEME_TOGGLE: 'theme-toggle',
+        LEFT_SIDEBAR: 'left-sidebar',
+        MOBILE_MENU_TOGGLE: 'mobile-menu-toggle',
+        MAIN_HEADER: 'main-header',
+        HIDDEN_CLASS: 'hidden',
+        ACTIVE_CLASS: 'active',
+        SCROLLED_CLASS: 'scrolled',
+        VISIBLE_CLASS: 'visible',
+        LOADED_CLASS: 'loaded',
+        FOCUSED_CLASS: 'focused'
+    },
+    
+    // Debug configuration
+    DEBUG: {
+        enabled: window.vtuber_ajax?.debug_settings?.enabled || false,
+        level: window.vtuber_ajax?.debug_settings?.level || 'basic'
     }
-};
+});
 
-// Animation and timing constants
-const ANIMATION_CONFIG = {
-    LOADING_MIN_TIME: 800,
-    LOADING_HIDE_DELAY: 500,
-    LOADING_SHOW_DELAY: 50,
-    THEME_TRANSITION_DURATION: 300,
-    SIDEBAR_CLOSE_DELAY: 150,
-    SCROLL_LOCK_RESET_DELAY: 100,
-    SMOOTH_SCROLL_CLEANUP_DELAY: 100,
-    CONTACT_FORM_RESET_TIMEOUT: 3000,
-    VIDEO_DATA_APPLY_DELAY: 100,
-    HERO_ANIMATION_DELAY: 100,
-    HEADER_FOCUS_CLEANUP_DELAY: 50,
-    LOGO_CLEANUP_DELAY: 100,
-    SCROLL_STATE_CHECK_DELAY: 1000
-};
-
-// Scroll and layout constants
-const SCROLL_CONFIG = {
-    HEADER_SCROLLED_THRESHOLD: 100,
-    HEADER_HIDE_THRESHOLD: 200,
-    SECTION_OFFSET_BUFFER: 100,
-    SMOOTH_SCROLL_OFFSET: 20,
-    HEADER_HIDDEN_TRANSFORM: 'translateY(-100%)',
-    HEADER_VISIBLE_TRANSFORM: 'translateY(0)'
-};
-
-// Animation and visual constants
-const VISUAL_CONFIG = {
-    FADE_IN_THRESHOLD: 0.15,
-    FADE_IN_ROOT_MARGIN: '0px 0px -50px 0px',
-    STAGGER_DELAY_MULTIPLIER: 0.1,
-    SOCIAL_LINK_HOVER_TRANSFORM: 'translateY(-3px) scale(1.05)',
-    SOCIAL_LINK_NORMAL_TRANSFORM: 'translateY(0) scale(1)',
-    CONTACT_FORM_DISABLED_OPACITY: '0.7',
-    CONTACT_FORM_ENABLED_OPACITY: '1',
-    IMAGE_ERROR_OPACITY: '0.7',
-    AVIF_TEST_HEIGHT: 2
-};
-
-// CSS class and selector constants
-const CSS_SELECTORS = {
-    LOADING_SCREEN: 'loading-screen',
-    THEME_TOGGLE: 'theme-toggle',
-    LEFT_SIDEBAR: 'left-sidebar',
-    MOBILE_MENU_TOGGLE: 'mobile-menu-toggle',
-    MAIN_HEADER: 'main-header',
-    HIDDEN_CLASS: 'hidden',
-    ACTIVE_CLASS: 'active',
-    SCROLLED_CLASS: 'scrolled',
-    VISIBLE_CLASS: 'visible',
-    LOADED_CLASS: 'loaded',
-    FOCUSED_CLASS: 'focused'
-};
-
-// Debug configuration
-const DEBUG_CONFIG = {
-    enabled: window.vtuber_ajax?.debug_settings?.enabled || false,
-    level: window.vtuber_ajax?.debug_settings?.level || 'basic'
-};
+// Legacy aliases for backward compatibility (deprecated)
+const ANIMATION_CONFIG = THEME_CONFIG.ANIMATION;
+const SCROLL_CONFIG = THEME_CONFIG.SCROLL;
+const VISUAL_CONFIG = THEME_CONFIG.VISUAL;
+const CSS_SELECTORS = THEME_CONFIG.SELECTORS;
+const DEBUG_CONFIG = THEME_CONFIG.DEBUG;
 
 // Utility Functions
 const DOMUtils = {
@@ -227,6 +238,172 @@ const ThemeUtils = {
     }
 };
 
+/**
+ * Application State Manager
+ * Centralizes theme state and provides clean APIs for state management
+ */
+class ApplicationState {
+    constructor() {
+        this.isInitialized = false;
+        this.loadingManager = null;
+        this.observers = new Map();
+        this.components = new Map();
+    }
+
+    /**
+     * Initialize application state
+     */
+    initialize() {
+        if (this.isInitialized) {
+            console.warn('Application already initialized');
+            return false;
+        }
+
+        this.loadingManager = new LoadingManager();
+        this.isInitialized = true;
+        
+        debugLog('🚀 Application state initialized', null, 'basic');
+        return true;
+    }
+
+    /**
+     * Register a component with the application
+     */
+    registerComponent(name, component) {
+        if (this.components.has(name)) {
+            console.warn(`Component '${name}' already registered`);
+            return false;
+        }
+        
+        this.components.set(name, component);
+        debugLog(`📦 Component registered: ${name}`, null, 'verbose');
+        return true;
+    }
+
+    /**
+     * Get a registered component
+     */
+    getComponent(name) {
+        return this.components.get(name);
+    }
+
+    /**
+     * Check if application is fully initialized
+     */
+    isReady() {
+        return this.isInitialized && this.loadingManager !== null;
+    }
+
+    /**
+     * Clean shutdown of application state
+     */
+    shutdown() {
+        this.observers.clear();
+        this.components.clear();
+        this.isInitialized = false;
+        debugLog('🛑 Application state shutdown', null, 'basic');
+    }
+}
+
+/**
+ * Initialization Manager
+ * Handles the sequential initialization of theme components
+ */
+class InitializationManager {
+    constructor(appState) {
+        this.appState = appState;
+        this.initializationQueue = [];
+        this.initialized = new Set();
+        this.dependencies = new Map();
+    }
+
+    /**
+     * Add an initialization task with optional dependencies
+     */
+    addTask(name, initFunction, dependencies = []) {
+        this.initializationQueue.push({ name, initFunction, dependencies });
+        this.dependencies.set(name, dependencies);
+    }
+
+    /**
+     * Execute all initialization tasks in dependency order
+     */
+    async execute() {
+        debugLog('🔧 Starting theme initialization...', null, 'basic');
+        
+        // Sort tasks by dependencies
+        const sortedTasks = this.topologicalSort();
+        
+        for (const task of sortedTasks) {
+            try {
+                await this.executeTask(task);
+            } catch (error) {
+                console.error(`Failed to initialize ${task.name}:`, error);
+            }
+        }
+        
+        debugLog('✅ Theme initialization completed', null, 'basic');
+    }
+
+    /**
+     * Execute a single initialization task
+     */
+    async executeTask(task) {
+        if (this.initialized.has(task.name)) {
+            return;
+        }
+
+        debugLog(`🔧 Initializing: ${task.name}`, null, 'verbose');
+        
+        const result = await task.initFunction();
+        this.initialized.add(task.name);
+        
+        if (result && typeof result === 'object') {
+            this.appState.registerComponent(task.name, result);
+        }
+    }
+
+    /**
+     * Simple topological sort for dependency resolution
+     */
+    topologicalSort() {
+        const sorted = [];
+        const visited = new Set();
+        const visiting = new Set();
+
+        const visit = (task) => {
+            if (visiting.has(task.name)) {
+                throw new Error(`Circular dependency detected: ${task.name}`);
+            }
+            if (visited.has(task.name)) {
+                return;
+            }
+
+            visiting.add(task.name);
+            
+            for (const depName of task.dependencies) {
+                const depTask = this.initializationQueue.find(t => t.name === depName);
+                if (depTask) {
+                    visit(depTask);
+                }
+            }
+            
+            visiting.delete(task.name);
+            visited.add(task.name);
+            sorted.push(task);
+        };
+
+        for (const task of this.initializationQueue) {
+            visit(task);
+        }
+
+        return sorted;
+    }
+}
+
+// Create global application state instance
+const appState = new ApplicationState();
+
 // Debug logging function
 function debugLog(message, data = null, level = 'basic') {
     if (!DEBUG_CONFIG.enabled) return;
@@ -245,16 +422,18 @@ function debugLog(message, data = null, level = 'basic') {
     }
 }
 
-// Loading Screen Manager
+// Enhanced Loading Screen Manager
 class LoadingManager {
-    constructor() {
+    constructor(config = {}) {
         this.loadingScreen = null;
         this.isLoading = false;
-        this.config = window.vtuber_ajax?.loading_config || {
+        this.config = {
             enabled: true,
-            min_loading_time: ANIMATION_CONFIG.LOADING_MIN_TIME,
+            min_loading_time: THEME_CONFIG.ANIMATION.LOADING_MIN_TIME,
             enable_transitions: true,
-            show_for_external: false
+            show_for_external: false,
+            ...window.vtuber_ajax?.loading_config,
+            ...config
         };
         this.loadStartTime = Date.now();
         
@@ -279,9 +458,9 @@ class LoadingManager {
     }
     
     show() {
-        this.loadingScreen = document.getElementById(CSS_SELECTORS.LOADING_SCREEN);
+        this.loadingScreen = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.LOADING_SCREEN);
         if (this.loadingScreen) {
-            this.loadingScreen.classList.remove(CSS_SELECTORS.HIDDEN_CLASS);
+            this.loadingScreen.classList.remove(THEME_CONFIG.SELECTORS.HIDDEN_CLASS);
             this.isLoading = true;
             this.loadStartTime = Date.now();
             
@@ -298,8 +477,8 @@ class LoadingManager {
         const elapsedTime = Date.now() - this.loadStartTime;
         const remainingTime = Math.max(0, this.config.min_loading_time - elapsedTime);
         
-        setTimeout(() => {
-            this.loadingScreen.classList.add(CSS_SELECTORS.HIDDEN_CLASS);
+        DOMUtils.delay(() => {
+            this.loadingScreen.classList.add(THEME_CONFIG.SELECTORS.HIDDEN_CLASS);
             this.isLoading = false;
             
             // Re-enable scrolling
@@ -307,11 +486,11 @@ class LoadingManager {
             debugLog('🔄 Loading screen: Re-enabled scrolling', null, 'verbose');
             
             // Remove loading screen from DOM after animation
-            setTimeout(() => {
+            DOMUtils.delay(() => {
                 if (this.loadingScreen && this.loadingScreen.parentNode) {
                     this.loadingScreen.style.display = 'none';
                 }
-            }, ANIMATION_CONFIG.LOADING_HIDE_DELAY);
+            }, THEME_CONFIG.ANIMATION.LOADING_HIDE_DELAY);
             
             debugLog('✅ Loading screen hidden', null, 'basic');
         }, remainingTime);
@@ -326,7 +505,7 @@ class LoadingManager {
             if (link && this.shouldShowLoadingForLink(link)) {
                 debugLog('🔄 LoadingManager: Showing loading screen for link:', link.getAttribute('href'), 'verbose');
                 // Small delay to show loading screen before navigation
-                setTimeout(() => this.show(), ANIMATION_CONFIG.LOADING_SHOW_DELAY);
+                DOMUtils.delay(() => this.show(), THEME_CONFIG.ANIMATION.LOADING_SHOW_DELAY);
             } else if (link) {
                 debugLog('🚫 LoadingManager: Skipping loading screen for link:', link.getAttribute('href'), 'verbose');
             }
@@ -405,9 +584,6 @@ class LoadingManager {
     }
 }
 
-// Initialize loading manager
-const loadingManager = new LoadingManager();
-
 /**
  * Initialize scroll lock management for browser navigation
  */
@@ -458,74 +634,130 @@ function initScrollLockManagement() {
 initScrollLockManagement();
 
 (function() {
-    // Global theme utilities
-    window.VTuberTheme = {
+    /**
+     * Enhanced Global Theme API
+     * Provides a clean, documented interface for theme functionality
+     */
+    window.VTuberTheme = Object.freeze({
+        // Basic information
         version: THEME_CONFIG.VERSION,
-        initialized: false,
-        loadingManager: loadingManager,
         
-        toggleTheme() {
-            const themeToggle = document.getElementById(CSS_SELECTORS.THEME_TOGGLE);
-            if (themeToggle) {
-                themeToggle.click();
+        // State accessors
+        get initialized() {
+            return appState.isInitialized;
+        },
+        
+        get config() {
+            return THEME_CONFIG;
+        },
+        
+        get state() {
+            return {
+                initialized: appState.isInitialized,
+                components: Array.from(appState.components.keys()),
+                loadingActive: appState.loadingManager?.isLoading || false
+            };
+        },
+        
+        // Theme management
+        theme: {
+            toggle() {
+                const themeToggle = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.THEME_TOGGLE);
+                if (themeToggle) {
+                    themeToggle.click();
+                }
+            },
+            
+            getCurrent() {
+                return ThemeUtils.getCurrentTheme();
+            },
+            
+            set(theme) {
+                return ThemeUtils.setTheme(theme);
             }
         },
         
-        getCurrentTheme() {
-            return document.body.getAttribute('data-theme') || THEME_CONFIG.THEMES.LIGHT;
-        },
-        
-        setTheme(theme) {
-            if (![THEME_CONFIG.THEMES.LIGHT, THEME_CONFIG.THEMES.DARK].includes(theme)) return false;
+        // Loading management
+        loading: {
+            show() {
+                appState.loadingManager?.show();
+            },
             
-            const body = document.body;
-            const themeToggle = document.getElementById(CSS_SELECTORS.THEME_TOGGLE);
-            const icon = themeToggle?.querySelector('i');
+            hide() {
+                appState.loadingManager?.hide();
+            },
             
-            body.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-            
-            if (icon) {
-                updateThemeIcon(theme, icon);
+            get isActive() {
+                return appState.loadingManager?.isLoading || false;
             }
+        },
+        
+        // Sidebar management
+        sidebar: {
+            toggle() {
+                const sidebar = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.LEFT_SIDEBAR);
+                const isOpen = sidebar?.classList.contains(THEME_CONFIG.SELECTORS.ACTIVE_CLASS);
+                
+                if (isOpen) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            },
             
-            return true;
-        },
-        
-        showLoading() {
-            loadingManager.show();
-        },
-        
-        hideLoading() {
-            loadingManager.hide();
-        },
-        
-        toggleSidebar() {
-            const sidebar = document.getElementById(CSS_SELECTORS.LEFT_SIDEBAR);
-            const overlay = document.getElementById('sidebar-overlay');
-            const isOpen = sidebar.classList.contains(CSS_SELECTORS.ACTIVE_CLASS);
-            
-            if (isOpen) {
-                closeSidebar();
-            } else {
+            open() {
                 openSidebar();
+            },
+            
+            close() {
+                closeSidebar();
+            },
+            
+            get isOpen() {
+                const sidebar = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.LEFT_SIDEBAR);
+                return sidebar?.classList.contains(THEME_CONFIG.SELECTORS.ACTIVE_CLASS) || false;
             }
         },
         
-        // Helper function to refresh video titles
-        refreshVideoTitles() {
-            if (typeof applyVideoTitles === 'function') {
-                applyVideoTitles();
+        // Video management
+        video: {
+            refreshTitles() {
+                if (typeof applyVideoTitles === 'function') {
+                    applyVideoTitles();
+                }
+            },
+            
+            refreshData() {
+                if (typeof applyVideoData === 'function') {
+                    applyVideoData();
+                }
             }
         },
         
-        // Helper function to refresh all video data
-        refreshVideoData() {
-            if (typeof applyVideoData === 'function') {
-                applyVideoData();
+        // Component access
+        getComponent(name) {
+            return appState.getComponent(name);
+        },
+        
+        // Debug utilities
+        debug: {
+            get enabled() {
+                return THEME_CONFIG.DEBUG.enabled;
+            },
+            
+            log(message, data = null, level = 'basic') {
+                debugLog(message, data, level);
+            },
+            
+            getState() {
+                return {
+                    appState: appState.isReady(),
+                    components: Array.from(appState.components.keys()),
+                    config: THEME_CONFIG
+                };
             }
         }
-    };
+    });
 
     /**
      * Update theme toggle icon
@@ -608,7 +840,7 @@ initScrollLockManagement();
         // Menu toggle click handler
         if (menuToggle) {
             menuToggle.addEventListener('click', function() {
-                window.VTuberTheme.toggleSidebar();
+                window.VTuberTheme.sidebar.toggle();
             });
         }
         
@@ -726,11 +958,11 @@ initScrollLockManagement();
      * Initialize theme system
      */
     function initThemeSystem() {
-        const themeToggle = document.getElementById(CSS_SELECTORS.THEME_TOGGLE);
+        const themeToggle = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.THEME_TOGGLE);
         
         if (!themeToggle) {
             console.warn('Theme toggle button not found');
-            return;
+            return null;
         }
         
         const body = document.body;
@@ -738,7 +970,7 @@ initScrollLockManagement();
         
         if (!icon) {
             console.warn('Theme toggle icon not found');
-            return;
+            return null;
         }
         
         // Check for saved theme preference or default to system preference
@@ -770,24 +1002,36 @@ initScrollLockManagement();
             debugLog(`🎨 Theme changed: ${currentTheme} → ${newTheme}`, null, 'basic');
             
             // Smooth transition
-            body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
-            setTimeout(() => {
-                body.style.transition = '';
+            AnimationUtils.smoothTransition(body, 'background-color 0.3s ease, color 0.3s ease', THEME_CONFIG.ANIMATION.THEME_TRANSITION_DURATION, () => {
                 // Ensure scrolling remains enabled and remove focus
                 document.body.style.overflow = '';
-                this.blur();
+                themeToggle.blur();
                 debugLog('🎨 Theme toggle cleanup completed', null, 'verbose');
-            }, ANIMATION_CONFIG.THEME_TRANSITION_DURATION);
+            });
         });
         
         // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleSystemThemeChange = (e) => {
             if (!localStorage.getItem('theme')) {
                 const newTheme = e.matches ? THEME_CONFIG.THEMES.DARK : THEME_CONFIG.THEMES.LIGHT;
                 body.setAttribute('data-theme', newTheme);
                 updateThemeIcon(newTheme, icon);
             }
-        });
+        };
+        
+        mediaQuery.addEventListener('change', handleSystemThemeChange);
+        
+        // Return component interface
+        return {
+            name: 'themeSystem',
+            element: themeToggle,
+            getCurrentTheme: () => body.getAttribute('data-theme'),
+            setTheme: (theme) => ThemeUtils.setTheme(theme),
+            destroy: () => {
+                mediaQuery.removeEventListener('change', handleSystemThemeChange);
+            }
+        };
     }
 
     /**
@@ -1012,7 +1256,7 @@ initScrollLockManagement();
             // Theme toggle with 'T' key
             if ((e.key === 't' || e.key === 'T') && !e.target.matches('input, textarea')) {
                 e.preventDefault();
-                window.VTuberTheme.toggleTheme();
+                window.VTuberTheme.theme.toggle();
             }
             
             // ESC key to close any open modals
@@ -1182,45 +1426,57 @@ initScrollLockManagement();
     }
 
     /**
-     * Main initialization function
+     * Modern Theme Initialization System
+     * Uses dependency injection and modular initialization
      */
-    function initializeTheme() {
-        if (window.VTuberTheme.initialized) {
+    async function initializeTheme() {
+        if (appState.isInitialized) {
+            console.warn('Theme already initialized');
             return;
         }
         
-        // Debug: Check if video data is available
-        if (typeof vtuber_ajax !== 'undefined' && vtuber_ajax.video_data) {
-            debugLog('Video data available:', vtuber_ajax.video_data, 'verbose');
-        } else {
-            console.warn('Video data not available in vtuber_ajax');
-        }
+        // Initialize application state
+        appState.initialize();
         
-        // Legacy check for video titles
-        if (typeof vtuber_ajax !== 'undefined' && vtuber_ajax.video_titles) {
-            debugLog('Video titles available:', vtuber_ajax.video_titles, 'verbose');
-        }
+        // Create initialization manager
+        const initManager = new InitializationManager(appState);
         
-        // Initialize all features
-        initThemeSystem();
-        initSidebar();
-        initSmoothScroll();
-        initFadeInAnimations();
-        initHeaderScroll();
-        initContactForm();
-        initSocialEffects();
-        initKeyboardNavigation();
-        initVideoSection();
-        initWindowLoadHandler();
-        preloadCriticalImages();
-        initHeaderFocusManagement();
+        // Register initialization tasks with dependencies
+        initManager.addTask('themeSystem', initThemeSystem, []);
+        initManager.addTask('scrollLockManagement', initScrollLockManagement, []);
+        initManager.addTask('sidebar', initSidebar, ['themeSystem']);
+        initManager.addTask('smoothScroll', initSmoothScroll, ['themeSystem']);
+        initManager.addTask('headerScroll', initHeaderScroll, ['themeSystem']);
+        initManager.addTask('fadeInAnimations', initFadeInAnimations, []);
+        initManager.addTask('contactForm', initContactForm, []);
+        initManager.addTask('socialEffects', initSocialEffects, []);
+        initManager.addTask('keyboardNavigation', initKeyboardNavigation, ['themeSystem']);
+        initManager.addTask('videoSection', initVideoSection, []);
+        initManager.addTask('windowLoadHandler', initWindowLoadHandler, []);
+        initManager.addTask('imagePreloading', preloadCriticalImages, []);
+        initManager.addTask('headerFocusManagement', initHeaderFocusManagement, ['sidebar']);
         
+        // Execute initialization
+        await initManager.execute();
+        
+        // Mark as complete
         window.VTuberTheme.initialized = true;
         
+        // Debug information
         debugLog('%c🎮 Welcome to IbaraDevilRoze\'s Landing Page! 🎮', 
                     'color: #8b5cf6; font-size: 16px; font-weight: bold;', 'basic');
         debugLog('%cTheme: Modern White/Black + Purple Accent with Dark Mode', 
                     'color: #6c757d; font-size: 12px;', 'basic');
+        
+        // Legacy compatibility check
+        if (typeof vtuber_ajax !== 'undefined') {
+            if (vtuber_ajax.video_data) {
+                debugLog('Video data available:', vtuber_ajax.video_data, 'verbose');
+            }
+            if (vtuber_ajax.video_titles) {
+                debugLog('Video titles available:', vtuber_ajax.video_titles, 'verbose');
+            }
+        }
     }
 
     /**
