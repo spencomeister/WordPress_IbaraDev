@@ -1352,96 +1352,116 @@ window.VTuberTheme = Object.freeze({
     function setupTurnstileCallbacks(contactForm, turnstileWidget, submitBtn) {
         debugLog('🔧 Setting up Turnstile callbacks', null, 'basic');
         
-        // Check if callbacks are already set to prevent conflicts
-        if (window.turnstileCallbacksSet) {
-            debugLog('⚠️ Turnstile callbacks already set, skipping', null, 'basic');
+        // CRITICAL: Prevent infinite loops with safer check
+        if (window.turnstileSafelyConfigured === true) {
+            debugLog('⚠️ Turnstile already safely configured globally, skipping', null, 'basic');
             return;
         }
         
-        // Mark callbacks as set
-        window.turnstileCallbacksSet = true;
+        // Mark as safely configured IMMEDIATELY
+        window.turnstileSafelyConfigured = true;
         
-        // Set up global Turnstile callbacks
+        // Clear any existing problematic callbacks first
+        delete window.turnstileOnSuccess;
+        delete window.turnstileOnError;
+        delete window.turnstileOnExpired;
+        
+        // Set up minimal, safe global callbacks with recursion protection
         window.turnstileOnSuccess = function(token) {
-            debugLog('✅ Turnstile SUCCESS callback triggered', { 
-                token: token ? token.substring(0, 20) + '...' : 'no token'
-            }, 'basic');
+            // Prevent recursive calls
+            if (window.turnstileProcessing === true) {
+                debugLog('⚠️ Turnstile already processing, skipping', null, 'basic');
+                return;
+            }
             
-            if (turnstileWidget && submitBtn) {
-                turnstileWidget.dataset.verified = 'true';
-                turnstileWidget.dataset.token = token;
+            window.turnstileProcessing = true;
+            
+            try {
+                debugLog('✅ SAFE Turnstile SUCCESS', { hasToken: !!token }, 'basic');
                 
-                // Also set token in hidden input
-                let tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
-                if (!tokenInput) {
-                    tokenInput = document.createElement('input');
-                    tokenInput.type = 'hidden';
-                    tokenInput.name = 'cf-turnstile-response';
-                    contactForm.appendChild(tokenInput);
-                    debugLog('🔧 Created cf-turnstile-response hidden input', null, 'verbose');
+                if (token && typeof token === 'string' && turnstileWidget && submitBtn) {
+                    turnstileWidget.dataset.verified = 'true';
+                    turnstileWidget.dataset.token = token;
+                    
+                    // Handle hidden input
+                    let tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
+                    if (!tokenInput) {
+                        tokenInput = document.createElement('input');
+                        tokenInput.type = 'hidden';
+                        tokenInput.name = 'cf-turnstile-response';
+                        contactForm.appendChild(tokenInput);
+                    }
+                    tokenInput.value = token;
+                    
+                    // Enable submit button
+                    submitBtn.disabled = false;
+                    AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
+                    debugLog('✅ Submit button ENABLED safely', null, 'basic');
                 }
-                tokenInput.value = token;
-                
-                // Enable submit button
-                submitBtn.disabled = false;
-                AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
-                debugLog('✅ Submit button ENABLED after Turnstile verification', null, 'basic');
-                
-                // Visual feedback
-                turnstileWidget.style.border = '2px solid #10b981';
-                turnstileWidget.style.borderRadius = '8px';
+            } catch (error) {
+                console.error('Error in turnstileOnSuccess:', error);
+            } finally {
                 setTimeout(() => {
-                    turnstileWidget.style.border = '';
-                    turnstileWidget.style.borderRadius = '';
-                }, 3000);
+                    window.turnstileProcessing = false;
+                }, 100);
             }
         };
         
         window.turnstileOnError = function(errorCode) {
-            debugLog('❌ Turnstile ERROR callback triggered', { errorCode }, 'basic');
+            if (window.turnstileProcessing === true) return;
+            window.turnstileProcessing = true;
             
-            if (turnstileWidget && submitBtn) {
-                turnstileWidget.dataset.verified = 'false';
-                delete turnstileWidget.dataset.token;
+            try {
+                debugLog('❌ SAFE Turnstile ERROR', { errorCode }, 'basic');
                 
-                // Clear token from hidden input
-                const tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
-                if (tokenInput) {
-                    tokenInput.value = '';
+                if (turnstileWidget && submitBtn) {
+                    turnstileWidget.dataset.verified = 'false';
+                    delete turnstileWidget.dataset.token;
+                    
+                    const tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
+                    if (tokenInput) {
+                        tokenInput.value = '';
+                    }
+                    
+                    submitBtn.disabled = true;
+                    AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
+                    debugLog('❌ Submit button DISABLED safely', null, 'basic');
                 }
-                
-                // Disable submit button
-                submitBtn.disabled = true;
-                AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
-                debugLog('❌ Submit button DISABLED after Turnstile error', null, 'basic');
-                
-                // Visual feedback
-                turnstileWidget.style.border = '2px solid #ef4444';
-                turnstileWidget.style.borderRadius = '8px';
+            } catch (error) {
+                console.error('Error in turnstileOnError:', error);
+            } finally {
                 setTimeout(() => {
-                    turnstileWidget.style.border = '';
-                    turnstileWidget.style.borderRadius = '';
-                }, 3000);
+                    window.turnstileProcessing = false;
+                }, 100);
             }
         };
         
         window.turnstileOnExpired = function() {
-            debugLog('⏰ Turnstile EXPIRED callback triggered', null, 'basic');
+            if (window.turnstileProcessing === true) return;
+            window.turnstileProcessing = true;
             
-            if (turnstileWidget && submitBtn) {
-                turnstileWidget.dataset.verified = 'false';
-                delete turnstileWidget.dataset.token;
+            try {
+                debugLog('⏰ SAFE Turnstile EXPIRED', null, 'basic');
                 
-                // Clear token from hidden input
-                const tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
-                if (tokenInput) {
-                    tokenInput.value = '';
+                if (turnstileWidget && submitBtn) {
+                    turnstileWidget.dataset.verified = 'false';
+                    delete turnstileWidget.dataset.token;
+                    
+                    const tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
+                    if (tokenInput) {
+                        tokenInput.value = '';
+                    }
+                    
+                    submitBtn.disabled = true;
+                    AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
+                    debugLog('⏰ Submit button DISABLED safely', null, 'basic');
                 }
-                
-                // Disable submit button
-                submitBtn.disabled = true;
-                AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
-                debugLog('⏰ Submit button DISABLED after Turnstile expiration', null, 'basic');
+            } catch (error) {
+                console.error('Error in turnstileOnExpired:', error);
+            } finally {
+                setTimeout(() => {
+                    window.turnstileProcessing = false;
+                }, 100);
             }
         };
         
