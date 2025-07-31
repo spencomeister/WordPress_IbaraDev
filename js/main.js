@@ -107,6 +107,126 @@ const DEBUG_CONFIG = {
     level: window.vtuber_ajax?.debug_settings?.level || 'basic'
 };
 
+// Utility Functions
+const DOMUtils = {
+    /**
+     * Get element by ID with optional error logging
+     */
+    getElementById(id, required = false) {
+        const element = document.getElementById(id);
+        if (!element && required) {
+            console.warn(`Required element with ID '${id}' not found`);
+        }
+        return element;
+    },
+
+    /**
+     * Add/remove classes with validation
+     */
+    toggleClass(element, className, condition) {
+        if (!element || !className) return false;
+        if (condition === undefined) {
+            element.classList.toggle(className);
+        } else {
+            element.classList.toggle(className, condition);
+        }
+        return true;
+    },
+
+    /**
+     * Set multiple attributes at once
+     */
+    setAttributes(element, attributes) {
+        if (!element || !attributes) return false;
+        Object.entries(attributes).forEach(([key, value]) => {
+            element.setAttribute(key, value);
+        });
+        return true;
+    },
+
+    /**
+     * Create delayed function execution
+     */
+    delay(callback, ms) {
+        return setTimeout(callback, ms);
+    },
+
+    /**
+     * Check if element exists and has specific class
+     */
+    hasElementWithClass(selector, className) {
+        const element = document.querySelector(selector);
+        return element && element.classList.contains(className);
+    }
+};
+
+const AnimationUtils = {
+    /**
+     * Apply smooth transitions with cleanup
+     */
+    smoothTransition(element, properties, duration, callback) {
+        if (!element) return;
+        
+        const originalTransition = element.style.transition;
+        element.style.transition = properties;
+        
+        DOMUtils.delay(() => {
+            element.style.transition = originalTransition;
+            if (callback) callback();
+        }, duration);
+    },
+
+    /**
+     * Safe element transform
+     */
+    setTransform(element, transform) {
+        if (element && element.style) {
+            element.style.transform = transform;
+        }
+    },
+
+    /**
+     * Safe opacity setting
+     */
+    setOpacity(element, opacity) {
+        if (element && element.style) {
+            element.style.opacity = opacity;
+        }
+    }
+};
+
+const ThemeUtils = {
+    /**
+     * Get current theme from body attribute
+     */
+    getCurrentTheme() {
+        return document.body.getAttribute('data-theme') || THEME_CONFIG.THEMES.LIGHT;
+    },
+
+    /**
+     * Set theme with validation
+     */
+    setTheme(theme) {
+        if (!Object.values(THEME_CONFIG.THEMES).includes(theme)) {
+            return false;
+        }
+        document.body.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        return true;
+    },
+
+    /**
+     * Toggle between light and dark themes
+     */
+    toggleTheme() {
+        const current = this.getCurrentTheme();
+        const newTheme = current === THEME_CONFIG.THEMES.DARK 
+            ? THEME_CONFIG.THEMES.LIGHT 
+            : THEME_CONFIG.THEMES.DARK;
+        return this.setTheme(newTheme) ? newTheme : null;
+    }
+};
+
 // Debug logging function
 function debugLog(message, data = null, level = 'basic') {
     if (!DEBUG_CONFIG.enabled) return;
@@ -682,12 +802,12 @@ initScrollLockManagement();
                 debugLog('🎯 Smooth scroll: Navigation to', this.getAttribute('href'), 'verbose');
                 
                 const targetId = this.getAttribute('href').substring(1);
-                const targetElement = document.getElementById(targetId);
+                const targetElement = DOMUtils.getElementById(targetId);
                 
                 if (targetElement) {
-                    const header = document.getElementById('main-header');
+                    const header = DOMUtils.getElementById(CSS_SELECTORS.MAIN_HEADER);
                     const headerHeight = header ? header.offsetHeight : 0;
-                    const targetPosition = targetElement.offsetTop - headerHeight - 20;
+                    const targetPosition = targetElement.offsetTop - headerHeight - SCROLL_CONFIG.SMOOTH_SCROLL_OFFSET;
                     
                     window.scrollTo({
                         top: targetPosition,
@@ -698,11 +818,11 @@ initScrollLockManagement();
                 }
                 
                 // Ensure page remains scrollable after navigation
-                setTimeout(() => {
+                DOMUtils.delay(() => {
                     document.body.style.overflow = '';
                     this.blur(); // Remove focus from the clicked link
                     debugLog('🎯 Smooth scroll: Cleanup completed', null, 'verbose');
-                }, 100);
+                }, ANIMATION_CONFIG.SMOOTH_SCROLL_CLEANUP_DELAY);
             });
         });
     }
@@ -712,8 +832,8 @@ initScrollLockManagement();
      */
     function updateActiveNavLink(activeLink) {
         const navLinks = document.querySelectorAll('.nav-links a');
-        navLinks.forEach(link => link.classList.remove('active'));
-        activeLink.classList.add('active');
+        navLinks.forEach(link => link.classList.remove(CSS_SELECTORS.ACTIVE_CLASS));
+        activeLink.classList.add(CSS_SELECTORS.ACTIVE_CLASS);
     }
 
     /**
@@ -725,14 +845,14 @@ initScrollLockManagement();
         if (!fadeElements.length) return;
         
         const observerOptions = {
-            threshold: 0.15,
-            rootMargin: '0px 0px -50px 0px'
+            threshold: VISUAL_CONFIG.FADE_IN_THRESHOLD,
+            rootMargin: VISUAL_CONFIG.FADE_IN_ROOT_MARGIN
         };
         
         const observer = new IntersectionObserver(function(entries) {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
+                    DOMUtils.toggleClass(entry.target, CSS_SELECTORS.VISIBLE_CLASS, true);
                     
                     // Add staggered delay for grid items
                     if (entry.target.classList.contains('achievement-card') || 
@@ -740,7 +860,7 @@ initScrollLockManagement();
                         entry.target.classList.contains('news-card')) {
                         const siblings = Array.from(entry.target.parentNode.children);
                         const index = siblings.indexOf(entry.target);
-                        entry.target.style.transitionDelay = `${index * 0.1}s`;
+                        entry.target.style.transitionDelay = `${index * VISUAL_CONFIG.STAGGER_DELAY_MULTIPLIER}s`;
                     }
                     
                     // Unobserve after animation to improve performance
@@ -759,7 +879,7 @@ initScrollLockManagement();
      * Initialize header scroll effects
      */
     function initHeaderScroll() {
-        const header = document.getElementById('main-header');
+        const header = DOMUtils.getElementById(CSS_SELECTORS.MAIN_HEADER);
         if (!header) return;
         
         let lastScroll = 0;
@@ -769,17 +889,13 @@ initScrollLockManagement();
             const currentScroll = window.pageYOffset;
             
             // Add/remove scrolled class for styling
-            if (currentScroll > 100) {
-                header.classList.add('scrolled');
-            } else {
-                header.classList.remove('scrolled');
-            }
+            DOMUtils.toggleClass(header, CSS_SELECTORS.SCROLLED_CLASS, currentScroll > SCROLL_CONFIG.HEADER_SCROLLED_THRESHOLD);
             
             // Hide/show header on scroll
-            if (currentScroll > lastScroll && currentScroll > 200) {
-                header.style.transform = 'translateY(-100%)';
+            if (currentScroll > lastScroll && currentScroll > SCROLL_CONFIG.HEADER_HIDE_THRESHOLD) {
+                AnimationUtils.setTransform(header, SCROLL_CONFIG.HEADER_HIDDEN_TRANSFORM);
             } else {
-                header.style.transform = 'translateY(0)';
+                AnimationUtils.setTransform(header, SCROLL_CONFIG.HEADER_VISIBLE_TRANSFORM);
             }
             
             lastScroll = currentScroll;
@@ -803,13 +919,13 @@ initScrollLockManagement();
     function updateActiveSection() {
         const sections = document.querySelectorAll('section[id]');
         const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
-        const header = document.getElementById('main-header');
+        const header = DOMUtils.getElementById(CSS_SELECTORS.MAIN_HEADER);
         const headerHeight = header ? header.offsetHeight : 0;
         
         let currentSection = '';
         
         sections.forEach(section => {
-            const sectionTop = section.offsetTop - headerHeight - 100;
+            const sectionTop = section.offsetTop - headerHeight - SCROLL_CONFIG.SECTION_OFFSET_BUFFER;
             const sectionHeight = section.offsetHeight;
             
             if (window.pageYOffset >= sectionTop && 
@@ -819,10 +935,8 @@ initScrollLockManagement();
         });
         
         navLinks.forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('href') === `#${currentSection}`) {
-                link.classList.add('active');
-            }
+            const isActive = link.getAttribute('href') === `#${currentSection}`;
+            DOMUtils.toggleClass(link, CSS_SELECTORS.ACTIVE_CLASS, isActive);
         });
     }
 
@@ -843,32 +957,32 @@ initScrollLockManagement();
             // Show loading state
             submitBtn.textContent = '送信中...';
             submitBtn.disabled = true;
-            submitBtn.style.opacity = '0.7';
+            AnimationUtils.setOpacity(submitBtn, VISUAL_CONFIG.CONTACT_FORM_DISABLED_OPACITY);
             
             // Reset button after response (or timeout)
-            setTimeout(() => {
+            DOMUtils.delay(() => {
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
-            }, 3000);
+                AnimationUtils.setOpacity(submitBtn, VISUAL_CONFIG.CONTACT_FORM_ENABLED_OPACITY);
+            }, ANIMATION_CONFIG.CONTACT_FORM_RESET_TIMEOUT);
         });
         
         // Enhanced input focus effects
         const inputs = contactForm.querySelectorAll('input, textarea');
         inputs.forEach(input => {
             input.addEventListener('focus', function() {
-                this.parentNode.classList.add('focused');
+                DOMUtils.toggleClass(this.parentNode, CSS_SELECTORS.FOCUSED_CLASS, true);
             });
             
             input.addEventListener('blur', function() {
                 if (!this.value.trim()) {
-                    this.parentNode.classList.remove('focused');
+                    DOMUtils.toggleClass(this.parentNode, CSS_SELECTORS.FOCUSED_CLASS, false);
                 }
             });
             
             // Check if input has value on load
             if (input.value.trim()) {
-                input.parentNode.classList.add('focused');
+                DOMUtils.toggleClass(input.parentNode, CSS_SELECTORS.FOCUSED_CLASS, true);
             }
         });
     }
@@ -881,11 +995,11 @@ initScrollLockManagement();
         
         socialLinks.forEach(link => {
             link.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-3px) scale(1.05)';
+                AnimationUtils.setTransform(this, VISUAL_CONFIG.SOCIAL_LINK_HOVER_TRANSFORM);
             });
             
             link.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0) scale(1)';
+                AnimationUtils.setTransform(this, VISUAL_CONFIG.SOCIAL_LINK_NORMAL_TRANSFORM);
             });
         });
     }
