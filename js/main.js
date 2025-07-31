@@ -1487,7 +1487,7 @@ window.VTuberTheme = Object.freeze({
                 turnstileWidget.style.borderRadius = '8px';
                 turnstileWidget.innerHTML = `
                     <div style="padding: 12px; text-align: center; color: #3b82f6; font-size: 12px; line-height: 1.4;">
-                        <div style="font-weight: bold; margin-bottom: 4px;">� セキュリティ確認処理中...</div>
+                        <div style="font-weight: bold; margin-bottom: 4px;">🔐 セキュリティ確認処理中...</div>
                         <div style="opacity: 0.8;">Cloudflareの認証プロセスが実行されています。完了までお待ちください。</div>
                     </div>
                 `;
