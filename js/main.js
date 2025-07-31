@@ -1312,62 +1312,59 @@ window.VTuberTheme = Object.freeze({
             return;
         }
         
+        // Check if already initialized to prevent double initialization
+        if (turnstileWidget.dataset.initialized === 'true') {
+            debugLog('⚠️ Turnstile already initialized, skipping', null, 'basic');
+            return;
+        }
+        
+        // Mark as initialized
+        turnstileWidget.dataset.initialized = 'true';
+        
         // Initially disable submit button if Turnstile is present
         submitBtn.disabled = true;
         AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
         debugLog('🔒 Submit button disabled - waiting for Turnstile verification', null, 'basic');
         
-        // Wait for Turnstile API to load before setting up callbacks
-        waitForTurnstileAPI().then(() => {
-            setupTurnstileCallbacks(contactForm, turnstileWidget, submitBtn);
-        }).catch((error) => {
-            debugLog('❌ Failed to initialize Turnstile:', error.message, 'basic');
-            // Enable button as fallback if Turnstile fails to load
-            submitBtn.disabled = false;
-            AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
-        });
+        // Set up callbacks immediately (don't wait for API)
+        setupTurnstileCallbacks(contactForm, turnstileWidget, submitBtn);
+        
+        // Check if widget is already rendered by Cloudflare's automatic rendering
+        const existingWidget = turnstileWidget.querySelector('iframe');
+        if (existingWidget) {
+            debugLog('✅ Turnstile widget already auto-rendered by Cloudflare', null, 'basic');
+        } else {
+            debugLog('🔄 Waiting for Turnstile auto-render or manual render', null, 'basic');
+            // Don't manually render - let Cloudflare handle it automatically
+        }
+        
+        debugLog('🔒 Turnstile validation initialized', {
+            hasWidget: !!turnstileWidget,
+            hasSubmitBtn: !!submitBtn,
+            siteKey: turnstileWidget?.dataset?.sitekey || 'not found',
+            alreadyRendered: !!existingWidget
+        }, 'basic');
     }
     
     /**
-     * Wait for Turnstile API to be fully loaded
-     */
-    function waitForTurnstileAPI(maxWaitTime = 10000) {
-        return new Promise((resolve, reject) => {
-            const startTime = Date.now();
-            
-            function checkTurnstile() {
-                if (window.turnstile && typeof window.turnstile.render === 'function') {
-                    debugLog('✅ Turnstile API loaded successfully', null, 'basic');
-                    resolve();
-                    return;
-                }
-                
-                const elapsedTime = Date.now() - startTime;
-                if (elapsedTime >= maxWaitTime) {
-                    reject(new Error('Turnstile API failed to load within timeout'));
-                    return;
-                }
-                
-                // Check again in 100ms
-                setTimeout(checkTurnstile, 100);
-            }
-            
-            checkTurnstile();
-        });
-    }
-    
-    /**
-     * Set up Turnstile callbacks after API is loaded
+     * Set up Turnstile callbacks
      */
     function setupTurnstileCallbacks(contactForm, turnstileWidget, submitBtn) {
         debugLog('🔧 Setting up Turnstile callbacks', null, 'basic');
         
-        // Set up global Turnstile callbacks with explicit window binding
+        // Check if callbacks are already set to prevent conflicts
+        if (window.turnstileCallbacksSet) {
+            debugLog('⚠️ Turnstile callbacks already set, skipping', null, 'basic');
+            return;
+        }
+        
+        // Mark callbacks as set
+        window.turnstileCallbacksSet = true;
+        
+        // Set up global Turnstile callbacks
         window.turnstileOnSuccess = function(token) {
             debugLog('✅ Turnstile SUCCESS callback triggered', { 
-                token: token ? token.substring(0, 20) + '...' : 'no token',
-                widget: !!turnstileWidget,
-                submitBtn: !!submitBtn
+                token: token ? token.substring(0, 20) + '...' : 'no token'
             }, 'basic');
             
             if (turnstileWidget && submitBtn) {
@@ -1448,32 +1445,7 @@ window.VTuberTheme = Object.freeze({
             }
         };
         
-        // Try to render the widget explicitly if needed
-        try {
-            if (window.turnstile && typeof window.turnstile.render === 'function') {
-                // Check if widget is already rendered
-                const existingWidget = turnstileWidget.querySelector('iframe');
-                if (!existingWidget) {
-                    debugLog('🔄 Rendering Turnstile widget explicitly', null, 'basic');
-                    window.turnstile.render(turnstileWidget, {
-                        sitekey: turnstileWidget.dataset.sitekey,
-                        callback: 'turnstileOnSuccess',
-                        'error-callback': 'turnstileOnError',
-                        'expired-callback': 'turnstileOnExpired'
-                    });
-                } else {
-                    debugLog('✅ Turnstile widget already rendered', null, 'basic');
-                }
-            }
-        } catch (e) {
-            debugLog('⚠️ Failed to render Turnstile widget:', e.message, 'basic');
-        }
-        
-        debugLog('🔒 Turnstile validation fully initialized', {
-            hasWidget: !!turnstileWidget,
-            hasSubmitBtn: !!submitBtn,
-            siteKey: turnstileWidget?.dataset?.sitekey || 'not found'
-        }, 'basic');
+        debugLog('� Turnstile callbacks configured', null, 'basic');
     }
 
     /**
