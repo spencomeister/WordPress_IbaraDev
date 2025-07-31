@@ -1202,8 +1202,14 @@ window.VTuberTheme = Object.freeze({
         // Check for contact status in URL and scroll to contact section
         checkContactStatus();
         
-        // Initialize Turnstile validation state
-        initTurnstileValidation(contactForm);
+        // Initialize Turnstile validation state (only if widget exists)
+        const hasTurnstileWidget = contactForm.querySelector('.cf-turnstile');
+        if (hasTurnstileWidget) {
+            debugLog('🔒 Turnstile widget detected - initializing validation', null, 'basic');
+            initTurnstileValidation(contactForm);
+        } else {
+            debugLog('📝 No Turnstile widget found - form will work normally', null, 'basic');
+        }
         
         contactForm.addEventListener('submit', function(e) {
             const submitBtn = this.querySelector('button[type="submit"]');
@@ -1309,80 +1315,165 @@ window.VTuberTheme = Object.freeze({
         // Initially disable submit button if Turnstile is present
         submitBtn.disabled = true;
         AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
+        debugLog('🔒 Submit button disabled - waiting for Turnstile verification', null, 'basic');
         
-        // Set up global Turnstile callbacks
-        window.turnstileOnSuccess = function(token) {
-            debugLog('✅ Turnstile verification successful - enabling submit button', { token: token.substring(0, 20) + '...' }, 'basic');
-            
-            turnstileWidget.dataset.verified = 'true';
-            turnstileWidget.dataset.token = token;
-            
-            // Also set token in hidden input if it exists
-            let tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
-            if (!tokenInput) {
-                tokenInput = document.createElement('input');
-                tokenInput.type = 'hidden';
-                tokenInput.name = 'cf-turnstile-response';
-                contactForm.appendChild(tokenInput);
-            }
-            tokenInput.value = token;
-            
-            // Enable submit button
+        // Wait for Turnstile API to load before setting up callbacks
+        waitForTurnstileAPI().then(() => {
+            setupTurnstileCallbacks(contactForm, turnstileWidget, submitBtn);
+        }).catch((error) => {
+            debugLog('❌ Failed to initialize Turnstile:', error.message, 'basic');
+            // Enable button as fallback if Turnstile fails to load
             submitBtn.disabled = false;
             AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
+        });
+    }
+    
+    /**
+     * Wait for Turnstile API to be fully loaded
+     */
+    function waitForTurnstileAPI(maxWaitTime = 10000) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
             
-            // Visual feedback
-            turnstileWidget.style.border = '2px solid #10b981';
-            turnstileWidget.style.borderRadius = '8px';
-            setTimeout(() => {
-                turnstileWidget.style.border = '';
-                turnstileWidget.style.borderRadius = '';
-            }, 3000);
-        };
-        
-        window.turnstileOnError = function() {
-            debugLog('❌ Turnstile verification failed - disabling submit button', null, 'basic');
-            
-            turnstileWidget.dataset.verified = 'false';
-            delete turnstileWidget.dataset.token;
-            
-            // Clear token from hidden input
-            const tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
-            if (tokenInput) {
-                tokenInput.value = '';
+            function checkTurnstile() {
+                if (window.turnstile && typeof window.turnstile.render === 'function') {
+                    debugLog('✅ Turnstile API loaded successfully', null, 'basic');
+                    resolve();
+                    return;
+                }
+                
+                const elapsedTime = Date.now() - startTime;
+                if (elapsedTime >= maxWaitTime) {
+                    reject(new Error('Turnstile API failed to load within timeout'));
+                    return;
+                }
+                
+                // Check again in 100ms
+                setTimeout(checkTurnstile, 100);
             }
             
-            // Disable submit button
-            submitBtn.disabled = true;
-            AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
+            checkTurnstile();
+        });
+    }
+    
+    /**
+     * Set up Turnstile callbacks after API is loaded
+     */
+    function setupTurnstileCallbacks(contactForm, turnstileWidget, submitBtn) {
+        debugLog('🔧 Setting up Turnstile callbacks', null, 'basic');
+        
+        // Set up global Turnstile callbacks with explicit window binding
+        window.turnstileOnSuccess = function(token) {
+            debugLog('✅ Turnstile SUCCESS callback triggered', { 
+                token: token ? token.substring(0, 20) + '...' : 'no token',
+                widget: !!turnstileWidget,
+                submitBtn: !!submitBtn
+            }, 'basic');
             
-            // Visual feedback
-            turnstileWidget.style.border = '2px solid #ef4444';
-            turnstileWidget.style.borderRadius = '8px';
-            setTimeout(() => {
-                turnstileWidget.style.border = '';
-                turnstileWidget.style.borderRadius = '';
-            }, 3000);
+            if (turnstileWidget && submitBtn) {
+                turnstileWidget.dataset.verified = 'true';
+                turnstileWidget.dataset.token = token;
+                
+                // Also set token in hidden input
+                let tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
+                if (!tokenInput) {
+                    tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = 'cf-turnstile-response';
+                    contactForm.appendChild(tokenInput);
+                    debugLog('🔧 Created cf-turnstile-response hidden input', null, 'verbose');
+                }
+                tokenInput.value = token;
+                
+                // Enable submit button
+                submitBtn.disabled = false;
+                AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
+                debugLog('✅ Submit button ENABLED after Turnstile verification', null, 'basic');
+                
+                // Visual feedback
+                turnstileWidget.style.border = '2px solid #10b981';
+                turnstileWidget.style.borderRadius = '8px';
+                setTimeout(() => {
+                    turnstileWidget.style.border = '';
+                    turnstileWidget.style.borderRadius = '';
+                }, 3000);
+            }
+        };
+        
+        window.turnstileOnError = function(errorCode) {
+            debugLog('❌ Turnstile ERROR callback triggered', { errorCode }, 'basic');
+            
+            if (turnstileWidget && submitBtn) {
+                turnstileWidget.dataset.verified = 'false';
+                delete turnstileWidget.dataset.token;
+                
+                // Clear token from hidden input
+                const tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
+                if (tokenInput) {
+                    tokenInput.value = '';
+                }
+                
+                // Disable submit button
+                submitBtn.disabled = true;
+                AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
+                debugLog('❌ Submit button DISABLED after Turnstile error', null, 'basic');
+                
+                // Visual feedback
+                turnstileWidget.style.border = '2px solid #ef4444';
+                turnstileWidget.style.borderRadius = '8px';
+                setTimeout(() => {
+                    turnstileWidget.style.border = '';
+                    turnstileWidget.style.borderRadius = '';
+                }, 3000);
+            }
         };
         
         window.turnstileOnExpired = function() {
-            debugLog('⏰ Turnstile verification expired - disabling submit button', null, 'basic');
+            debugLog('⏰ Turnstile EXPIRED callback triggered', null, 'basic');
             
-            turnstileWidget.dataset.verified = 'false';
-            delete turnstileWidget.dataset.token;
-            
-            // Clear token from hidden input
-            const tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
-            if (tokenInput) {
-                tokenInput.value = '';
+            if (turnstileWidget && submitBtn) {
+                turnstileWidget.dataset.verified = 'false';
+                delete turnstileWidget.dataset.token;
+                
+                // Clear token from hidden input
+                const tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
+                if (tokenInput) {
+                    tokenInput.value = '';
+                }
+                
+                // Disable submit button
+                submitBtn.disabled = true;
+                AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
+                debugLog('⏰ Submit button DISABLED after Turnstile expiration', null, 'basic');
             }
-            
-            // Disable submit button
-            submitBtn.disabled = true;
-            AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
         };
         
-        debugLog('🔒 Turnstile validation initialized - submit button disabled until verification', null, 'basic');
+        // Try to render the widget explicitly if needed
+        try {
+            if (window.turnstile && typeof window.turnstile.render === 'function') {
+                // Check if widget is already rendered
+                const existingWidget = turnstileWidget.querySelector('iframe');
+                if (!existingWidget) {
+                    debugLog('🔄 Rendering Turnstile widget explicitly', null, 'basic');
+                    window.turnstile.render(turnstileWidget, {
+                        sitekey: turnstileWidget.dataset.sitekey,
+                        callback: 'turnstileOnSuccess',
+                        'error-callback': 'turnstileOnError',
+                        'expired-callback': 'turnstileOnExpired'
+                    });
+                } else {
+                    debugLog('✅ Turnstile widget already rendered', null, 'basic');
+                }
+            }
+        } catch (e) {
+            debugLog('⚠️ Failed to render Turnstile widget:', e.message, 'basic');
+        }
+        
+        debugLog('🔒 Turnstile validation fully initialized', {
+            hasWidget: !!turnstileWidget,
+            hasSubmitBtn: !!submitBtn,
+            siteKey: turnstileWidget?.dataset?.sitekey || 'not found'
+        }, 'basic');
     }
 
     /**
