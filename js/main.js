@@ -1213,12 +1213,31 @@ window.VTuberTheme = Object.freeze({
             submitBtn.disabled = true;
             AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
             
-            // Reset button after response (or timeout)
-            DOMUtils.delay(() => {
+            // Add visual feedback
+            const form = this;
+            form.style.opacity = '0.8';
+            
+            // Add timeout fallback to reset form state
+            const resetTimeout = DOMUtils.delay(() => {
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
                 AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
-            }, THEME_CONFIG.ANIMATION.CONTACT_FORM_RESET_TIMEOUT);
+                form.style.opacity = '';
+                debugLog('📧 Contact form reset due to timeout', null, 'basic');
+            }, 10000); // 10 second timeout
+            
+            // Clear timeout if page navigates (form submission successful)
+            window.addEventListener('beforeunload', () => {
+                clearTimeout(resetTimeout);
+            }, { once: true });
+            
+            // Form will submit normally to current page (frontend processing)
+            // PHP handler processes the form and redirects back with status
+            debugLog('📧 Contact form submitted via frontend processing', {
+                action: form.action || 'current page',
+                method: form.method,
+                vtuber_contact_form: form.querySelector('input[name="vtuber_contact_form"]')?.value
+            }, 'basic');
         });
         
         // Enhanced input focus effects

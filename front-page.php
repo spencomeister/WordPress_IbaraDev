@@ -350,8 +350,9 @@ get_header(); ?>
                 
                 <form class="contact-form" 
                       method="POST" 
-                      action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
+                      action=""
                       novalidate>
+                    <input type="hidden" name="vtuber_contact_form" value="1">
                     <input type="hidden" name="action" value="contact_form_submission">
                     <?php wp_nonce_field('contact_form_nonce', 'contact_nonce'); ?>
                     

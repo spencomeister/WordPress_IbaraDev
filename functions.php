@@ -232,11 +232,23 @@ function vtuber_scripts() {
 }
 add_action('wp_enqueue_scripts', 'vtuber_scripts');
 
-// Contact form handling with WP Mail SMTP support
+// Contact form handling with WP Mail SMTP support and Cloudflare Access compatibility
 function handle_contact_form_submission() {
+    vtuber_log_contact_info('Contact form submission started', array(
+        'processing_mode' => 'frontend_only',
+        'cloudflare_access_safe' => true,
+        'request_method' => $_SERVER['REQUEST_METHOD'],
+        'has_vtuber_form_flag' => isset($_POST['vtuber_contact_form'])
+    ));
+    
     // Verify nonce
     if (!isset($_POST['contact_nonce']) || !wp_verify_nonce($_POST['contact_nonce'], 'contact_form_nonce')) {
-        wp_die('Security check failed');
+        vtuber_log_contact_error('Security check failed - nonce verification', array(
+            'nonce_present' => isset($_POST['contact_nonce']),
+            'nonce_valid' => isset($_POST['contact_nonce']) ? wp_verify_nonce($_POST['contact_nonce'], 'contact_form_nonce') : false
+        ));
+        wp_redirect(home_url('/?contact=error&reason=security'));
+        exit;
     }
     
     // Sanitize form data
@@ -376,8 +388,28 @@ function handle_contact_form_submission() {
     }
     exit;
 }
-add_action('admin_post_contact_form_submission', 'handle_contact_form_submission');
-add_action('admin_post_nopriv_contact_form_submission', 'handle_contact_form_submission');
+
+// Frontend-only form handling to avoid Cloudflare Access admin restrictions
+function handle_frontend_contact_form() {
+    // Only process if this is a POST request with our specific form identifier
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || 
+        !isset($_POST['vtuber_contact_form']) || 
+        $_POST['vtuber_contact_form'] !== '1' ||
+        !isset($_POST['action']) || 
+        $_POST['action'] !== 'contact_form_submission') {
+        return;
+    }
+    
+    vtuber_log_contact_info('Frontend contact form processing initiated', $_POST);
+    
+    // Call the existing form handler
+    handle_contact_form_submission();
+}
+add_action('init', 'handle_frontend_contact_form');
+
+// Legacy admin handlers (disabled due to Cloudflare Access restrictions)
+// add_action('admin_post_contact_form_submission', 'handle_contact_form_submission');
+// add_action('admin_post_nopriv_contact_form_submission', 'handle_contact_form_submission');
 
 // Contact form logging functions
 function vtuber_log_contact_info($message, $data = array()) {
