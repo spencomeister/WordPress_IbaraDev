@@ -37,6 +37,70 @@ const ScrollLockManager = (function() {
 
 'use strict';
 
+// Theme constants
+const THEME_CONFIG = {
+    VERSION: '2.1',
+    THEMES: {
+        LIGHT: 'light',
+        DARK: 'dark'
+    }
+};
+
+// Animation and timing constants
+const ANIMATION_CONFIG = {
+    LOADING_MIN_TIME: 800,
+    LOADING_HIDE_DELAY: 500,
+    LOADING_SHOW_DELAY: 50,
+    THEME_TRANSITION_DURATION: 300,
+    SIDEBAR_CLOSE_DELAY: 150,
+    SCROLL_LOCK_RESET_DELAY: 100,
+    SMOOTH_SCROLL_CLEANUP_DELAY: 100,
+    CONTACT_FORM_RESET_TIMEOUT: 3000,
+    VIDEO_DATA_APPLY_DELAY: 100,
+    HERO_ANIMATION_DELAY: 100,
+    HEADER_FOCUS_CLEANUP_DELAY: 50,
+    LOGO_CLEANUP_DELAY: 100,
+    SCROLL_STATE_CHECK_DELAY: 1000
+};
+
+// Scroll and layout constants
+const SCROLL_CONFIG = {
+    HEADER_SCROLLED_THRESHOLD: 100,
+    HEADER_HIDE_THRESHOLD: 200,
+    SECTION_OFFSET_BUFFER: 100,
+    SMOOTH_SCROLL_OFFSET: 20,
+    HEADER_HIDDEN_TRANSFORM: 'translateY(-100%)',
+    HEADER_VISIBLE_TRANSFORM: 'translateY(0)'
+};
+
+// Animation and visual constants
+const VISUAL_CONFIG = {
+    FADE_IN_THRESHOLD: 0.15,
+    FADE_IN_ROOT_MARGIN: '0px 0px -50px 0px',
+    STAGGER_DELAY_MULTIPLIER: 0.1,
+    SOCIAL_LINK_HOVER_TRANSFORM: 'translateY(-3px) scale(1.05)',
+    SOCIAL_LINK_NORMAL_TRANSFORM: 'translateY(0) scale(1)',
+    CONTACT_FORM_DISABLED_OPACITY: '0.7',
+    CONTACT_FORM_ENABLED_OPACITY: '1',
+    IMAGE_ERROR_OPACITY: '0.7',
+    AVIF_TEST_HEIGHT: 2
+};
+
+// CSS class and selector constants
+const CSS_SELECTORS = {
+    LOADING_SCREEN: 'loading-screen',
+    THEME_TOGGLE: 'theme-toggle',
+    LEFT_SIDEBAR: 'left-sidebar',
+    MOBILE_MENU_TOGGLE: 'mobile-menu-toggle',
+    MAIN_HEADER: 'main-header',
+    HIDDEN_CLASS: 'hidden',
+    ACTIVE_CLASS: 'active',
+    SCROLLED_CLASS: 'scrolled',
+    VISIBLE_CLASS: 'visible',
+    LOADED_CLASS: 'loaded',
+    FOCUSED_CLASS: 'focused'
+};
+
 // Debug configuration
 const DEBUG_CONFIG = {
     enabled: window.vtuber_ajax?.debug_settings?.enabled || false,
@@ -68,7 +132,7 @@ class LoadingManager {
         this.isLoading = false;
         this.config = window.vtuber_ajax?.loading_config || {
             enabled: true,
-            min_loading_time: 800,
+            min_loading_time: ANIMATION_CONFIG.LOADING_MIN_TIME,
             enable_transitions: true,
             show_for_external: false
         };
@@ -95,9 +159,9 @@ class LoadingManager {
     }
     
     show() {
-        this.loadingScreen = document.getElementById('loading-screen');
+        this.loadingScreen = document.getElementById(CSS_SELECTORS.LOADING_SCREEN);
         if (this.loadingScreen) {
-            this.loadingScreen.classList.remove('hidden');
+            this.loadingScreen.classList.remove(CSS_SELECTORS.HIDDEN_CLASS);
             this.isLoading = true;
             this.loadStartTime = Date.now();
             
@@ -115,7 +179,7 @@ class LoadingManager {
         const remainingTime = Math.max(0, this.config.min_loading_time - elapsedTime);
         
         setTimeout(() => {
-            this.loadingScreen.classList.add('hidden');
+            this.loadingScreen.classList.add(CSS_SELECTORS.HIDDEN_CLASS);
             this.isLoading = false;
             
             // Re-enable scrolling
@@ -127,7 +191,7 @@ class LoadingManager {
                 if (this.loadingScreen && this.loadingScreen.parentNode) {
                     this.loadingScreen.style.display = 'none';
                 }
-            }, 500);
+            }, ANIMATION_CONFIG.LOADING_HIDE_DELAY);
             
             debugLog('✅ Loading screen hidden', null, 'basic');
         }, remainingTime);
@@ -142,7 +206,7 @@ class LoadingManager {
             if (link && this.shouldShowLoadingForLink(link)) {
                 debugLog('🔄 LoadingManager: Showing loading screen for link:', link.getAttribute('href'), 'verbose');
                 // Small delay to show loading screen before navigation
-                setTimeout(() => this.show(), 50);
+                setTimeout(() => this.show(), ANIMATION_CONFIG.LOADING_SHOW_DELAY);
             } else if (link) {
                 debugLog('🚫 LoadingManager: Skipping loading screen for link:', link.getAttribute('href'), 'verbose');
             }
@@ -254,7 +318,7 @@ function initScrollLockManagement() {
                 debugLog('🔄 Window focus detected with active scroll lock, resetting', null, 'basic');
                 ScrollLockManager.reset();
             }
-        }, 100);
+        }, ANIMATION_CONFIG.SCROLL_LOCK_RESET_DELAY);
     });
     
     // Reset scroll lock on visibility change (when tab becomes visible again)
@@ -265,7 +329,7 @@ function initScrollLockManagement() {
                     debugLog('🔄 Tab became visible with active scroll lock, resetting', null, 'basic');
                     ScrollLockManager.reset();
                 }
-            }, 100);
+            }, ANIMATION_CONFIG.SCROLL_LOCK_RESET_DELAY);
         }
     });
 }
@@ -276,26 +340,26 @@ initScrollLockManagement();
 (function() {
     // Global theme utilities
     window.VTuberTheme = {
-        version: '2.1',
+        version: THEME_CONFIG.VERSION,
         initialized: false,
         loadingManager: loadingManager,
         
         toggleTheme() {
-            const themeToggle = document.getElementById('theme-toggle');
+            const themeToggle = document.getElementById(CSS_SELECTORS.THEME_TOGGLE);
             if (themeToggle) {
                 themeToggle.click();
             }
         },
         
         getCurrentTheme() {
-            return document.body.getAttribute('data-theme') || 'light';
+            return document.body.getAttribute('data-theme') || THEME_CONFIG.THEMES.LIGHT;
         },
         
         setTheme(theme) {
-            if (!['light', 'dark'].includes(theme)) return false;
+            if (![THEME_CONFIG.THEMES.LIGHT, THEME_CONFIG.THEMES.DARK].includes(theme)) return false;
             
             const body = document.body;
-            const themeToggle = document.getElementById('theme-toggle');
+            const themeToggle = document.getElementById(CSS_SELECTORS.THEME_TOGGLE);
             const icon = themeToggle?.querySelector('i');
             
             body.setAttribute('data-theme', theme);
@@ -317,9 +381,9 @@ initScrollLockManagement();
         },
         
         toggleSidebar() {
-            const sidebar = document.getElementById('left-sidebar');
+            const sidebar = document.getElementById(CSS_SELECTORS.LEFT_SIDEBAR);
             const overlay = document.getElementById('sidebar-overlay');
-            const isOpen = sidebar.classList.contains('active');
+            const isOpen = sidebar.classList.contains(CSS_SELECTORS.ACTIVE_CLASS);
             
             if (isOpen) {
                 closeSidebar();
@@ -347,7 +411,7 @@ initScrollLockManagement();
      * Update theme toggle icon
      */
     function updateThemeIcon(theme, icon) {
-        if (theme === 'dark') {
+        if (theme === THEME_CONFIG.THEMES.DARK) {
             icon.className = 'fas fa-sun';
         } else {
             icon.className = 'fas fa-moon';
@@ -358,17 +422,17 @@ initScrollLockManagement();
      * Open sidebar menu
      */
     function openSidebar() {
-        const sidebar = document.getElementById('left-sidebar');
-        const menuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById(CSS_SELECTORS.LEFT_SIDEBAR);
+        const menuToggle = document.getElementById(CSS_SELECTORS.MOBILE_MENU_TOGGLE);
         const body = document.body;
         
         if (sidebar) {
-            sidebar.classList.add('active');
+            sidebar.classList.add(CSS_SELECTORS.ACTIVE_CLASS);
             ScrollLockManager.lock();
             
             // Add active class to hamburger menu
             if (menuToggle) {
-                menuToggle.classList.add('active');
+                menuToggle.classList.add(CSS_SELECTORS.ACTIVE_CLASS);
                 menuToggle.setAttribute('aria-label', 'メニューを閉じる');
                 menuToggle.setAttribute('title', 'メニューを閉じる');
             }
@@ -385,18 +449,18 @@ initScrollLockManagement();
      * Close sidebar menu
      */
     function closeSidebar() {
-        const sidebar = document.getElementById('left-sidebar');
-        const menuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById(CSS_SELECTORS.LEFT_SIDEBAR);
+        const menuToggle = document.getElementById(CSS_SELECTORS.MOBILE_MENU_TOGGLE);
         const body = document.body;
         
         if (sidebar) {
-            sidebar.classList.remove('active');
+            sidebar.classList.remove(CSS_SELECTORS.ACTIVE_CLASS);
             ScrollLockManager.unlock();
             debugLog('🔄 Sidebar closed: Re-enabled scrolling', null, 'verbose');
             
             // Remove active class from hamburger menu
             if (menuToggle) {
-                menuToggle.classList.remove('active');
+                menuToggle.classList.remove(CSS_SELECTORS.ACTIVE_CLASS);
                 menuToggle.setAttribute('aria-label', 'メニューを開く');
                 menuToggle.setAttribute('title', 'メニューを開く');
             }
@@ -412,9 +476,9 @@ initScrollLockManagement();
      * Initialize sidebar functionality
      */
     async function initSidebar() {
-        const menuToggle = document.getElementById('mobile-menu-toggle');
+        const menuToggle = document.getElementById(CSS_SELECTORS.MOBILE_MENU_TOGGLE);
         const sidebarClose = document.getElementById('sidebar-close');
-        const sidebar = document.getElementById('left-sidebar');
+        const sidebar = document.getElementById(CSS_SELECTORS.LEFT_SIDEBAR);
         
         // Set background image with proper format detection
         if (sidebar) {
@@ -442,15 +506,15 @@ initScrollLockManagement();
                 // Close sidebar after a short delay to allow the navigation to start
                 setTimeout(() => {
                     closeSidebar();
-                }, 150);
+                }, ANIMATION_CONFIG.SIDEBAR_CLOSE_DELAY);
             });
         });
         
         // Escape key handler
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                const sidebar = document.getElementById('left-sidebar');
-                if (sidebar && sidebar.classList.contains('active')) {
+                const sidebar = document.getElementById(CSS_SELECTORS.LEFT_SIDEBAR);
+                if (sidebar && sidebar.classList.contains(CSS_SELECTORS.ACTIVE_CLASS)) {
                     closeSidebar();
                 }
             }
@@ -533,7 +597,7 @@ initScrollLockManagement();
     function checkAVIFSupport() {
         return new Promise((resolve) => {
             const avif = new Image();
-            avif.onload = avif.onerror = () => resolve(avif.height === 2);
+            avif.onload = avif.onerror = () => resolve(avif.height === VISUAL_CONFIG.AVIF_TEST_HEIGHT);
             avif.src = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAIAAAACAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQ0MAAAAABNjb2xybmNseAACAAIAAYAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgABogQEAwgMg8f8D///8WfhwB8+ErK42A=';
         });
     }
@@ -542,7 +606,7 @@ initScrollLockManagement();
      * Initialize theme system
      */
     function initThemeSystem() {
-        const themeToggle = document.getElementById('theme-toggle');
+        const themeToggle = document.getElementById(CSS_SELECTORS.THEME_TOGGLE);
         
         if (!themeToggle) {
             console.warn('Theme toggle button not found');
@@ -562,11 +626,11 @@ initScrollLockManagement();
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         
         // Set initial theme
-        let initialTheme = 'light';
+        let initialTheme = THEME_CONFIG.THEMES.LIGHT;
         if (savedTheme) {
             initialTheme = savedTheme;
         } else if (systemPrefersDark) {
-            initialTheme = 'dark';
+            initialTheme = THEME_CONFIG.THEMES.DARK;
         }
         
         body.setAttribute('data-theme', initialTheme);
@@ -577,7 +641,7 @@ initScrollLockManagement();
             debugLog('🎨 Theme toggle clicked', null, 'verbose');
             
             const currentTheme = body.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            const newTheme = currentTheme === THEME_CONFIG.THEMES.DARK ? THEME_CONFIG.THEMES.LIGHT : THEME_CONFIG.THEMES.DARK;
             
             body.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
@@ -593,13 +657,13 @@ initScrollLockManagement();
                 document.body.style.overflow = '';
                 this.blur();
                 debugLog('🎨 Theme toggle cleanup completed', null, 'verbose');
-            }, 300);
+            }, ANIMATION_CONFIG.THEME_TRANSITION_DURATION);
         });
         
         // Listen for system theme changes
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
             if (!localStorage.getItem('theme')) {
-                const newTheme = e.matches ? 'dark' : 'light';
+                const newTheme = e.matches ? THEME_CONFIG.THEMES.DARK : THEME_CONFIG.THEMES.LIGHT;
                 body.setAttribute('data-theme', newTheme);
                 updateThemeIcon(newTheme, icon);
             }
