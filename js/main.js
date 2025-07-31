@@ -1300,7 +1300,7 @@ window.VTuberTheme = Object.freeze({
     }
     
     /**
-     * Initialize Turnstile validation handling
+     * Initialize Turnstile validation handling with improved error handling
      */
     function initTurnstileValidation(contactForm) {
         const turnstileWidget = contactForm.querySelector('.cf-turnstile');
@@ -1329,20 +1329,29 @@ window.VTuberTheme = Object.freeze({
         // Set up callbacks immediately (don't wait for API)
         setupTurnstileCallbacks(contactForm, turnstileWidget, submitBtn);
         
-        // Check if widget is already rendered by Cloudflare's automatic rendering
-        const existingWidget = turnstileWidget.querySelector('iframe');
-        if (existingWidget) {
-            debugLog('✅ Turnstile widget already auto-rendered by Cloudflare', null, 'basic');
-        } else {
-            debugLog('🔄 Waiting for Turnstile auto-render or manual render', null, 'basic');
-            // Don't manually render - let Cloudflare handle it automatically
-        }
+        // Set up fallback timer to enable form if Turnstile fails to load
+        const fallbackTimeout = setTimeout(() => {
+            if (turnstileWidget.dataset.verified !== 'true') {
+                debugLog('⚠️ Turnstile fallback: Enabling form due to loading timeout', null, 'basic');
+                submitBtn.disabled = false;
+                AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
+                turnstileWidget.dataset.fallbackEnabled = 'true';
+                
+                // Add visual indication
+                turnstileWidget.style.border = '2px solid #f59e0b';
+                turnstileWidget.style.borderRadius = '8px';
+                turnstileWidget.innerHTML = '<div style="padding: 10px; text-align: center; color: #f59e0b; font-size: 12px;">セキュリティ確認の読み込みに時間がかかっています。フォームは送信可能です。</div>';
+            }
+        }, 10000); // 10 second fallback
         
-        debugLog('🔒 Turnstile validation initialized', {
+        // Store fallback timeout for cleanup
+        turnstileWidget.dataset.fallbackTimeout = fallbackTimeout;
+        
+        debugLog('🔒 Turnstile validation initialized with fallback protection', {
             hasWidget: !!turnstileWidget,
             hasSubmitBtn: !!submitBtn,
             siteKey: turnstileWidget?.dataset?.sitekey || 'not found',
-            alreadyRendered: !!existingWidget
+            fallbackEnabled: true
         }, 'basic');
     }
     
@@ -1412,7 +1421,10 @@ window.VTuberTheme = Object.freeze({
             window.turnstileProcessing = true;
             
             try {
-                debugLog('❌ SAFE Turnstile ERROR', { errorCode }, 'basic');
+                debugLog('❌ Enhanced Turnstile ERROR with fallback handling', { 
+                    errorCode,
+                    errorType: typeof errorCode 
+                }, 'basic');
                 
                 if (turnstileWidget && submitBtn) {
                     turnstileWidget.dataset.verified = 'false';
@@ -1423,16 +1435,47 @@ window.VTuberTheme = Object.freeze({
                         tokenInput.value = '';
                     }
                     
-                    submitBtn.disabled = true;
-                    AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
-                    debugLog('❌ Submit button DISABLED safely', null, 'basic');
+                    // Check for 401 unauthorized errors or authentication failures
+                    const isAuthError = (
+                        errorCode === 401 || 
+                        errorCode === 'unauthorized' || 
+                        errorCode === 'authentication_failed' ||
+                        (typeof errorCode === 'string' && errorCode.toLowerCase().includes('unauthorized'))
+                    );
+                    
+                    if (isAuthError) {
+                        debugLog('🔐 Authentication error detected, enabling fallback mode', { errorCode }, 'basic');
+                        
+                        // Enable form submission despite auth error
+                        submitBtn.disabled = false;
+                        AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
+                        turnstileWidget.dataset.fallbackEnabled = 'true';
+                        
+                        // Clear any existing fallback timeout
+                        const fallbackTimeout = turnstileWidget.dataset.fallbackTimeout;
+                        if (fallbackTimeout) {
+                            clearTimeout(parseInt(fallbackTimeout));
+                            delete turnstileWidget.dataset.fallbackTimeout;
+                        }
+                        
+                        // Show user-friendly message for auth errors
+                        turnstileWidget.style.border = '2px solid #f59e0b';
+                        turnstileWidget.style.borderRadius = '8px';
+                        turnstileWidget.innerHTML = '<div style="padding: 10px; text-align: center; color: #f59e0b; font-size: 12px;">セキュリティ確認で認証エラーが発生しました。フォームは送信可能です。</div>';
+                    } else {
+                        // For other errors, keep button disabled
+                        submitBtn.disabled = true;
+                        AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
+                        debugLog('❌ Submit button DISABLED due to non-auth error', { errorCode }, 'basic');
+                    }
                 }
             } catch (error) {
-                console.error('Error in turnstileOnError:', error);
+                console.error('Error in enhanced turnstileOnError:', error);
+                debugLog('❌ Critical error in Turnstile error handler', { error: error.message }, 'basic');
             } finally {
                 setTimeout(() => {
                     window.turnstileProcessing = false;
-                }, 100);
+                }, 200);
             }
         };
         
