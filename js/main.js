@@ -1211,18 +1211,30 @@ window.VTuberTheme = Object.freeze({
             
             // Check if Turnstile is enabled and verified
             const turnstileWidget = this.querySelector('.cf-turnstile');
-            if (turnstileWidget && !turnstileWidget.dataset.verified) {
-                e.preventDefault();
-                debugLog('🚫 Form submission blocked: Turnstile verification required', null, 'basic');
-                
-                // Show visual feedback
-                turnstileWidget.style.border = '2px solid #ef4444';
-                turnstileWidget.style.borderRadius = '8px';
-                setTimeout(() => {
-                    turnstileWidget.style.border = '';
-                    turnstileWidget.style.borderRadius = '';
-                }, 3000);
-                return;
+            if (turnstileWidget) {
+                if (turnstileWidget.dataset.verified !== 'true') {
+                    e.preventDefault();
+                    debugLog('🚫 Form submission blocked: Turnstile verification required', {
+                        verified: turnstileWidget.dataset.verified,
+                        hasToken: !!turnstileWidget.dataset.token
+                    }, 'basic');
+                    
+                    // Show visual feedback
+                    turnstileWidget.style.border = '2px solid #ef4444';
+                    turnstileWidget.style.borderRadius = '8px';
+                    setTimeout(() => {
+                        turnstileWidget.style.border = '';
+                        turnstileWidget.style.borderRadius = '';
+                    }, 3000);
+                    return;
+                } else {
+                    debugLog('✅ Form submission allowed: Turnstile verification confirmed', {
+                        verified: turnstileWidget.dataset.verified,
+                        hasToken: !!turnstileWidget.dataset.token
+                    }, 'basic');
+                }
+            } else {
+                debugLog('📝 Form submission allowed: No Turnstile widget present', null, 'basic');
             }
             
             const originalText = submitBtn.textContent;
@@ -1288,7 +1300,11 @@ window.VTuberTheme = Object.freeze({
         const turnstileWidget = contactForm.querySelector('.cf-turnstile');
         const submitBtn = contactForm.querySelector('button[type="submit"]');
         
-        if (!turnstileWidget || !submitBtn) return;
+        // Only initialize if Turnstile widget exists
+        if (!turnstileWidget || !submitBtn) {
+            debugLog('🔒 Turnstile widget not found - button remains enabled', null, 'basic');
+            return;
+        }
         
         // Initially disable submit button if Turnstile is present
         submitBtn.disabled = true;
@@ -1296,8 +1312,20 @@ window.VTuberTheme = Object.freeze({
         
         // Set up global Turnstile callbacks
         window.turnstileOnSuccess = function(token) {
+            debugLog('✅ Turnstile verification successful - enabling submit button', { token: token.substring(0, 20) + '...' }, 'basic');
+            
             turnstileWidget.dataset.verified = 'true';
             turnstileWidget.dataset.token = token;
+            
+            // Also set token in hidden input if it exists
+            let tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
+            if (!tokenInput) {
+                tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = 'cf-turnstile-response';
+                contactForm.appendChild(tokenInput);
+            }
+            tokenInput.value = token;
             
             // Enable submit button
             submitBtn.disabled = false;
@@ -1310,13 +1338,19 @@ window.VTuberTheme = Object.freeze({
                 turnstileWidget.style.border = '';
                 turnstileWidget.style.borderRadius = '';
             }, 3000);
-            
-            debugLog('✅ Turnstile verification successful', { token: token.substring(0, 20) + '...' }, 'basic');
         };
         
         window.turnstileOnError = function() {
+            debugLog('❌ Turnstile verification failed - disabling submit button', null, 'basic');
+            
             turnstileWidget.dataset.verified = 'false';
             delete turnstileWidget.dataset.token;
+            
+            // Clear token from hidden input
+            const tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
+            if (tokenInput) {
+                tokenInput.value = '';
+            }
             
             // Disable submit button
             submitBtn.disabled = true;
@@ -1329,19 +1363,23 @@ window.VTuberTheme = Object.freeze({
                 turnstileWidget.style.border = '';
                 turnstileWidget.style.borderRadius = '';
             }, 3000);
-            
-            debugLog('❌ Turnstile verification failed', null, 'basic');
         };
         
         window.turnstileOnExpired = function() {
+            debugLog('⏰ Turnstile verification expired - disabling submit button', null, 'basic');
+            
             turnstileWidget.dataset.verified = 'false';
             delete turnstileWidget.dataset.token;
+            
+            // Clear token from hidden input
+            const tokenInput = contactForm.querySelector('input[name="cf-turnstile-response"]');
+            if (tokenInput) {
+                tokenInput.value = '';
+            }
             
             // Disable submit button
             submitBtn.disabled = true;
             AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
-            
-            debugLog('⏰ Turnstile verification expired', null, 'basic');
         };
         
         debugLog('🔒 Turnstile validation initialized - submit button disabled until verification', null, 'basic');
