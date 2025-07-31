@@ -353,7 +353,7 @@ get_header(); ?>
                       action=""
                       novalidate>
                     <input type="hidden" name="vtuber_contact_form" value="1">
-                    <input type="hidden" name="action" value="contact_form_submission">
+                    <input type="hidden" name="frontend_contact_form" value="1">
                     <?php wp_nonce_field('contact_form_nonce', 'contact_nonce'); ?>
                     
                     <div class="form-group">

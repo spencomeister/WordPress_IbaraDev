@@ -395,12 +395,12 @@ function handle_frontend_contact_form() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST' || 
         !isset($_POST['vtuber_contact_form']) || 
         $_POST['vtuber_contact_form'] !== '1' ||
-        !isset($_POST['action']) || 
-        $_POST['action'] !== 'contact_form_submission') {
+        !isset($_POST['frontend_contact_form']) || 
+        $_POST['frontend_contact_form'] !== '1') {
         return;
     }
     
-    vtuber_log_contact_info('Frontend contact form processing initiated', $_POST);
+    vtuber_log_contact_info('Frontend contact form processing initiated (Cloudflare Access compatible)', $_POST);
     
     // Call the existing form handler
     handle_contact_form_submission();

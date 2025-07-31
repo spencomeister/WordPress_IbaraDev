@@ -1233,10 +1233,11 @@ window.VTuberTheme = Object.freeze({
             
             // Form will submit normally to current page (frontend processing)
             // PHP handler processes the form and redirects back with status
-            debugLog('📧 Contact form submitted via frontend processing', {
+            debugLog('📧 Contact form submitted via frontend processing (Cloudflare Access compatible)', {
                 action: form.action || 'current page',
                 method: form.method,
-                vtuber_contact_form: form.querySelector('input[name="vtuber_contact_form"]')?.value
+                vtuber_contact_form: form.querySelector('input[name="vtuber_contact_form"]')?.value,
+                frontend_contact_form: form.querySelector('input[name="frontend_contact_form"]')?.value
             }, 'basic');
         });
         
