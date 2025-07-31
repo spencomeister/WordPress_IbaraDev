@@ -232,11 +232,48 @@ function vtuber_scripts() {
 }
 add_action('wp_enqueue_scripts', 'vtuber_scripts');
 
-// Contact form handling with WP Mail SMTP support
+// Contact form handling with Simple Cloudflare Turnstile support
 function handle_contact_form_submission() {
     // Verify nonce
     if (!isset($_POST['contact_nonce']) || !wp_verify_nonce($_POST['contact_nonce'], 'contact_form_nonce')) {
         wp_die('Security check failed');
+    }
+    
+    // Simple Cloudflare Turnstile verification
+    if (function_exists('simple_cloudflare_turnstile_verify')) {
+        $turnstile_response = isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '';
+        
+        if (empty($turnstile_response)) {
+            vtuber_log_contact_error('Turnstile認証が未完了です', array(
+                'turnstile_response' => 'empty',
+                'remote_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+            ));
+            wp_redirect(home_url('/?contact=error&reason=turnstile_missing'));
+            exit;
+        }
+        
+        $turnstile_verified = simple_cloudflare_turnstile_verify($turnstile_response);
+        
+        if (!$turnstile_verified) {
+            vtuber_log_contact_error('Turnstile認証に失敗しました', array(
+                'turnstile_response_length' => strlen($turnstile_response),
+                'remote_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+            ));
+            wp_redirect(home_url('/?contact=error&reason=turnstile_failed'));
+            exit;
+        }
+        
+        vtuber_log_contact_debug('Turnstile認証が成功しました', array(
+            'response_length' => strlen($turnstile_response),
+            'remote_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+        ));
+    } else {
+        // Simple Cloudflare Turnstileプラグインが無効の場合の警告ログ
+        vtuber_log_contact_debug('Simple Cloudflare Turnstileプラグインが検出されませんでした', array(
+            'plugin_function_exists' => function_exists('simple_cloudflare_turnstile_verify'),
+            'shortcode_function_exists' => function_exists('simple_cloudflare_turnstile_shortcode')
+        ));
     }
     
     // Sanitize form data
@@ -1317,7 +1354,7 @@ if (class_exists('WP_Customize_Control')) {
     }
 }
 
-// Add contact form messages with enhanced error handling
+// Add contact form messages with enhanced error handling and Turnstile support
 function display_contact_messages() {
     if (isset($_GET['contact'])) {
         if ($_GET['contact'] === 'success') {
@@ -1337,6 +1374,13 @@ function display_contact_messages() {
                     break;
                 case 'invalid_email':
                     echo 'メールアドレスの形式が正しくありません。正しいメールアドレスを入力してください。';
+                    break;
+                case 'turnstile_missing':
+                    echo 'セキュリティ確認が完了していません。Cloudflare Turnstileによる認証を完了してください。';
+                    break;
+                case 'turnstile_failed':
+                    echo 'セキュリティ認証に失敗しました。ページを更新してもう一度お試しください。';
+                    echo '<br><small>※ 問題が続く場合は、ブラウザのキャッシュをクリアするか、別のブラウザでお試しください。</small>';
                     break;
                 case 'send_failed':
                     echo 'メッセージの送信でエラーが発生しました。';

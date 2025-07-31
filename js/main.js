@@ -1192,16 +1192,68 @@ window.VTuberTheme = Object.freeze({
     }
 
     /**
-     * Initialize contact form handling
+     * Initialize contact form handling with Simple Cloudflare Turnstile support
      */
     function initContactForm() {
         const contactForm = document.querySelector('.contact-form');
         
         if (!contactForm) return;
         
+        // Check for Simple Cloudflare Turnstile widget
+        const turnstileWidget = contactForm.querySelector('.simple-cloudflare-turnstile');
+        const hasTurnstile = !!turnstileWidget;
+        
+        debugLog('📝 Contact form initialized', {
+            hasTurnstile: hasTurnstile,
+            turnstileElement: turnstileWidget ? 'found' : 'not found'
+        }, 'basic');
+        
+        // Check for contact status in URL and scroll to contact section
+        checkContactStatus();
+        
         contactForm.addEventListener('submit', function(e) {
             const submitBtn = this.querySelector('button[type="submit"]');
             if (!submitBtn) return;
+            
+            // Simple Cloudflare Turnstile validation
+            if (hasTurnstile) {
+                const turnstileResponse = this.querySelector('input[name="cf-turnstile-response"]');
+                
+                if (!turnstileResponse || !turnstileResponse.value) {
+                    e.preventDefault();
+                    debugLog('🚫 Form submission blocked: Turnstile response missing', {
+                        responseInput: !!turnstileResponse,
+                        responseValue: turnstileResponse ? turnstileResponse.value : 'no input found'
+                    }, 'basic');
+                    
+                    // Show visual feedback on turnstile widget
+                    if (turnstileWidget) {
+                        turnstileWidget.style.border = '2px solid #ef4444';
+                        turnstileWidget.style.borderRadius = '8px';
+                        setTimeout(() => {
+                            turnstileWidget.style.border = '';
+                            turnstileWidget.style.borderRadius = '';
+                        }, 3000);
+                        
+                        // Scroll to turnstile widget
+                        turnstileWidget.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                    }
+                    
+                    // Show error message
+                    showContactError('セキュリティ確認が完了していません。Cloudflare Turnstileによる認証を完了してください。');
+                    return;
+                } else {
+                    debugLog('✅ Form submission allowed: Turnstile verification confirmed', {
+                        responseLength: turnstileResponse.value.length,
+                        hasTurnstileWidget: !!turnstileWidget
+                    }, 'basic');
+                }
+            } else {
+                debugLog('📝 Form submission allowed: No Turnstile widget present', null, 'basic');
+            }
             
             const originalText = submitBtn.textContent;
             
@@ -1210,12 +1262,30 @@ window.VTuberTheme = Object.freeze({
             submitBtn.disabled = true;
             AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
             
-            // Reset button after response (or timeout)
-            DOMUtils.delay(() => {
+            // Add visual feedback
+            const form = this;
+            form.style.opacity = '0.8';
+            
+            // Add timeout fallback to reset form state
+            const resetTimeout = DOMUtils.delay(() => {
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
                 AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
-            }, THEME_CONFIG.ANIMATION.CONTACT_FORM_RESET_TIMEOUT);
+                form.style.opacity = '';
+                debugLog('📧 Contact form reset due to timeout', null, 'basic');
+            }, 10000); // 10 second timeout
+            
+            // Clear timeout if page navigates (form submission successful)
+            window.addEventListener('beforeunload', () => {
+                clearTimeout(resetTimeout);
+            }, { once: true });
+            
+            debugLog('📧 Contact form submitted with Simple Cloudflare Turnstile support', {
+                action: form.action || 'current page',
+                method: form.method,
+                hasTurnstile: hasTurnstile,
+                turnstileVerified: hasTurnstile ? !!this.querySelector('input[name="cf-turnstile-response"]')?.value : 'not_applicable'
+            }, 'basic');
         });
         
         // Enhanced input focus effects
@@ -1236,6 +1306,64 @@ window.VTuberTheme = Object.freeze({
                 DOMUtils.toggleClass(input.parentNode, THEME_CONFIG.SELECTORS.FOCUSED_CLASS, true);
             }
         });
+    }
+    
+    /**
+     * Show contact form error message
+     */
+    function showContactError(message) {
+        const contactSection = document.getElementById('contact');
+        if (!contactSection) return;
+        
+        // Remove existing error messages
+        const existingError = contactSection.querySelector('.contact-error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        // Create error message element
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'contact-error-message contact-message error';
+        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+        
+        // Insert error message after the h2
+        const h2 = contactSection.querySelector('h2');
+        if (h2) {
+            h2.insertAdjacentElement('afterend', errorDiv);
+        }
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.remove();
+            }
+        }, 5000);
+    }
+
+    /**
+     * Check contact status from URL parameters and scroll to contact section
+     */
+    function checkContactStatus() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const contactStatus = urlParams.get('contact');
+        
+        // Check if contact parameter exists with any value (including empty)
+        if (contactStatus !== null) {
+            // Scroll to contact section after a short delay
+            DOMUtils.delay(() => {
+                const contactSection = document.getElementById('contact');
+                if (contactSection) {
+                    contactSection.scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    debugLog('📧 Scrolled to contact section due to URL parameter', {
+                        contactStatus: contactStatus,
+                        section: 'contact'
+                    }, 'basic');
+                }
+            }, 500);
+        }
     }
 
     /**

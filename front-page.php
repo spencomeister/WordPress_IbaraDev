@@ -394,6 +394,16 @@ get_header(); ?>
                                   placeholder="お問い合わせ内容をご記入ください..."></textarea>
                     </div>
                     
+                    <!-- Simple Cloudflare Turnstile Integration -->
+                    <?php if (function_exists('simple_cloudflare_turnstile_shortcode')) : ?>
+                    <div class="form-group turnstile-group">
+                        <label for="simple-cloudflare-turnstile">セキュリティ確認 *</label>
+                        <div id="simple-cloudflare-turnstile" class="simple-cloudflare-turnstile">
+                            <?php echo do_shortcode('[simple_cloudflare_turnstile]'); ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
                     <button type="submit" 
                             name="submit_contact" 
                             class="submit-btn">
