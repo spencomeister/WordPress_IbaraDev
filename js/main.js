@@ -1298,30 +1298,35 @@ initScrollLockManagement();
             });
         });
         
-        // Make video cards clickable (optional)
+        // Make video cards clickable and accessible
         const videoCards = document.querySelectorAll('.video-card');
         videoCards.forEach(card => {
             card.addEventListener('click', function(e) {
-                // Only trigger if not clicking on the play button or watch link
                 if (!e.target.closest('.play-button') && !e.target.closest('a')) {
                     const watchLink = this.querySelector('a[href*="youtube.com"], a[href*="youtu.be"], a[href*="twitch.tv"], a[href*="watch"], .btn-primary');
                     if (watchLink) {
-                        window.open(watchLink.href, '_blank', 'noopener,noreferrer');
+                        try {
+                            window.open(watchLink.href, '_blank', 'noopener,noreferrer');
+                        } catch (err) {
+                            console.error('[VideoSection] Failed to open video link:', err);
+                        }
+                    } else {
+                        console.warn('[VideoSection] No watch link found in video card.');
                     }
                 }
             });
-            
-            // Add hover effect for better UX
             card.style.cursor = 'pointer';
         });
-        
-        // Apply video data from customizer
-        applyVideoData();
-        
-        // Also apply data after a short delay to ensure DOM is fully loaded
-        setTimeout(() => {
+
+        // Apply video data from customizer (with error handling)
+        try {
             applyVideoData();
-        }, 100);
+            setTimeout(() => {
+                try { applyVideoData(); } catch (err) { console.error('[VideoSection] applyVideoData error (delayed):', err); }
+            }, 100);
+        } catch (err) {
+            console.error('[VideoSection] applyVideoData error:', err);
+        }
     }
 
     /**
@@ -1622,90 +1627,76 @@ if (document.readyState === 'loading') {
 }
 
 // Enhanced Image Loading Manager for AVIF/PNG fallback
-class ImageLoadingManager {
+
+// Phase 4: Refactored ImageLoadingManager with encapsulation, naming, error handling, and performance improvements
+class ThemeImageLoader {
+    #loadedImages = new Set();
+    #totalImages = 0;
+    #observer = null;
+
     constructor() {
-        this.loadedImages = new Set();
-        this.totalImages = 0;
-        this.init();
+        this.#init();
     }
-    
-    init() {
-        // Wait for DOM to be ready
+
+    #init() {
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.setupImageLoading());
+            document.addEventListener('DOMContentLoaded', () => this.#setup());
         } else {
-            this.setupImageLoading();
+            this.#setup();
         }
     }
-    
-    setupImageLoading() {
-        // Handle all images with lazy loading
+
+    #setup() {
         const images = document.querySelectorAll('img[loading="lazy"], picture img');
-        this.totalImages = images.length;
-        
-        images.forEach((img, index) => {
-            this.handleImageLoad(img, index);
-        });
-        
-        // Setup intersection observer for lazy loaded images
-        this.setupLazyLoading();
+        this.#totalImages = images.length;
+        images.forEach((img, idx) => this.#observeImage(img, idx));
+        this.#setupLazyObserver();
     }
-    
-    handleImageLoad(img, index) {
-        // Add loading state
+
+    #observeImage(img, idx) {
         img.style.opacity = '0';
         img.style.transition = 'opacity 0.3s ease-in-out';
-        
-        const loadHandler = () => {
-            this.loadedImages.add(index);
+        const onLoad = () => {
+            this.#loadedImages.add(idx);
             img.style.opacity = '1';
             img.classList.add('loaded');
-            
-            // Trigger custom event
             img.dispatchEvent(new CustomEvent('imageLoaded', {
-                detail: { 
-                    index: index, 
-                    total: this.totalImages,
-                    loaded: this.loadedImages.size
+                detail: {
+                    index: idx,
+                    total: this.#totalImages,
+                    loaded: this.#loadedImages.size
                 }
             }));
         };
-        
-        const errorHandler = () => {
-            // Handle image load error
-            console.warn('Image failed to load:', img.src);
-            img.style.opacity = '0.7';
+        const onError = () => {
+            console.warn('[ThemeImageLoader] Image failed to load:', img.src);
+            img.style.opacity = THEME_CONFIG.VISUAL.IMAGE_ERROR_OPACITY;
             img.classList.add('load-error');
         };
-        
         if (img.complete && img.naturalHeight !== 0) {
-            // Image already loaded
-            loadHandler();
+            onLoad();
         } else {
-            img.addEventListener('load', loadHandler, { once: true });
-            img.addEventListener('error', errorHandler, { once: true });
+            img.addEventListener('load', onLoad, { once: true });
+            img.addEventListener('error', onError, { once: true });
         }
     }
-    
-    setupLazyLoading() {
-        // Enhanced intersection observer for better performance
-        const imageObserver = new IntersectionObserver((entries, observer) => {
+
+    #setupLazyObserver() {
+        if (this.#observer) {
+            this.#observer.disconnect();
+        }
+        this.#observer = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const img = entry.target;
-                    
-                    // Handle data-src attributes if present
                     if (img.dataset.src) {
                         img.src = img.dataset.src;
                         delete img.dataset.src;
                     }
-                    
-                    // Handle AVIF fallback data attributes
                     if (img.dataset.avifSrc && !document.body.classList.contains('no-avif')) {
                         img.src = img.dataset.avifSrc;
                         delete img.dataset.avifSrc;
                     }
-                    
                     observer.unobserve(img);
                 }
             });
@@ -1714,18 +1705,26 @@ class ImageLoadingManager {
             rootMargin: '50px',
             threshold: 0.1
         });
-        
-        // Observe all images that aren't already loaded
         document.querySelectorAll('img[data-src], img[data-avif-src]').forEach(img => {
-            imageObserver.observe(img);
+            this.#observer.observe(img);
         });
     }
-    
-    getAllLoadedStatus() {
+
+    getLoadedStatus() {
         return {
-            loaded: this.loadedImages.size,
-            total: this.totalImages,
-            percentage: this.totalImages > 0 ? (this.loadedImages.size / this.totalImages) * 100 : 100
+            loaded: this.#loadedImages.size,
+            total: this.#totalImages,
+            percentage: this.#totalImages > 0 ? (this.#loadedImages.size / this.#totalImages) * 100 : 100
         };
     }
+}
+
+// Phase 4: Use new ThemeImageLoader
+let themeImageLoader;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        themeImageLoader = new ThemeImageLoader();
+    });
+} else {
+    themeImageLoader = new ThemeImageLoader();
 }
