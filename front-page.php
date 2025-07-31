@@ -395,8 +395,8 @@ get_header(); ?>
                     </div>
                     <?php $turnstile_enabled = get_theme_mod('turnstile_enabled', false); $turnstile_site_key = get_theme_mod('turnstile_site_key', ''); ?>
                     <?php if ($turnstile_enabled && !empty($turnstile_site_key)) : ?>
-                    <div class="form-group">
-                        <div class="cf-turnstile" data-sitekey="<?php echo esc_attr($turnstile_site_key); ?>"></div>
+                    <div class="form-group" style="text-align: center;">
+                        <div class="cf-turnstile" data-sitekey="<?php echo esc_attr($turnstile_site_key); ?>" style="margin: 0 auto; display: inline-block;"></div>
                     </div>
                     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
                     <?php endif; ?>

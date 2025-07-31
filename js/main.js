@@ -1248,26 +1248,39 @@ window.VTuberTheme = Object.freeze({
         const urlParams = new URLSearchParams(window.location.search);
         const contactStatus = urlParams.get('contact');
         
-        if (contactStatus) {
+        // Check if contact parameter exists with any value (including empty)
+        if (contactStatus !== null) {
             // Delay to ensure page is fully loaded
             DOMUtils.delay(() => {
                 const contactSection = document.getElementById('contact');
                 if (contactSection) {
                     debugLog('📧 Contact form status detected, scrolling to contact section...', null, 'basic');
                     
-                    // Smooth scroll to contact section
-                    contactSection.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
+                    // Get header height for proper offset calculation
+                    const header = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.MAIN_HEADER);
+                    const headerHeight = header ? header.offsetHeight : 0;
+                    
+                    // Calculate position with proper offset
+                    const targetPosition = contactSection.offsetTop - headerHeight - THEME_CONFIG.SCROLL.SMOOTH_SCROLL_OFFSET;
+                    
+                    // Smooth scroll to contact section with proper offset
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
                     });
                     
                     // Focus on the first input field for better UX
                     DOMUtils.delay(() => {
-                        const firstInput = contactSection.querySelector('input[type="text"], input[type="email"]');
+                        const firstInput = contactSection.querySelector('input[type="text"], input[type="email"], textarea');
                         if (firstInput) {
                             firstInput.focus();
+                            // Add visual indication that the form is ready
+                            firstInput.style.boxShadow = '0 0 8px rgba(139, 92, 246, 0.3)';
+                            setTimeout(() => {
+                                firstInput.style.boxShadow = '';
+                            }, 2000);
                         }
-                    }, 800); // Wait for scroll animation to complete
+                    }, 1000); // Wait for scroll animation to complete
                 }
             }, 500); // Initial delay for page load
         }
