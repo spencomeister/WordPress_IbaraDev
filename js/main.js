@@ -1583,6 +1583,9 @@ window.VTuberTheme = Object.freeze({
             initialContent: turnstileWidget.innerHTML.substring(0, 100)
         }, 'basic');
         
+        // Start monitoring console logs for Cloudflare challenge responses
+        monitorCloudflareResponses(turnstileWidget, renderingStart);
+        
         const renderCheckInterval = setInterval(() => {
             renderCheckCount++;
             const currentTime = Date.now();
@@ -1633,6 +1636,263 @@ window.VTuberTheme = Object.freeze({
                 }, 'basic');
             }
         }, 500);
+    }
+    
+    /**
+     * Monitor Cloudflare challenge responses for early problem detection
+     */
+    function monitorCloudflareResponses(turnstileWidget, monitorStart) {
+        // Store original console methods
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        let challengeResponseDetected = false;
+        let monitoringActive = true;
+        
+        debugLog('🔍 Starting Cloudflare response monitoring', {
+            monitorStart,
+            target: 'Private Access Token challenge patterns'
+        }, 'basic');
+        
+        // Monitor console outputs for challenge patterns
+        const logPattern = /v1[?:][\w=&-]*.*[?:]?[\d\w-]*.*(?:Request for the Private Access Token challenge|lang=auto)/i;
+        
+        // Intercept console.log
+        console.log = function(...args) {
+            if (monitoringActive) {
+                const logText = args.join(' ');
+                
+                if (logPattern.test(logText)) {
+                    challengeResponseDetected = true;
+                    const responseTime = Date.now();
+                    const elapsed = responseTime - monitorStart;
+                    
+                    // Analyze response pattern
+                    const analysisResult = analyzeCloudflareResponse(logText, elapsed);
+                    
+                    debugLog('🔍 Cloudflare challenge response detected', {
+                        responseText: logText,
+                        pattern: analysisResult.pattern,
+                        prediction: analysisResult.prediction,
+                        confidence: analysisResult.confidence,
+                        timeFromStart: `${elapsed}ms`,
+                        analysis: analysisResult
+                    }, 'basic');
+                    
+                    // Apply predictive handling based on pattern
+                    if (analysisResult.prediction === 'likely_failure') {
+                        handlePredictedFailure(turnstileWidget, analysisResult);
+                    } else if (analysisResult.prediction === 'likely_success') {
+                        handlePredictedSuccess(turnstileWidget, analysisResult);
+                    }
+                }
+            }
+            
+            // Call original console.log
+            originalLog.apply(console, arguments);
+        };
+        
+        // Stop monitoring after 30 seconds or when challenge completes
+        setTimeout(() => {
+            if (monitoringActive) {
+                monitoringActive = false;
+                console.log = originalLog;
+                console.error = originalError;
+                console.warn = originalWarn;
+                
+                debugLog('🔍 Cloudflare response monitoring ended', {
+                    duration: '30s',
+                    responseDetected: challengeResponseDetected,
+                    reason: 'timeout'
+                }, 'basic');
+            }
+        }, 30000);
+        
+        // Store cleanup function on widget for early termination
+        turnstileWidget.dataset.cleanupMonitoring = function() {
+            if (monitoringActive) {
+                monitoringActive = false;
+                console.log = originalLog;
+                console.error = originalError;
+                console.warn = originalWarn;
+                
+                debugLog('🔍 Cloudflare response monitoring ended', {
+                    duration: `${Date.now() - monitorStart}ms`,
+                    responseDetected: challengeResponseDetected,
+                    reason: 'challenge_completed'
+                }, 'basic');
+            }
+        };
+    }
+    
+    /**
+     * Analyze Cloudflare response pattern to predict success/failure
+     */
+    function analyzeCloudflareResponse(responseText, elapsed) {
+        const analysis = {
+            hasParameters: false,
+            hasRayId: false,
+            hasLangAuto: false,
+            pattern: 'unknown',
+            prediction: 'unknown',
+            confidence: 0,
+            responseText: responseText.substring(0, 200) // Limit length
+        };
+        
+        // Check for success indicators
+        if (responseText.includes('ray=') && responseText.includes('&')) {
+            analysis.hasRayId = true;
+            analysis.hasParameters = true;
+        }
+        
+        if (responseText.includes('lang=auto')) {
+            analysis.hasLangAuto = true;
+        }
+        
+        // Determine pattern
+        if (analysis.hasRayId && analysis.hasLangAuto) {
+            analysis.pattern = 'success_pattern';
+            analysis.prediction = 'likely_success';
+            analysis.confidence = 0.9;
+        } else if (responseText.includes('v1:1') && !analysis.hasParameters) {
+            analysis.pattern = 'failure_pattern';
+            analysis.prediction = 'likely_failure';
+            analysis.confidence = 0.85;
+        } else if (responseText.includes('Request for the Private Access Token challenge')) {
+            if (analysis.hasParameters) {
+                analysis.pattern = 'challenge_with_params';
+                analysis.prediction = 'likely_success';
+                analysis.confidence = 0.7;
+            } else {
+                analysis.pattern = 'challenge_without_params';
+                analysis.prediction = 'likely_failure';
+                analysis.confidence = 0.8;
+            }
+        }
+        
+        // Time factor (early responses are typically better)
+        if (elapsed < 2000) {
+            analysis.confidence = Math.min(analysis.confidence + 0.1, 1.0);
+        } else if (elapsed > 5000) {
+            analysis.confidence = Math.max(analysis.confidence - 0.1, 0.1);
+        }
+        
+        return analysis;
+    }
+    
+    /**
+     * Handle predicted failure case
+     */
+    function handlePredictedFailure(turnstileWidget, analysis) {
+        debugLog('⚠️ Predicted Turnstile failure detected', {
+            pattern: analysis.pattern,
+            confidence: analysis.confidence,
+            action: 'early_intervention'
+        }, 'basic');
+        
+        // Mark for early intervention but don't enable button (maintain security)
+        turnstileWidget.dataset.predictedFailure = 'true';
+        turnstileWidget.dataset.failureReason = analysis.pattern;
+        turnstileWidget.dataset.failureConfidence = analysis.confidence;
+        
+        // Update UI to reflect early problem detection
+        turnstileWidget.style.border = '2px solid #f59e0b';
+        turnstileWidget.style.borderRadius = '8px';
+        turnstileWidget.innerHTML = `
+            <div style="padding: 12px; text-align: center; color: #f59e0b; font-size: 12px; line-height: 1.4;">
+                <div style="font-weight: bold; margin-bottom: 4px;">⚠️ 認証で問題が検出されました</div>
+                <div style="opacity: 0.8;">Cloudflareの認証プロセスで問題が発生している可能性があります。</div>
+                <div style="margin-top: 4px; font-style: italic;">ページの更新をお試しください。</div>
+            </div>
+        `;
+        
+        // Reduce timeout periods since failure is predicted
+        const infoTimeout = turnstileWidget.dataset.infoTimeout;
+        const extendedTimeout = turnstileWidget.dataset.extendedWaitTimeout;
+        const securityTimeout = turnstileWidget.dataset.securityTimeout;
+        
+        // Clear existing long timeouts and set shorter ones
+        if (infoTimeout) clearTimeout(parseInt(infoTimeout));
+        if (extendedTimeout) clearTimeout(parseInt(extendedTimeout));
+        if (securityTimeout) clearTimeout(parseInt(securityTimeout));
+        
+        // Shorter timeout for predicted failures (20 seconds instead of 60)
+        const shorterTimeout = setTimeout(() => {
+            if (turnstileWidget.dataset.verified !== 'true') {
+                debugLog('🚨 Predicted failure confirmed: Early timeout', {
+                    originalPrediction: analysis.pattern,
+                    confidence: analysis.confidence,
+                    earlyTimeout: true
+                }, 'basic');
+                
+                turnstileWidget.style.border = '2px solid #ef4444';
+                turnstileWidget.innerHTML = `
+                    <div style="padding: 12px; text-align: center; color: #ef4444; font-size: 12px; line-height: 1.4;">
+                        <div style="font-weight: bold; margin-bottom: 6px;">🚨 認証エラーが確認されました</div>
+                        <div style="opacity: 0.9; margin-bottom: 6px;">予測された認証問題が確認されました。</div>
+                        <div style="background: rgba(239, 68, 68, 0.1); padding: 6px; border-radius: 4px; margin-top: 6px;">
+                            <strong>推奨対応:</strong><br>
+                            • ページを更新してお試しください<br>
+                            • 別のブラウザでお試しください<br>
+                            • しばらく時間をおいてお試しください
+                        </div>
+                    </div>
+                `;
+            }
+        }, 20000);
+        
+        turnstileWidget.dataset.shorterTimeout = shorterTimeout;
+    }
+    
+    /**
+     * Handle predicted success case
+     */
+    function handlePredictedSuccess(turnstileWidget, analysis) {
+        debugLog('✅ Predicted Turnstile success detected', {
+            pattern: analysis.pattern,
+            confidence: analysis.confidence,
+            action: 'optimistic_monitoring'
+        }, 'basic');
+        
+        // Mark for success tracking
+        turnstileWidget.dataset.predictedSuccess = 'true';
+        turnstileWidget.dataset.successPattern = analysis.pattern;
+        turnstileWidget.dataset.successConfidence = analysis.confidence;
+        
+        // Show optimistic message
+        turnstileWidget.style.border = '2px solid #10b981';
+        turnstileWidget.style.borderRadius = '8px';
+        turnstileWidget.innerHTML = `
+            <div style="padding: 12px; text-align: center; color: #10b981; font-size: 12px; line-height: 1.4;">
+                <div style="font-weight: bold; margin-bottom: 4px;">🔄 認証処理が順調に進行中</div>
+                <div style="opacity: 0.8;">Cloudflareの認証が正常に処理されています。まもなく完了予定です。</div>
+            </div>
+        `;
+    }
+    
+    /**
+     * Clear all Turnstile-related timeouts
+     */
+    function clearAllTurnstileTimeouts(turnstileWidget) {
+        const timeoutIds = [
+            'infoTimeout',
+            'extendedWaitTimeout', 
+            'securityTimeout',
+            'shorterTimeout'
+        ];
+        
+        timeoutIds.forEach(timeoutId => {
+            const timeoutValue = turnstileWidget.dataset[timeoutId];
+            if (timeoutValue) {
+                clearTimeout(parseInt(timeoutValue));
+                delete turnstileWidget.dataset[timeoutId];
+            }
+        });
+        
+        debugLog('🧹 All Turnstile timeouts cleared', {
+            clearedTimeouts: timeoutIds.length
+        }, 'basic');
     }
     
     /**
@@ -1739,16 +1999,43 @@ window.VTuberTheme = Object.freeze({
             try {
                 const successTime = Date.now();
                 const initTime = turnstileWidget.dataset.initTimestamp ? parseInt(turnstileWidget.dataset.initTimestamp) : null;
+                
+                // Clean up monitoring if active
+                if (turnstileWidget.dataset.cleanupMonitoring) {
+                    try {
+                        const cleanup = new Function('return ' + turnstileWidget.dataset.cleanupMonitoring)();
+                        if (typeof cleanup === 'function') cleanup();
+                    } catch (e) {
+                        debugLog('⚠️ Cleanup function execution failed', e.message, 'basic');
+                    }
+                }
+                
+                // Clear all timeouts (including predicted failure timeouts)
+                clearAllTurnstileTimeouts(turnstileWidget);
+                
+                // Success correlation with prediction analysis
+                const wasPredicted = turnstileWidget.dataset.predictedSuccess === 'true';
+                const predictionPattern = turnstileWidget.dataset.successPattern || 'none';
+                const predictionConfidence = parseFloat(turnstileWidget.dataset.successConfidence) || 0;
+                const failurePredicted = turnstileWidget.dataset.predictedFailure === 'true';
+                
                 const timingInfo = {
                     successTimestamp: successTime,
                     successTime: new Date(successTime).toISOString(),
                     totalTimeFromInit: initTime ? `${(successTime - initTime) / 1000}s` : 'unknown',
                     tokenReceived: !!token,
                     tokenType: typeof token,
-                    tokenLength: token?.length || 0
+                    tokenLength: token?.length || 0,
+                    predictionAccuracy: {
+                        successPredicted: wasPredicted,
+                        failurePredicted: failurePredicted,
+                        pattern: predictionPattern,
+                        confidence: predictionConfidence,
+                        correlationResult: wasPredicted ? 'prediction_confirmed' : failurePredicted ? 'prediction_incorrect' : 'no_prediction'
+                    }
                 };
                 
-                debugLog('✅ SAFE Turnstile SUCCESS with detailed timing', {
+                debugLog('✅ SAFE Turnstile SUCCESS with correlation analysis', {
                     hasToken: !!token,
                     timing: timingInfo
                 }, 'basic');
@@ -1757,31 +2044,22 @@ window.VTuberTheme = Object.freeze({
                     turnstileWidget.dataset.verified = 'true';
                     turnstileWidget.dataset.token = token;
                     
-                    // Clear all waiting timeouts since authentication succeeded
-                    const infoTimeout = turnstileWidget.dataset.infoTimeout;
-                    const extendedWaitTimeout = turnstileWidget.dataset.extendedWaitTimeout;
-                    const securityTimeout = turnstileWidget.dataset.securityTimeout;
-                    if (infoTimeout) {
-                        clearTimeout(parseInt(infoTimeout));
-                        delete turnstileWidget.dataset.infoTimeout;
-                    }
-                    if (extendedWaitTimeout) {
-                        clearTimeout(parseInt(extendedWaitTimeout));
-                        delete turnstileWidget.dataset.extendedWaitTimeout;
-                    }
-                    if (securityTimeout) {
-                        clearTimeout(parseInt(securityTimeout));
-                        delete turnstileWidget.dataset.securityTimeout;
-                    }
-                    
-                    // Show success state
+                    // Show enhanced success state with prediction accuracy
                     turnstileWidget.style.border = '2px solid #10b981';
                     turnstileWidget.style.borderRadius = '8px';
                     
-                    // Add success message
+                    // Add success message with prediction feedback
                     const successDiv = document.createElement('div');
                     successDiv.style.cssText = 'padding: 8px; text-align: center; color: #10b981; font-size: 12px; font-weight: bold; background: rgba(16, 185, 129, 0.1); border-radius: 4px; margin-top: 4px;';
-                    successDiv.innerHTML = '✅ セキュリティ認証が完了しました';
+                    
+                    let successMessage = '✅ セキュリティ認証が完了しました';
+                    if (wasPredicted) {
+                        successMessage += '<div style="font-size: 10px; opacity: 0.7; margin-top: 2px;">(予測システムで事前検出済み)</div>';
+                    } else if (failurePredicted) {
+                        successMessage += '<div style="font-size: 10px; opacity: 0.7; margin-top: 2px;">(予測システムの予想に反して成功)</div>';
+                    }
+                    
+                    successDiv.innerHTML = successMessage;
                     
                     // Find existing success message and replace or add
                     const existingSuccess = turnstileWidget.querySelector('[data-success-message]');
@@ -1823,15 +2101,42 @@ window.VTuberTheme = Object.freeze({
             try {
                 const errorTime = Date.now();
                 const initTime = turnstileWidget.dataset.initTimestamp ? parseInt(turnstileWidget.dataset.initTimestamp) : null;
+                
+                // Clean up monitoring if active
+                if (turnstileWidget.dataset.cleanupMonitoring) {
+                    try {
+                        const cleanup = new Function('return ' + turnstileWidget.dataset.cleanupMonitoring)();
+                        if (typeof cleanup === 'function') cleanup();
+                    } catch (e) {
+                        debugLog('⚠️ Cleanup function execution failed in error handler', e.message, 'basic');
+                    }
+                }
+                
+                // Clear all timeouts
+                clearAllTurnstileTimeouts(turnstileWidget);
+                
+                // Error correlation with prediction analysis
+                const failurePredicted = turnstileWidget.dataset.predictedFailure === 'true';
+                const predictedReason = turnstileWidget.dataset.failureReason || 'none';
+                const predictionConfidence = parseFloat(turnstileWidget.dataset.failureConfidence) || 0;
+                const successPredicted = turnstileWidget.dataset.predictedSuccess === 'true';
+                
                 const timingInfo = {
                     errorTimestamp: errorTime,
                     errorTime: new Date(errorTime).toISOString(),
                     totalTimeFromInit: initTime ? `${(errorTime - initTime) / 1000}s` : 'unknown',
                     errorCode,
-                    errorType: typeof errorCode
+                    errorType: typeof errorCode,
+                    predictionAccuracy: {
+                        failurePredicted: failurePredicted,
+                        successPredicted: successPredicted,
+                        predictedReason: predictedReason,
+                        confidence: predictionConfidence,
+                        correlationResult: failurePredicted ? 'prediction_confirmed' : successPredicted ? 'prediction_incorrect' : 'no_prediction'
+                    }
                 };
                 
-                debugLog('❌ Turnstile ERROR with detailed timing', { 
+                debugLog('❌ Turnstile ERROR with correlation analysis', { 
                     errorCode,
                     timing: timingInfo,
                     securityMaintained: true,
@@ -1850,20 +2155,40 @@ window.VTuberTheme = Object.freeze({
                     // Classify error type for user feedback
                     const errorInfo = classifyTurnstileError(errorCode);
                     
-                    debugLog('🔐 Turnstile error classified', { 
+                    debugLog('🔐 Turnstile error classified with prediction correlation', { 
                         errorCode,
                         classification: errorInfo.type,
                         userMessage: errorInfo.message,
-                        recommendation: errorInfo.recommendation
+                        recommendation: errorInfo.recommendation,
+                        predictionAccuracy: timingInfo.predictionAccuracy
                     }, 'basic');
                     
                     // Always keep button disabled for security
                     submitBtn.disabled = true;
                     AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
                     
-                    // Show appropriate error message
+                    // Show enhanced error message with prediction feedback
                     turnstileWidget.style.border = '2px solid #ef4444';
                     turnstileWidget.style.borderRadius = '8px';
+                    
+                    let errorMessage = `
+                        <div style="padding: 12px; text-align: center; color: #ef4444; font-size: 12px; line-height: 1.4;">
+                            <div style="font-weight: bold; margin-bottom: 6px;">🚨 ${errorInfo.title}</div>
+                            <div style="opacity: 0.9; margin-bottom: 6px;">${errorInfo.message}</div>
+                            <div style="background: rgba(239, 68, 68, 0.1); padding: 6px; border-radius: 4px; margin-top: 6px; font-size: 11px;">
+                                ${errorInfo.recommendation}
+                            </div>`;
+                    
+                    // Add prediction feedback if available
+                    if (failurePredicted) {
+                        errorMessage += `<div style="font-size: 10px; opacity: 0.7; margin-top: 4px; font-style: italic;">(予測システムで事前検出済み)</div>`;
+                    } else if (successPredicted) {
+                        errorMessage += `<div style="font-size: 10px; opacity: 0.7; margin-top: 4px; font-style: italic;">(予測システムの予想に反してエラー)</div>`;
+                    }
+                    
+                    errorMessage += `</div>`;
+                    
+                    turnstileWidget.innerHTML = errorMessage;
                     turnstileWidget.innerHTML = `
                         <div style="padding: 12px; text-align: center; color: #ef4444; font-size: 12px; line-height: 1.4;">
                             <div style="font-weight: bold; margin-bottom: 6px;">🚨 ${errorInfo.title}</div>
