@@ -1202,9 +1202,28 @@ window.VTuberTheme = Object.freeze({
         // Check for contact status in URL and scroll to contact section
         checkContactStatus();
         
+        // Initialize Turnstile validation state
+        initTurnstileValidation(contactForm);
+        
         contactForm.addEventListener('submit', function(e) {
             const submitBtn = this.querySelector('button[type="submit"]');
             if (!submitBtn) return;
+            
+            // Check if Turnstile is enabled and verified
+            const turnstileWidget = this.querySelector('.cf-turnstile');
+            if (turnstileWidget && !turnstileWidget.dataset.verified) {
+                e.preventDefault();
+                debugLog('🚫 Form submission blocked: Turnstile verification required', null, 'basic');
+                
+                // Show visual feedback
+                turnstileWidget.style.border = '2px solid #ef4444';
+                turnstileWidget.style.borderRadius = '8px';
+                setTimeout(() => {
+                    turnstileWidget.style.border = '';
+                    turnstileWidget.style.borderRadius = '';
+                }, 3000);
+                return;
+            }
             
             const originalText = submitBtn.textContent;
             
@@ -1237,7 +1256,8 @@ window.VTuberTheme = Object.freeze({
                 action: form.action || 'current page',
                 method: form.method,
                 vtuber_contact_form: form.querySelector('input[name="vtuber_contact_form"]')?.value,
-                frontend_contact_form: form.querySelector('input[name="frontend_contact_form"]')?.value
+                frontend_contact_form: form.querySelector('input[name="frontend_contact_form"]')?.value,
+                turnstile_verified: turnstileWidget ? turnstileWidget.dataset.verified : 'not_applicable'
             }, 'basic');
         });
         
@@ -1259,6 +1279,72 @@ window.VTuberTheme = Object.freeze({
                 DOMUtils.toggleClass(input.parentNode, THEME_CONFIG.SELECTORS.FOCUSED_CLASS, true);
             }
         });
+    }
+    
+    /**
+     * Initialize Turnstile validation handling
+     */
+    function initTurnstileValidation(contactForm) {
+        const turnstileWidget = contactForm.querySelector('.cf-turnstile');
+        const submitBtn = contactForm.querySelector('button[type="submit"]');
+        
+        if (!turnstileWidget || !submitBtn) return;
+        
+        // Initially disable submit button if Turnstile is present
+        submitBtn.disabled = true;
+        AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
+        
+        // Set up global Turnstile callbacks
+        window.turnstileOnSuccess = function(token) {
+            turnstileWidget.dataset.verified = 'true';
+            turnstileWidget.dataset.token = token;
+            
+            // Enable submit button
+            submitBtn.disabled = false;
+            AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
+            
+            // Visual feedback
+            turnstileWidget.style.border = '2px solid #10b981';
+            turnstileWidget.style.borderRadius = '8px';
+            setTimeout(() => {
+                turnstileWidget.style.border = '';
+                turnstileWidget.style.borderRadius = '';
+            }, 3000);
+            
+            debugLog('✅ Turnstile verification successful', { token: token.substring(0, 20) + '...' }, 'basic');
+        };
+        
+        window.turnstileOnError = function() {
+            turnstileWidget.dataset.verified = 'false';
+            delete turnstileWidget.dataset.token;
+            
+            // Disable submit button
+            submitBtn.disabled = true;
+            AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
+            
+            // Visual feedback
+            turnstileWidget.style.border = '2px solid #ef4444';
+            turnstileWidget.style.borderRadius = '8px';
+            setTimeout(() => {
+                turnstileWidget.style.border = '';
+                turnstileWidget.style.borderRadius = '';
+            }, 3000);
+            
+            debugLog('❌ Turnstile verification failed', null, 'basic');
+        };
+        
+        window.turnstileOnExpired = function() {
+            turnstileWidget.dataset.verified = 'false';
+            delete turnstileWidget.dataset.token;
+            
+            // Disable submit button
+            submitBtn.disabled = true;
+            AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
+            
+            debugLog('⏰ Turnstile verification expired', null, 'basic');
+        };
+        
+        debugLog('🔒 Turnstile validation initialized - submit button disabled until verification', null, 'basic');
     }
 
     /**
