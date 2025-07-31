@@ -1329,6 +1329,35 @@ window.VTuberTheme = Object.freeze({
         // Set up callbacks immediately (don't wait for API)
         setupTurnstileCallbacks(contactForm, turnstileWidget, submitBtn);
         
+        // Monitor Turnstile API loading status
+        let apiCheckInterval;
+        let apiCheckCount = 0;
+        const maxApiChecks = 30; // Check for 15 seconds (500ms * 30)
+        
+        apiCheckInterval = setInterval(() => {
+            apiCheckCount++;
+            
+            // Check if Turnstile API is available
+            if (typeof window.turnstile !== 'undefined') {
+                clearInterval(apiCheckInterval);
+                debugLog('🔒 Turnstile API loaded successfully', {
+                    timeToLoad: `${apiCheckCount * 0.5}s`,
+                    apiAvailable: true
+                }, 'basic');
+                return;
+            }
+            
+            // Stop checking after max attempts
+            if (apiCheckCount >= maxApiChecks) {
+                clearInterval(apiCheckInterval);
+                debugLog('⚠️ Turnstile API not loaded after 15s', {
+                    checksPerformed: apiCheckCount,
+                    apiAvailable: false,
+                    reason: 'API loading timeout or blocked'
+                }, 'basic');
+            }
+        }, 500); // Check every 500ms
+        
         // Set up progressive fallback system with better UX
         let fallbackStage = 0;
         
@@ -1336,10 +1365,19 @@ window.VTuberTheme = Object.freeze({
         const warningTimeout = setTimeout(() => {
             if (turnstileWidget.dataset.verified !== 'true' && !turnstileWidget.dataset.fallbackEnabled) {
                 fallbackStage = 1;
-                debugLog('⚠️ Turnstile warning: Slow loading detected', null, 'basic');
+                debugLog('⚠️ Turnstile warning: Slow loading detected', {
+                    stage: fallbackStage,
+                    timeElapsed: '8s',
+                    possibleCause: 'Network delay or Cloudflare Access challenge'
+                }, 'basic');
                 turnstileWidget.style.border = '2px solid #f59e0b';
                 turnstileWidget.style.borderRadius = '8px';
-                turnstileWidget.innerHTML = '<div style="padding: 10px; text-align: center; color: #f59e0b; font-size: 12px;">セキュリティ確認を読み込み中...</div>';
+                turnstileWidget.innerHTML = `
+                    <div style="padding: 10px; text-align: center; color: #f59e0b; font-size: 12px; line-height: 1.4;">
+                        <div style="font-weight: bold; margin-bottom: 4px;">🔄 セキュリティ確認を読み込み中...</div>
+                        <div style="opacity: 0.8;">ネットワークの状況により時間がかかっています</div>
+                    </div>
+                `;
             }
         }, 8000); // 8 second warning
         
@@ -1467,7 +1505,9 @@ window.VTuberTheme = Object.freeze({
             try {
                 debugLog('❌ Enhanced Turnstile ERROR with fallback handling', { 
                     errorCode,
-                    errorType: typeof errorCode 
+                    errorType: typeof errorCode,
+                    timestamp: new Date().toISOString(),
+                    possibleCause: 'Cloudflare Access challenge or network issue'
                 }, 'basic');
                 
                 if (turnstileWidget && submitBtn) {
@@ -1479,16 +1519,25 @@ window.VTuberTheme = Object.freeze({
                         tokenInput.value = '';
                     }
                     
-                    // Check for 401 unauthorized errors or authentication failures
+                    // Check for various types of authentication/network errors
                     const isAuthError = (
                         errorCode === 401 || 
                         errorCode === 'unauthorized' || 
                         errorCode === 'authentication_failed' ||
-                        (typeof errorCode === 'string' && errorCode.toLowerCase().includes('unauthorized'))
+                        errorCode === 'network_error' ||
+                        errorCode === 'token_validation_failed' ||
+                        (typeof errorCode === 'string' && (
+                            errorCode.toLowerCase().includes('unauthorized') ||
+                            errorCode.toLowerCase().includes('access') ||
+                            errorCode.toLowerCase().includes('challenge')
+                        ))
                     );
                     
                     if (isAuthError) {
-                        debugLog('🔐 Authentication error detected, enabling fallback mode', { errorCode }, 'basic');
+                        debugLog('🔐 Authentication/Access error detected, enabling fallback mode', { 
+                            errorCode,
+                            errorClassification: 'auth_or_access_error'
+                        }, 'basic');
                         
                         // Clear any existing fallback timeouts since we're handling the error
                         const warningTimeout = turnstileWidget.dataset.warningTimeout;
@@ -1507,13 +1556,13 @@ window.VTuberTheme = Object.freeze({
                         AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY);
                         turnstileWidget.dataset.fallbackEnabled = 'true';
                         
-                        // Show user-friendly message for auth errors
-                        turnstileWidget.style.border = '2px solid #f59e0b';
+                        // Show user-friendly message for auth/access errors
+                        turnstileWidget.style.border = '2px solid #10b981';
                         turnstileWidget.style.borderRadius = '8px';
                         turnstileWidget.innerHTML = `
-                            <div style="padding: 12px; text-align: center; color: #f59e0b; font-size: 12px; line-height: 1.4;">
-                                <div style="font-weight: bold; margin-bottom: 4px;">⚠ 認証エラーが発生しました</div>
-                                <div style="opacity: 0.8;">フォームは送信可能ですが、セキュリティ確認をスキップします。</div>
+                            <div style="padding: 12px; text-align: center; color: #10b981; font-size: 12px; line-height: 1.4;">
+                                <div style="font-weight: bold; margin-bottom: 4px;">✓ フォーム送信が可能です</div>
+                                <div style="opacity: 0.8;">セキュリティ確認をスキップしてフォームを送信できます。</div>
                             </div>
                         `;
                     } else {
