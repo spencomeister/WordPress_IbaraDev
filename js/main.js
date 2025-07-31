@@ -104,10 +104,12 @@ const THEME_CONFIG = Object.freeze({
         FOCUSED_CLASS: 'focused'
     },
     
-    // Debug configuration
-    DEBUG: {
-        enabled: window.vtuber_ajax?.debug_settings?.enabled || false,
-        level: window.vtuber_ajax?.debug_settings?.level || 'basic'
+    // Debug configuration (lazy evaluation)
+    get DEBUG() {
+        return {
+            enabled: window.vtuber_ajax?.debug_settings?.enabled || false,
+            level: window.vtuber_ajax?.debug_settings?.level || 'basic'
+        };
     }
 });
 
@@ -122,6 +124,17 @@ const DOMUtils = {
             console.warn(`Required element with ID '${id}' not found`);
         }
         return element;
+    },
+
+    /**
+     * Utility for DOM ready checking
+     */
+    onReady(callback) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', callback);
+        } else {
+            callback();
+        }
     },
 
     /**
@@ -231,6 +244,29 @@ const ThemeUtils = {
     }
 };
 
+// Debug logging function - moved early to avoid forward reference issues
+function debugLog(message, data = null, level = 'basic') {
+    // Validate that THEME_CONFIG and DEBUG exist
+    if (typeof THEME_CONFIG === 'undefined' || !THEME_CONFIG.DEBUG) {
+        return;
+    }
+    
+    if (!THEME_CONFIG.DEBUG.enabled) return;
+    
+    // Check log level
+    const levels = ['minimal', 'basic', 'verbose'];
+    const currentLevel = levels.indexOf(THEME_CONFIG.DEBUG.level);
+    const messageLevel = levels.indexOf(level);
+    
+    if (messageLevel > currentLevel) return;
+    
+    if (data) {
+        console.log(message, data);
+    } else {
+        console.log(message);
+    }
+}
+
 /**
  * Application State Manager
  * Centralizes theme state and provides clean APIs for state management
@@ -303,8 +339,8 @@ class ApplicationState {
  * Handles the sequential initialization of theme components
  */
 class InitializationManager {
-    constructor(appState) {
-        this.appState = appState;
+    constructor(themeAppState) {
+        this.themeAppState = themeAppState;
         this.initializationQueue = [];
         this.initialized = new Set();
         this.dependencies = new Map();
@@ -352,7 +388,7 @@ class InitializationManager {
         this.initialized.add(task.name);
         
         if (result && typeof result === 'object') {
-            this.appState.registerComponent(task.name, result);
+            this.themeAppState.registerComponent(task.name, result);
         }
     }
 
@@ -391,27 +427,6 @@ class InitializationManager {
         }
 
         return sorted;
-    }
-}
-
-// Create global application state instance
-const appState = new ApplicationState();
-
-// Debug logging function
-function debugLog(message, data = null, level = 'basic') {
-    if (!THEME_CONFIG.DEBUG.enabled) return;
-    
-    // Check log level
-    const levels = ['minimal', 'basic', 'verbose'];
-    const currentLevel = levels.indexOf(THEME_CONFIG.DEBUG.level);
-    const messageLevel = levels.indexOf(level);
-    
-    if (messageLevel > currentLevel) return;
-    
-    if (data) {
-        console.log(message, data);
-    } else {
-        console.log(message);
     }
 }
 
@@ -623,21 +638,20 @@ function initScrollLockManagement() {
     });
 }
 
-// Initialize scroll lock management immediately
-initScrollLockManagement();
+// Create global application state instance after class definitions
+const themeAppState = new ApplicationState();
 
-(function() {
-    /**
-     * Enhanced Global Theme API
-     * Provides a clean, documented interface for theme functionality
-     */
-    window.VTuberTheme = Object.freeze({
+/**
+ * Enhanced Global Theme API
+ * Provides a clean, documented interface for theme functionality
+ */
+window.VTuberTheme = Object.freeze({
         // Basic information
         version: THEME_CONFIG.VERSION,
         
         // State accessors
         get initialized() {
-            return appState.isInitialized;
+            return themeAppState.isInitialized;
         },
         
         get config() {
@@ -646,9 +660,9 @@ initScrollLockManagement();
         
         get state() {
             return {
-                initialized: appState.isInitialized,
-                components: Array.from(appState.components.keys()),
-                loadingActive: appState.loadingManager?.isLoading || false
+                initialized: themeAppState.isInitialized,
+                components: Array.from(themeAppState.components.keys()),
+                loadingActive: themeAppState.loadingManager?.isLoading || false
             };
         },
         
@@ -673,15 +687,15 @@ initScrollLockManagement();
         // Loading management
         loading: {
             show() {
-                appState.loadingManager?.show();
+                themeAppState.loadingManager?.show();
             },
             
             hide() {
-                appState.loadingManager?.hide();
+                themeAppState.loadingManager?.hide();
             },
             
             get isActive() {
-                return appState.loadingManager?.isLoading || false;
+                return themeAppState.loadingManager?.isLoading || false;
             }
         },
         
@@ -729,7 +743,7 @@ initScrollLockManagement();
         
         // Component access
         getComponent(name) {
-            return appState.getComponent(name);
+            return themeAppState.getComponent(name);
         },
         
         // Debug utilities
@@ -744,8 +758,8 @@ initScrollLockManagement();
             
             getState() {
                 return {
-                    appState: appState.isReady(),
-                    components: Array.from(appState.components.keys()),
+                    appState: themeAppState.isReady(),
+                    components: Array.from(themeAppState.components.keys()),
                     config: THEME_CONFIG
                 };
             }
@@ -1428,16 +1442,16 @@ initScrollLockManagement();
      * Uses dependency injection and modular initialization
      */
     async function initializeTheme() {
-        if (appState.isInitialized) {
+        if (themeAppState.isInitialized) {
             console.warn('Theme already initialized');
             return;
         }
         
         // Initialize application state
-        appState.initialize();
+        themeAppState.initialize();
         
         // Create initialization manager
-        const initManager = new InitializationManager(appState);
+        const initManager = new InitializationManager(themeAppState);
         
         // Register initialization tasks with dependencies
         initManager.addTask('themeSystem', initThemeSystem, []);
@@ -1457,8 +1471,7 @@ initScrollLockManagement();
         // Execute initialization
         await initManager.execute();
         
-        // Mark as complete
-        window.VTuberTheme.initialized = true;
+        // Note: Initialization status is managed through getter that references themeAppState.isInitialized
         
         // Debug information
         debugLog('%c🎮 Welcome to IbaraDevilRoze\'s Landing Page! 🎮', 
@@ -1596,13 +1609,7 @@ initScrollLockManagement();
     }
 
     // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeTheme);
-    } else {
-        initializeTheme();
-    }
-
-})();
+    DOMUtils.onReady(initializeTheme);
 
 // Phase 4: Refactored ImageLoadingManager with encapsulation, naming, error handling, and performance improvements
 class ThemeImageLoader {
@@ -1615,11 +1622,7 @@ class ThemeImageLoader {
     }
 
     #init() {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.#setup());
-        } else {
-            this.#setup();
-        }
+        DOMUtils.onReady(() => this.#setup());
     }
 
     #setup() {
@@ -1697,10 +1700,6 @@ class ThemeImageLoader {
 
 // Phase 4: Use new ThemeImageLoader
 let themeImageLoader;
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        themeImageLoader = new ThemeImageLoader();
-    });
-} else {
+DOMUtils.onReady(() => {
     themeImageLoader = new ThemeImageLoader();
-}
+});
