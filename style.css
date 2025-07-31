@@ -691,6 +691,15 @@ body[data-theme="dark"] .sidebar-menu-link:hover {
   border: 1px solid var(--border-color);
   box-shadow: 0 10px 30px var(--shadow-light);
   min-width: 320px; /* 最小幅を設定 */
+  
+  /* スクロールバーを非表示にする */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* スクロールバーを完全に隠す（WebKit系ブラウザ対応） */
+.achievements-table-container::-webkit-scrollbar {
+  display: none;
 }
 
 .achievements-table {
@@ -732,12 +741,12 @@ body[data-theme="dark"] .sidebar-menu-link:hover {
 
 .achievement-row {
   border-bottom: 1px solid var(--border-color);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease;
 }
 
 .achievement-row:hover {
   background-color: var(--bg-secondary);
-  transform: scale(1.01);
+  /* transformを削除してスクロールバーの表示を防ぐ */
 }
 
 .achievement-row:last-child {
@@ -897,6 +906,23 @@ body[data-theme="dark"] .sidebar-menu-link:hover {
   .achievement-date {
     font-size: 0.75rem;
     line-height: 1.2;
+  }
+}
+
+/* セクション間のスペース調整 */
+#business-achievements {
+  margin-top: 3rem; /* 個人実績と案件実績の間にスペースを追加 */
+}
+
+@media (max-width: 768px) {
+  #business-achievements {
+    margin-top: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  #business-achievements {
+    margin-top: 2rem;
   }
 }
 

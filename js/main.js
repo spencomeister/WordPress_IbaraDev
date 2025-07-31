@@ -224,6 +224,55 @@ class LoadingManager {
 // Initialize loading manager
 const loadingManager = new LoadingManager();
 
+/**
+ * Initialize scroll lock management for browser navigation
+ */
+function initScrollLockManagement() {
+    // Reset scroll lock on page load/refresh
+    ScrollLockManager.reset();
+    
+    // Handle browser back/forward navigation
+    window.addEventListener('pageshow', function(event) {
+        // This event fires when page is loaded from browser cache (back/forward)
+        if (event.persisted) {
+            debugLog('🔄 Page loaded from cache, resetting scroll lock', null, 'basic');
+            ScrollLockManager.reset();
+        }
+    });
+    
+    // Handle popstate (browser back/forward buttons)
+    window.addEventListener('popstate', function(event) {
+        debugLog('🔄 Browser navigation detected, resetting scroll lock', null, 'basic');
+        ScrollLockManager.reset();
+    });
+    
+    // Additional safeguard: reset scroll lock when focus returns to window
+    window.addEventListener('focus', function() {
+        // Small delay to ensure any other scroll lock operations complete first
+        setTimeout(() => {
+            if (ScrollLockManager.getCount() > 0) {
+                debugLog('🔄 Window focus detected with active scroll lock, resetting', null, 'basic');
+                ScrollLockManager.reset();
+            }
+        }, 100);
+    });
+    
+    // Reset scroll lock on visibility change (when tab becomes visible again)
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            setTimeout(() => {
+                if (ScrollLockManager.getCount() > 0) {
+                    debugLog('🔄 Tab became visible with active scroll lock, resetting', null, 'basic');
+                    ScrollLockManager.reset();
+                }
+            }, 100);
+        }
+    });
+}
+
+// Initialize scroll lock management immediately
+initScrollLockManagement();
+
 (function() {
     // Global theme utilities
     window.VTuberTheme = {
