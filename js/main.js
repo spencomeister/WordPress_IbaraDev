@@ -1656,7 +1656,7 @@ window.VTuberTheme = Object.freeze({
         }, 'basic');
         
         // Monitor console outputs for challenge patterns
-        const logPattern = /v1[?:][\w=&-]*.*[?:]?[\d\w-]*.*(?:Request for the Private Access Token challenge|lang=auto)/i;
+        const logPattern = /(?:v1[?:]|challenges\.cloudflare\.com.*?v1[?:])[\w=&-]*.*[?:]?[\d\w-]*.*(?:Request for the Private Access Token challenge|lang=auto)/i;
         
         // Intercept console.log
         console.log = function(...args) {
@@ -1685,6 +1685,8 @@ window.VTuberTheme = Object.freeze({
                         handlePredictedFailure(turnstileWidget, analysisResult);
                     } else if (analysisResult.prediction === 'likely_success') {
                         handlePredictedSuccess(turnstileWidget, analysisResult);
+                    } else if (analysisResult.prediction === 'uncertain') {
+                        handleUncertainPattern(turnstileWidget, analysisResult);
                     }
                 }
             }
@@ -1734,11 +1736,24 @@ window.VTuberTheme = Object.freeze({
             hasParameters: false,
             hasRayId: false,
             hasLangAuto: false,
+            isShortForm: false,
+            isFullUrl: false,
+            hasOrchestrateApi: false,
             pattern: 'unknown',
             prediction: 'unknown',
             confidence: 0,
-            responseText: responseText.substring(0, 200) // Limit length
+            responseText: responseText.substring(0, 300) // Increased limit for full URLs
         };
+        
+        // Check for URL format indicators
+        if (responseText.includes('challenges.cloudflare.com')) {
+            analysis.isFullUrl = true;
+            if (responseText.includes('/orchestrate/chl_api/')) {
+                analysis.hasOrchestrateApi = true;
+            }
+        } else if (responseText.includes('v1?') || responseText.includes('v1:')) {
+            analysis.isShortForm = true;
+        }
         
         // Check for success indicators
         if (responseText.includes('ray=') && responseText.includes('&')) {
@@ -1750,20 +1765,36 @@ window.VTuberTheme = Object.freeze({
             analysis.hasLangAuto = true;
         }
         
-        // Determine pattern
-        if (analysis.hasRayId && analysis.hasLangAuto) {
-            analysis.pattern = 'success_pattern';
+        // Enhanced pattern determination with new URL patterns
+        if (analysis.isShortForm && analysis.hasRayId && analysis.hasLangAuto) {
+            // v1?ray=...&lang=auto (short form with parameters)
+            analysis.pattern = 'success_pattern_short';
             analysis.prediction = 'likely_success';
-            analysis.confidence = 0.9;
+            analysis.confidence = 0.95; // High confidence for short form
+        } else if (analysis.isFullUrl && analysis.hasOrchestrateApi && analysis.hasRayId && analysis.hasLangAuto) {
+            // challenges.cloudflare.com/.../orchestrate/chl_api/v1?ray=...&lang=auto (complex orchestration)
+            analysis.pattern = 'failure_pattern_orchestrate';
+            analysis.prediction = 'likely_failure';
+            analysis.confidence = 0.9; // High confidence for orchestrate API failures
+        } else if (analysis.isFullUrl && analysis.hasRayId && analysis.hasLangAuto) {
+            // challenges.cloudflare.com/.../v1?ray=...&lang=auto (full URL but not orchestrate)
+            analysis.pattern = 'mixed_pattern_full_url';
+            analysis.prediction = 'uncertain';
+            analysis.confidence = 0.6; // Medium confidence - could go either way
         } else if (responseText.includes('v1:1') && !analysis.hasParameters) {
-            analysis.pattern = 'failure_pattern';
+            // v1:1 (original failure pattern)
+            analysis.pattern = 'failure_pattern_simple';
             analysis.prediction = 'likely_failure';
             analysis.confidence = 0.85;
         } else if (responseText.includes('Request for the Private Access Token challenge')) {
-            if (analysis.hasParameters) {
-                analysis.pattern = 'challenge_with_params';
+            if (analysis.hasParameters && analysis.isShortForm) {
+                analysis.pattern = 'challenge_with_params_short';
                 analysis.prediction = 'likely_success';
-                analysis.confidence = 0.7;
+                analysis.confidence = 0.8;
+            } else if (analysis.hasParameters && analysis.isFullUrl) {
+                analysis.pattern = 'challenge_with_params_full';
+                analysis.prediction = 'likely_failure';
+                analysis.confidence = 0.75;
             } else {
                 analysis.pattern = 'challenge_without_params';
                 analysis.prediction = 'likely_failure';
@@ -1773,9 +1804,9 @@ window.VTuberTheme = Object.freeze({
         
         // Time factor (early responses are typically better)
         if (elapsed < 2000) {
-            analysis.confidence = Math.min(analysis.confidence + 0.1, 1.0);
+            analysis.confidence = Math.min(analysis.confidence + 0.05, 1.0);
         } else if (elapsed > 5000) {
-            analysis.confidence = Math.max(analysis.confidence - 0.1, 0.1);
+            analysis.confidence = Math.max(analysis.confidence - 0.05, 0.1);
         }
         
         return analysis;
@@ -1788,7 +1819,9 @@ window.VTuberTheme = Object.freeze({
         debugLog('⚠️ Predicted Turnstile failure detected', {
             pattern: analysis.pattern,
             confidence: analysis.confidence,
-            action: 'early_intervention'
+            action: 'early_intervention',
+            urlFormat: analysis.isFullUrl ? 'full_url' : 'short_form',
+            orchestrateApi: analysis.hasOrchestrateApi || false
         }, 'basic');
         
         // Mark for early intervention but don't enable button (maintain security)
@@ -1796,16 +1829,28 @@ window.VTuberTheme = Object.freeze({
         turnstileWidget.dataset.failureReason = analysis.pattern;
         turnstileWidget.dataset.failureConfidence = analysis.confidence;
         
+        // Enhanced UI message based on failure type
+        let warningMessage = '⚠️ 認証で問題が検出されました';
+        let detailMessage = 'Cloudflareの認証プロセスで問題が発生している可能性があります。';
+        
+        if (analysis.hasOrchestrateApi) {
+            warningMessage = '⚠️ 複雑な認証プロセスが検出されました';
+            detailMessage = 'より高度なセキュリティ確認が必要になっています。完了までしばらくお待ちください。';
+        }
+        
         // Update UI to reflect early problem detection
         turnstileWidget.style.border = '2px solid #f59e0b';
         turnstileWidget.style.borderRadius = '8px';
         turnstileWidget.innerHTML = `
             <div style="padding: 12px; text-align: center; color: #f59e0b; font-size: 12px; line-height: 1.4;">
-                <div style="font-weight: bold; margin-bottom: 4px;">⚠️ 認証で問題が検出されました</div>
-                <div style="opacity: 0.8;">Cloudflareの認証プロセスで問題が発生している可能性があります。</div>
+                <div style="font-weight: bold; margin-bottom: 4px;">${warningMessage}</div>
+                <div style="opacity: 0.8;">${detailMessage}</div>
                 <div style="margin-top: 4px; font-style: italic;">ページの更新をお試しください。</div>
             </div>
         `;
+        
+        // Adjust timeout based on failure type
+        const timeoutDuration = analysis.hasOrchestrateApi ? 30000 : 20000; // 30s for orchestrate, 20s for others
         
         // Reduce timeout periods since failure is predicted
         const infoTimeout = turnstileWidget.dataset.infoTimeout;
@@ -1817,30 +1862,42 @@ window.VTuberTheme = Object.freeze({
         if (extendedTimeout) clearTimeout(parseInt(extendedTimeout));
         if (securityTimeout) clearTimeout(parseInt(securityTimeout));
         
-        // Shorter timeout for predicted failures (20 seconds instead of 60)
+        // Adjusted timeout for predicted failures
         const shorterTimeout = setTimeout(() => {
             if (turnstileWidget.dataset.verified !== 'true') {
                 debugLog('🚨 Predicted failure confirmed: Early timeout', {
                     originalPrediction: analysis.pattern,
                     confidence: analysis.confidence,
+                    timeoutDuration: `${timeoutDuration}ms`,
+                    failureType: analysis.hasOrchestrateApi ? 'orchestrate_timeout' : 'standard_timeout',
                     earlyTimeout: true
                 }, 'basic');
                 
                 turnstileWidget.style.border = '2px solid #ef4444';
+                
+                let errorTitle = '🚨 認証エラーが確認されました';
+                let errorDetail = '予測された認証問題が確認されました。';
+                
+                if (analysis.hasOrchestrateApi) {
+                    errorTitle = '🚨 高度なセキュリティ認証でエラー';
+                    errorDetail = 'Orchestrate APIによる複雑な認証プロセスが失敗しました。';
+                }
+                
                 turnstileWidget.innerHTML = `
                     <div style="padding: 12px; text-align: center; color: #ef4444; font-size: 12px; line-height: 1.4;">
-                        <div style="font-weight: bold; margin-bottom: 6px;">🚨 認証エラーが確認されました</div>
-                        <div style="opacity: 0.9; margin-bottom: 6px;">予測された認証問題が確認されました。</div>
+                        <div style="font-weight: bold; margin-bottom: 6px;">${errorTitle}</div>
+                        <div style="opacity: 0.9; margin-bottom: 6px;">${errorDetail}</div>
                         <div style="background: rgba(239, 68, 68, 0.1); padding: 6px; border-radius: 4px; margin-top: 6px;">
                             <strong>推奨対応:</strong><br>
                             • ページを更新してお試しください<br>
                             • 別のブラウザでお試しください<br>
+                            ${analysis.hasOrchestrateApi ? '• VPN接続を確認してください<br>' : ''}
                             • しばらく時間をおいてお試しください
                         </div>
                     </div>
                 `;
             }
-        }, 20000);
+        }, timeoutDuration);
         
         turnstileWidget.dataset.shorterTimeout = shorterTimeout;
     }
@@ -1852,7 +1909,8 @@ window.VTuberTheme = Object.freeze({
         debugLog('✅ Predicted Turnstile success detected', {
             pattern: analysis.pattern,
             confidence: analysis.confidence,
-            action: 'optimistic_monitoring'
+            action: 'optimistic_monitoring',
+            urlFormat: analysis.isShortForm ? 'short_form' : 'full_url'
         }, 'basic');
         
         // Mark for success tracking
@@ -1860,15 +1918,60 @@ window.VTuberTheme = Object.freeze({
         turnstileWidget.dataset.successPattern = analysis.pattern;
         turnstileWidget.dataset.successConfidence = analysis.confidence;
         
+        // Enhanced optimistic message based on pattern confidence
+        let successMessage = '🔄 認証処理が順調に進行中';
+        let detailMessage = 'Cloudflareの認証が正常に処理されています。まもなく完了予定です。';
+        
+        if (analysis.confidence >= 0.9) {
+            successMessage = '🚀 高速認証プロセスを検出';
+            detailMessage = '最適化された認証パスが検出されました。まもなく完了します。';
+        }
+        
         // Show optimistic message
         turnstileWidget.style.border = '2px solid #10b981';
         turnstileWidget.style.borderRadius = '8px';
         turnstileWidget.innerHTML = `
             <div style="padding: 12px; text-align: center; color: #10b981; font-size: 12px; line-height: 1.4;">
-                <div style="font-weight: bold; margin-bottom: 4px;">🔄 認証処理が順調に進行中</div>
-                <div style="opacity: 0.8;">Cloudflareの認証が正常に処理されています。まもなく完了予定です。</div>
+                <div style="font-weight: bold; margin-bottom: 4px;">${successMessage}</div>
+                <div style="opacity: 0.8;">${detailMessage}</div>
+                <div style="margin-top: 4px; font-size: 10px; opacity: 0.7;">信頼度: ${Math.round(analysis.confidence * 100)}%</div>
             </div>
         `;
+    }
+    
+    /**
+     * Handle uncertain pattern case
+     */
+    function handleUncertainPattern(turnstileWidget, analysis) {
+        debugLog('🤔 Uncertain Turnstile pattern detected', {
+            pattern: analysis.pattern,
+            confidence: analysis.confidence,
+            action: 'cautious_monitoring',
+            urlFormat: analysis.isFullUrl ? 'full_url' : 'short_form'
+        }, 'basic');
+        
+        // Mark for uncertain tracking
+        turnstileWidget.dataset.predictedUncertain = 'true';
+        turnstileWidget.dataset.uncertainPattern = analysis.pattern;
+        turnstileWidget.dataset.uncertainConfidence = analysis.confidence;
+        
+        // Show neutral monitoring message
+        turnstileWidget.style.border = '2px solid #6b7280';
+        turnstileWidget.style.borderRadius = '8px';
+        turnstileWidget.innerHTML = `
+            <div style="padding: 12px; text-align: center; color: #6b7280; font-size: 12px; line-height: 1.4;">
+                <div style="font-weight: bold; margin-bottom: 4px;">🔍 認証パターンを分析中</div>
+                <div style="opacity: 0.8;">複雑な認証プロセスが検出されました。結果は変動する可能性があります。</div>
+                <div style="margin-top: 4px; font-size: 10px; opacity: 0.7;">不確実性: ${Math.round((1 - analysis.confidence) * 100)}%</div>
+            </div>
+        `;
+        
+        // Use standard timeouts for uncertain patterns (no early intervention)
+        debugLog('🕐 Using standard timeouts for uncertain pattern', {
+            pattern: analysis.pattern,
+            confidence: analysis.confidence,
+            intervention: 'none'
+        }, 'basic');
     }
     
     /**
@@ -2018,6 +2121,8 @@ window.VTuberTheme = Object.freeze({
                 const predictionPattern = turnstileWidget.dataset.successPattern || 'none';
                 const predictionConfidence = parseFloat(turnstileWidget.dataset.successConfidence) || 0;
                 const failurePredicted = turnstileWidget.dataset.predictedFailure === 'true';
+                const uncertainPredicted = turnstileWidget.dataset.predictedUncertain === 'true';
+                const uncertainPattern = turnstileWidget.dataset.uncertainPattern || 'none';
                 
                 const timingInfo = {
                     successTimestamp: successTime,
@@ -2029,9 +2134,13 @@ window.VTuberTheme = Object.freeze({
                     predictionAccuracy: {
                         successPredicted: wasPredicted,
                         failurePredicted: failurePredicted,
+                        uncertainPredicted: uncertainPredicted,
                         pattern: predictionPattern,
+                        uncertainPattern: uncertainPattern,
                         confidence: predictionConfidence,
-                        correlationResult: wasPredicted ? 'prediction_confirmed' : failurePredicted ? 'prediction_incorrect' : 'no_prediction'
+                        correlationResult: wasPredicted ? 'prediction_confirmed' : 
+                                         failurePredicted ? 'prediction_incorrect' : 
+                                         uncertainPredicted ? 'uncertain_resolved_success' : 'no_prediction'
                     }
                 };
                 
@@ -2057,6 +2166,8 @@ window.VTuberTheme = Object.freeze({
                         successMessage += '<div style="font-size: 10px; opacity: 0.7; margin-top: 2px;">(予測システムで事前検出済み)</div>';
                     } else if (failurePredicted) {
                         successMessage += '<div style="font-size: 10px; opacity: 0.7; margin-top: 2px;">(予測システムの予想に反して成功)</div>';
+                    } else if (uncertainPredicted) {
+                        successMessage += '<div style="font-size: 10px; opacity: 0.7; margin-top: 2px;">(不確実パターンから成功に転換)</div>';
                     }
                     
                     successDiv.innerHTML = successMessage;
@@ -2120,6 +2231,8 @@ window.VTuberTheme = Object.freeze({
                 const predictedReason = turnstileWidget.dataset.failureReason || 'none';
                 const predictionConfidence = parseFloat(turnstileWidget.dataset.failureConfidence) || 0;
                 const successPredicted = turnstileWidget.dataset.predictedSuccess === 'true';
+                const uncertainPredicted = turnstileWidget.dataset.predictedUncertain === 'true';
+                const uncertainPattern = turnstileWidget.dataset.uncertainPattern || 'none';
                 
                 const timingInfo = {
                     errorTimestamp: errorTime,
@@ -2130,9 +2243,13 @@ window.VTuberTheme = Object.freeze({
                     predictionAccuracy: {
                         failurePredicted: failurePredicted,
                         successPredicted: successPredicted,
+                        uncertainPredicted: uncertainPredicted,
                         predictedReason: predictedReason,
+                        uncertainPattern: uncertainPattern,
                         confidence: predictionConfidence,
-                        correlationResult: failurePredicted ? 'prediction_confirmed' : successPredicted ? 'prediction_incorrect' : 'no_prediction'
+                        correlationResult: failurePredicted ? 'prediction_confirmed' : 
+                                         successPredicted ? 'prediction_incorrect' : 
+                                         uncertainPredicted ? 'uncertain_resolved_failure' : 'no_prediction'
                     }
                 };
                 
@@ -2184,6 +2301,8 @@ window.VTuberTheme = Object.freeze({
                         errorMessage += `<div style="font-size: 10px; opacity: 0.7; margin-top: 4px; font-style: italic;">(予測システムで事前検出済み)</div>`;
                     } else if (successPredicted) {
                         errorMessage += `<div style="font-size: 10px; opacity: 0.7; margin-top: 4px; font-style: italic;">(予測システムの予想に反してエラー)</div>`;
+                    } else if (uncertainPredicted) {
+                        errorMessage += `<div style="font-size: 10px; opacity: 0.7; margin-top: 4px; font-style: italic;">(不確実パターンからエラーに転換)</div>`;
                     }
                     
                     errorMessage += `</div>`;
