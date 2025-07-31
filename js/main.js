@@ -1199,6 +1199,9 @@ window.VTuberTheme = Object.freeze({
         
         if (!contactForm) return;
         
+        // Check for contact status in URL and scroll to contact section
+        checkContactStatus();
+        
         contactForm.addEventListener('submit', function(e) {
             const submitBtn = this.querySelector('button[type="submit"]');
             if (!submitBtn) return;
@@ -1236,6 +1239,38 @@ window.VTuberTheme = Object.freeze({
                 DOMUtils.toggleClass(input.parentNode, THEME_CONFIG.SELECTORS.FOCUSED_CLASS, true);
             }
         });
+    }
+
+    /**
+     * Check contact status from URL parameters and scroll to contact section
+     */
+    function checkContactStatus() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const contactStatus = urlParams.get('contact');
+        
+        if (contactStatus) {
+            // Delay to ensure page is fully loaded
+            DOMUtils.delay(() => {
+                const contactSection = document.getElementById('contact');
+                if (contactSection) {
+                    debugLog('📧 Contact form status detected, scrolling to contact section...', null, 'basic');
+                    
+                    // Smooth scroll to contact section
+                    contactSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    
+                    // Focus on the first input field for better UX
+                    DOMUtils.delay(() => {
+                        const firstInput = contactSection.querySelector('input[type="text"], input[type="email"]');
+                        if (firstInput) {
+                            firstInput.focus();
+                        }
+                    }, 800); // Wait for scroll animation to complete
+                }
+            }, 500); // Initial delay for page load
+        }
     }
 
     /**

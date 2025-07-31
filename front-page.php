@@ -393,6 +393,13 @@ get_header(); ?>
                                   aria-required="true"
                                   placeholder="お問い合わせ内容をご記入ください..."></textarea>
                     </div>
+                    <?php $turnstile_enabled = get_theme_mod('turnstile_enabled', false); $turnstile_site_key = get_theme_mod('turnstile_site_key', ''); ?>
+                    <?php if ($turnstile_enabled && !empty($turnstile_site_key)) : ?>
+                    <div class="form-group">
+                        <div class="cf-turnstile" data-sitekey="<?php echo esc_attr($turnstile_site_key); ?>"></div>
+                    </div>
+                    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+                    <?php endif; ?>
                     
                     <button type="submit" 
                             name="submit_contact" 

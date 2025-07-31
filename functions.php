@@ -264,6 +264,53 @@ function handle_contact_form_submission() {
         exit;
     }
     
+    // Cloudflare Turnstile チェック
+    $turnstile_enabled = get_theme_mod('turnstile_enabled', false);
+    if ($turnstile_enabled) {
+        $turnstile_response = isset($_POST['cf-turnstile-response']) ? sanitize_text_field($_POST['cf-turnstile-response']) : '';
+        $turnstile_secret = get_theme_mod('turnstile_secret_key', '');
+        $turnstile_valid = false;
+        
+        if (!empty($turnstile_response) && !empty($turnstile_secret)) {
+            $verify = wp_remote_post('https://challenges.cloudflare.com/turnstile/v0/siteverify', array(
+                'body' => array(
+                    'secret' => $turnstile_secret,
+                    'response' => $turnstile_response,
+                    'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+                ),
+                'timeout' => 10,
+            ));
+            
+            if (!is_wp_error($verify)) {
+                $result = json_decode(wp_remote_retrieve_body($verify), true);
+                $turnstile_valid = isset($result['success']) && $result['success'] === true;
+                
+                if (get_theme_mod('debug_log_enabled', false)) {
+                    vtuber_log_contact_info('Turnstile検証', array(
+                        'result' => $result, 
+                        'response' => $turnstile_response,
+                        'valid' => $turnstile_valid
+                    ));
+                }
+            } else {
+                if (get_theme_mod('debug_log_enabled', false)) {
+                    vtuber_log_contact_error('Turnstile検証リクエスト失敗', array(
+                        'error' => $verify->get_error_message()
+                    ));
+                }
+            }
+        }
+        
+        if (!$turnstile_valid) {
+            vtuber_log_contact_error('Turnstile検証失敗', array(
+                'response' => $turnstile_response,
+                'secret_configured' => !empty($turnstile_secret)
+            ));
+            wp_redirect(home_url('/?contact=error&reason=turnstile'));
+            exit;
+        }
+    }
+    
     // Get recipient email from customizer or use admin email as fallback
     $to = get_theme_mod('contact_recipient_email', get_option('admin_email'));
     
@@ -863,6 +910,51 @@ function vtuber_customize_register($wp_customize) {
         'type'        => 'checkbox',
         'priority'    => 30,
     ));
+    
+    // Cloudflare Turnstile セクション
+    $wp_customize->add_section('turnstile_settings', array(
+        'title' => __('Cloudflare Turnstile', 'vtuber-theme'),
+        'description' => __('お問い合わせフォームのスパム対策にCloudflare Turnstileを利用します。', 'vtuber-theme'),
+        'priority' => 145,
+    ));
+
+    // Turnstile 有効/無効
+    $wp_customize->add_setting('turnstile_enabled', array(
+        'default' => false,
+        'sanitize_callback' => 'wp_validate_boolean',
+        'transport' => 'refresh',
+    ));
+    $wp_customize->add_control('turnstile_enabled', array(
+        'label' => __('Turnstileを有効にする', 'vtuber-theme'),
+        'section' => 'turnstile_settings',
+        'type' => 'checkbox',
+    ));
+
+    // Turnstile サイトキー
+    $wp_customize->add_setting('turnstile_site_key', array(
+        'default' => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport' => 'refresh',
+    ));
+    $wp_customize->add_control('turnstile_site_key', array(
+        'label' => __('Turnstile サイトキー', 'vtuber-theme'),
+        'section' => 'turnstile_settings',
+        'type' => 'text',
+        'description' => __('Cloudflareダッシュボードで取得したサイトキーを入力してください。', 'vtuber-theme'),
+    ));
+
+    // Turnstile シークレットキー
+    $wp_customize->add_setting('turnstile_secret_key', array(
+        'default' => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport' => 'refresh',
+    ));
+    $wp_customize->add_control('turnstile_secret_key', array(
+        'label' => __('Turnstile シークレットキー', 'vtuber-theme'),
+        'section' => 'turnstile_settings',
+        'type' => 'text',
+        'description' => __('Cloudflareダッシュボードで取得したシークレットキーを入力してください。', 'vtuber-theme'),
+    ));
 }
 
 // Register the customizer function
@@ -1344,6 +1436,9 @@ function display_contact_messages() {
                         echo '<br><small>※ メール送信の信頼性向上のため、WP Mail SMTPプラグインのご利用を推奨いたします。</small>';
                     }
                     echo '<br><small>問題が続く場合は、しばらく時間をおいてから再度お試しください。</small>';
+                    break;
+                case 'turnstile':
+                    echo 'スパム防止認証（Cloudflare Turnstile）が正しく完了しませんでした。ページを再読み込みして再度お試しください。';
                     break;
                 default:
                     echo '申し訳ございません。メッセージの送信でエラーが発生しました。もう一度お試しください。';
