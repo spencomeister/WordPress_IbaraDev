@@ -1199,6 +1199,18 @@ window.VTuberTheme = Object.freeze({
         
         if (!contactForm) return;
         
+        // Log page and DOM timing for correlation with Turnstile behavior
+        const pageTimingInfo = {
+            performanceOrigin: performance.timeOrigin,
+            domContentLoaded: performance.getEntriesByType('navigation')[0]?.domContentLoadedEventEnd || 'unknown',
+            loadComplete: performance.getEntriesByType('navigation')[0]?.loadEventEnd || 'unknown',
+            currentTime: Date.now(),
+            domReady: document.readyState,
+            resourcesLoaded: document.readyState === 'complete'
+        };
+        
+        debugLog('📄 Page timing context for Turnstile correlation', pageTimingInfo, 'basic');
+        
         // Check for contact status in URL and scroll to contact section
         checkContactStatus();
         
@@ -1350,45 +1362,98 @@ window.VTuberTheme = Object.freeze({
         const turnstileWidget = contactForm.querySelector('.cf-turnstile');
         const submitBtn = contactForm.querySelector('button[type="submit"]');
         
+        // Comprehensive timing tracking
+        const timingData = {
+            initStart: Date.now(),
+            domReady: document.readyState,
+            pageLoadState: document.readyState === 'complete' ? 'complete' : 'loading'
+        };
+        
+        debugLog('🕐 Turnstile initialization timing', {
+            timestamp: new Date().toISOString(),
+            timingData,
+            domReadyState: document.readyState,
+            windowLoaded: document.readyState === 'complete',
+            documentTime: Date.now() - performance.timeOrigin
+        }, 'basic');
+        
         // Only initialize if Turnstile widget exists
         if (!turnstileWidget || !submitBtn) {
-            debugLog('🔒 Turnstile widget not found - button remains enabled', null, 'basic');
+            debugLog('🔒 Turnstile widget not found - button remains enabled', {
+                hasWidget: !!turnstileWidget,
+                hasSubmitBtn: !!submitBtn,
+                timing: timingData
+            }, 'basic');
             return;
         }
         
         // Check if already initialized to prevent double initialization
         if (turnstileWidget.dataset.initialized === 'true') {
-            debugLog('⚠️ Turnstile already initialized, skipping', null, 'basic');
+            debugLog('⚠️ Turnstile already initialized, skipping', {
+                timing: timingData,
+                existingTimestamp: turnstileWidget.dataset.initTimestamp
+            }, 'basic');
             return;
         }
         
-        // Mark as initialized
+        // Mark as initialized with timestamp
         turnstileWidget.dataset.initialized = 'true';
+        turnstileWidget.dataset.initTimestamp = Date.now();
         
         // Initially disable submit button if Turnstile is present
         submitBtn.disabled = true;
         AnimationUtils.setOpacity(submitBtn, THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY);
-        debugLog('🔒 Submit button disabled - waiting for Turnstile verification', null, 'basic');
+        debugLog('🔒 Submit button disabled - waiting for Turnstile verification', {
+            timing: timingData,
+            buttonDisabledAt: Date.now()
+        }, 'basic');
         
         // Set up callbacks immediately (don't wait for API)
         setupTurnstileCallbacks(contactForm, turnstileWidget, submitBtn);
         
-        // Monitor Turnstile API loading status
+        // Enhanced API monitoring with detailed timing
         let apiCheckInterval;
         let apiCheckCount = 0;
         const maxApiChecks = 30; // Check for 15 seconds (500ms * 30)
+        const apiMonitorStart = Date.now();
+        
+        debugLog('🔍 Starting Turnstile API monitoring', {
+            monitorStartTime: apiMonitorStart,
+            checkInterval: '500ms',
+            maxChecks: maxApiChecks,
+            expectedDuration: '15s'
+        }, 'basic');
         
         apiCheckInterval = setInterval(() => {
             apiCheckCount++;
+            const currentTime = Date.now();
+            const elapsedMs = currentTime - apiMonitorStart;
             
             // Check if Turnstile API is available
             if (typeof window.turnstile !== 'undefined') {
                 clearInterval(apiCheckInterval);
+                const loadTime = elapsedMs / 1000;
                 debugLog('🔒 Turnstile API loaded successfully', {
-                    timeToLoad: `${apiCheckCount * 0.5}s`,
-                    apiAvailable: true
+                    timeToLoad: `${loadTime}s`,
+                    apiAvailable: true,
+                    checksPerformed: apiCheckCount,
+                    loadTimestamp: currentTime,
+                    relativeToInit: `+${(currentTime - timingData.initStart) / 1000}s`,
+                    apiObject: typeof window.turnstile
                 }, 'basic');
+                
+                // Monitor widget rendering after API load
+                monitorWidgetRendering(turnstileWidget, currentTime);
                 return;
+            }
+            
+            // Periodic progress logging
+            if (apiCheckCount % 10 === 0) {
+                debugLog('🔍 Turnstile API check progress', {
+                    checksPerformed: apiCheckCount,
+                    elapsedTime: `${(elapsedMs / 1000).toFixed(1)}s`,
+                    stillWaiting: true
+                }, 'basic');
             }
             
             // Stop checking after max attempts
@@ -1396,8 +1461,10 @@ window.VTuberTheme = Object.freeze({
                 clearInterval(apiCheckInterval);
                 debugLog('⚠️ Turnstile API not loaded after 15s', {
                     checksPerformed: apiCheckCount,
+                    elapsedTime: `${(elapsedMs / 1000).toFixed(1)}s`,
                     apiAvailable: false,
-                    reason: 'API loading timeout or blocked'
+                    reason: 'API loading timeout or blocked',
+                    timing: timingData
                 }, 'basic');
             }
         }, 500); // Check every 500ms
@@ -1495,8 +1562,148 @@ window.VTuberTheme = Object.freeze({
             extendedWaitAt: '30s',
             maxWaitTime: '60s',
             securityEnforced: true,
-            noFallback: true
+            noFallback: true,
+            initializationComplete: Date.now(),
+            totalInitTime: `${(Date.now() - timingData.initStart) / 1000}s`
         }, 'basic');
+    }
+    
+    /**
+     * Monitor Turnstile widget rendering and interaction timing
+     */
+    function monitorWidgetRendering(turnstileWidget, apiLoadTime) {
+        const renderingStart = Date.now();
+        let renderCheckCount = 0;
+        const maxRenderChecks = 20; // 10 seconds of checking
+        
+        debugLog('🎨 Starting Turnstile widget rendering monitor', {
+            apiLoadedAt: apiLoadTime,
+            renderingStarted: renderingStart,
+            widgetElement: !!turnstileWidget,
+            initialContent: turnstileWidget.innerHTML.substring(0, 100)
+        }, 'basic');
+        
+        const renderCheckInterval = setInterval(() => {
+            renderCheckCount++;
+            const currentTime = Date.now();
+            const renderElapsed = currentTime - renderingStart;
+            const totalElapsed = currentTime - apiLoadTime;
+            
+            // Check for iframe (widget rendered)
+            const iframe = turnstileWidget.querySelector('iframe');
+            const hasVisibleContent = turnstileWidget.offsetHeight > 20; // Widget has some height
+            const challengeState = turnstileWidget.dataset.verified || 'unknown';
+            
+            if (iframe) {
+                clearInterval(renderCheckInterval);
+                debugLog('🎨 Turnstile widget rendered successfully', {
+                    renderTime: `${(renderElapsed / 1000).toFixed(1)}s`,
+                    totalFromApiLoad: `${(totalElapsed / 1000).toFixed(1)}s`,
+                    hasIframe: true,
+                    iframeSize: `${iframe.offsetWidth}x${iframe.offsetHeight}`,
+                    widgetHeight: turnstileWidget.offsetHeight,
+                    challengeState
+                }, 'basic');
+                
+                // Monitor for challenge completion
+                monitorChallengeCompletion(turnstileWidget, currentTime);
+                return;
+            }
+            
+            // Periodic progress for rendering
+            if (renderCheckCount % 5 === 0) {
+                debugLog('🎨 Widget rendering progress', {
+                    renderChecks: renderCheckCount,
+                    renderElapsed: `${(renderElapsed / 1000).toFixed(1)}s`,
+                    hasVisibleContent,
+                    challengeState,
+                    widgetContent: turnstileWidget.innerHTML.substring(0, 50) + '...'
+                }, 'basic');
+            }
+            
+            // Stop monitoring after timeout
+            if (renderCheckCount >= maxRenderChecks) {
+                clearInterval(renderCheckInterval);
+                debugLog('⚠️ Turnstile widget rendering timeout', {
+                    renderChecks: renderCheckCount,
+                    renderElapsed: `${(renderElapsed / 1000).toFixed(1)}s`,
+                    hasIframe: !!iframe,
+                    hasVisibleContent,
+                    finalContent: turnstileWidget.innerHTML
+                }, 'basic');
+            }
+        }, 500);
+    }
+    
+    /**
+     * Monitor challenge completion timing
+     */
+    function monitorChallengeCompletion(turnstileWidget, renderTime) {
+        const challengeStart = Date.now();
+        let challengeCheckCount = 0;
+        const maxChallengeChecks = 120; // 60 seconds of monitoring
+        
+        debugLog('🔐 Starting challenge completion monitor', {
+            challengeStarted: challengeStart,
+            widgetRenderedAt: renderTime,
+            initialState: turnstileWidget.dataset.verified || 'unknown'
+        }, 'basic');
+        
+        const challengeCheckInterval = setInterval(() => {
+            challengeCheckCount++;
+            const currentTime = Date.now();
+            const challengeElapsed = currentTime - challengeStart;
+            const totalElapsed = currentTime - renderTime;
+            
+            const challengeState = turnstileWidget.dataset.verified;
+            const hasToken = !!turnstileWidget.dataset.token;
+            
+            // Check if challenge completed
+            if (challengeState === 'true' && hasToken) {
+                clearInterval(challengeCheckInterval);
+                debugLog('✅ Challenge completed successfully', {
+                    challengeTime: `${(challengeElapsed / 1000).toFixed(1)}s`,
+                    totalFromRender: `${(totalElapsed / 1000).toFixed(1)}s`,
+                    challengeState,
+                    hasToken,
+                    tokenLength: turnstileWidget.dataset.token?.length || 0
+                }, 'basic');
+                return;
+            }
+            
+            // Detect errors or failures
+            if (challengeState === 'false') {
+                clearInterval(challengeCheckInterval);
+                debugLog('❌ Challenge failed or errored', {
+                    challengeTime: `${(challengeElapsed / 1000).toFixed(1)}s`,
+                    totalFromRender: `${(totalElapsed / 1000).toFixed(1)}s`,
+                    challengeState,
+                    hasToken
+                }, 'basic');
+                return;
+            }
+            
+            // Periodic progress for challenge
+            if (challengeCheckCount % 20 === 0) {
+                debugLog('🔐 Challenge progress', {
+                    challengeChecks: challengeCheckCount,
+                    challengeElapsed: `${(challengeElapsed / 1000).toFixed(1)}s`,
+                    challengeState: challengeState || 'waiting',
+                    hasToken
+                }, 'basic');
+            }
+            
+            // Challenge timeout
+            if (challengeCheckCount >= maxChallengeChecks) {
+                clearInterval(challengeCheckInterval);
+                debugLog('⏰ Challenge monitoring timeout', {
+                    challengeChecks: challengeCheckCount,
+                    challengeElapsed: `${(challengeElapsed / 1000).toFixed(1)}s`,
+                    finalState: challengeState || 'unknown',
+                    hasToken
+                }, 'basic');
+            }
+        }, 500);
     }
     
     /**
@@ -1530,7 +1737,21 @@ window.VTuberTheme = Object.freeze({
             window.turnstileProcessing = true;
             
             try {
-                debugLog('✅ SAFE Turnstile SUCCESS', { hasToken: !!token }, 'basic');
+                const successTime = Date.now();
+                const initTime = turnstileWidget.dataset.initTimestamp ? parseInt(turnstileWidget.dataset.initTimestamp) : null;
+                const timingInfo = {
+                    successTimestamp: successTime,
+                    successTime: new Date(successTime).toISOString(),
+                    totalTimeFromInit: initTime ? `${(successTime - initTime) / 1000}s` : 'unknown',
+                    tokenReceived: !!token,
+                    tokenType: typeof token,
+                    tokenLength: token?.length || 0
+                };
+                
+                debugLog('✅ SAFE Turnstile SUCCESS with detailed timing', {
+                    hasToken: !!token,
+                    timing: timingInfo
+                }, 'basic');
                 
                 if (token && typeof token === 'string' && turnstileWidget && submitBtn) {
                     turnstileWidget.dataset.verified = 'true';
@@ -1600,10 +1821,19 @@ window.VTuberTheme = Object.freeze({
             window.turnstileProcessing = true;
             
             try {
-                debugLog('❌ Turnstile ERROR - Security enforcement maintained', { 
+                const errorTime = Date.now();
+                const initTime = turnstileWidget.dataset.initTimestamp ? parseInt(turnstileWidget.dataset.initTimestamp) : null;
+                const timingInfo = {
+                    errorTimestamp: errorTime,
+                    errorTime: new Date(errorTime).toISOString(),
+                    totalTimeFromInit: initTime ? `${(errorTime - initTime) / 1000}s` : 'unknown',
                     errorCode,
-                    errorType: typeof errorCode,
-                    timestamp: new Date().toISOString(),
+                    errorType: typeof errorCode
+                };
+                
+                debugLog('❌ Turnstile ERROR with detailed timing', { 
+                    errorCode,
+                    timing: timingInfo,
                     securityMaintained: true,
                     formAccessible: false
                 }, 'basic');
@@ -1665,8 +1895,16 @@ window.VTuberTheme = Object.freeze({
             window.turnstileProcessing = true;
             
             try {
-                debugLog('⏰ Turnstile EXPIRED - Security maintained', {
-                    timestamp: new Date().toISOString(),
+                const expiredTime = Date.now();
+                const initTime = turnstileWidget.dataset.initTimestamp ? parseInt(turnstileWidget.dataset.initTimestamp) : null;
+                const timingInfo = {
+                    expiredTimestamp: expiredTime,
+                    expiredTime: new Date(expiredTime).toISOString(),
+                    totalTimeFromInit: initTime ? `${(expiredTime - initTime) / 1000}s` : 'unknown'
+                };
+                
+                debugLog('⏰ Turnstile EXPIRED with detailed timing', {
+                    timing: timingInfo,
                     securityMaintained: true
                 }, 'basic');
                 
