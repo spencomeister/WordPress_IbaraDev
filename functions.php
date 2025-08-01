@@ -305,7 +305,7 @@ function handle_contact_form_submission() {
     );
     
     // Log attempt if debug mode is enabled
-    if (get_theme_mod('debug_log_enabled', false)) {
+    if (get_theme_mod('debug_logging_enabled', false)) {
         vtuber_log_contact_info('メール送信を試行中', array(
             'to' => $to,
             'subject' => $email_subject,
@@ -437,7 +437,7 @@ function handle_ajax_contact_form_submission() {
     );
     
     // Log attempt if debug mode is enabled
-    if (get_theme_mod('debug_log_enabled', false)) {
+    if (get_theme_mod('debug_logging_enabled', false)) {
         vtuber_log_contact_info('AJAX メール送信を試行中', array(
             'to' => $to,
             'subject' => $email_subject,
@@ -557,7 +557,7 @@ add_action('wp_ajax_nopriv_contact_form_submission', 'handle_ajax_contact_form_s
 
 // Contact form logging functions
 function vtuber_log_contact_info($message, $data = array()) {
-    if (!get_theme_mod('debug_log_enabled', false)) {
+    if (!get_theme_mod('debug_logging_enabled', false)) {
         return;
     }
     
@@ -1741,7 +1741,7 @@ function vtuber_contact_form_test_page() {
             $test_email = get_option('admin_email');
         }
         
-        $subject = '[テスト送信] ' . get_bloginfo('name) . ' お問い合わせフォーム';
+        $subject = '[テスト送信] ' . get_bloginfo('name') . ' お問い合わせフォーム';
         $message = "これはお問い合わせフォームのテスト送信です。\n\n";
         $message .= "送信日時: " . current_time('Y-m-d H:i:s') . "\n";
         $message .= "WordPress管理者: " . wp_get_current_user()->display_name . "\n";
