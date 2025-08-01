@@ -1805,7 +1805,7 @@ function vtuber_contact_form_test_page() {
                 </tr>
                 <tr>
                     <th>デバッグログ</th>
-                    <td><?php echo get_theme_mod('debug_log_enabled', false) ? '✅ 有効' : '❌ 無効'; ?></td>
+                    <td><?php echo get_theme_mod('debug_logging_enabled', false) ? '✅ 有効' : '❌ 無効'; ?></td>
                 </tr>
                 <tr>
                     <th>Contactテストモード</th>
