@@ -96,12 +96,28 @@ const THEME_CONFIG = Object.freeze({
         LEFT_SIDEBAR: 'left-sidebar',
         MOBILE_MENU_TOGGLE: 'mobile-menu-toggle',
         MAIN_HEADER: 'main-header',
+        CONTACT_FORM: 'contact-form',
+        CONTACT_SUBMIT_BTN: 'submit-contact-btn',
+        FORM_STATUS: 'form-status',
         HIDDEN_CLASS: 'hidden',
         ACTIVE_CLASS: 'active',
         SCROLLED_CLASS: 'scrolled',
         VISIBLE_CLASS: 'visible',
         LOADED_CLASS: 'loaded',
-        FOCUSED_CLASS: 'focused'
+        FOCUSED_CLASS: 'focused',
+        ERROR_CLASS: 'error',
+        SUCCESS_CLASS: 'success',
+        LOADING_CLASS: 'loading'
+    },
+    
+    // reCAPTCHA configuration (lazy evaluation)
+    get RECAPTCHA() {
+        return {
+            enabled: window.vtuber_ajax?.recaptcha_config?.enabled || false,
+            site_key: window.vtuber_ajax?.recaptcha_config?.site_key || '',
+            threshold: window.vtuber_ajax?.recaptcha_config?.threshold || 0.5,
+            action: 'contact_form'
+        };
     },
     
     // Debug configuration (lazy evaluation)
@@ -1702,4 +1718,323 @@ class ThemeImageLoader {
 let themeImageLoader;
 DOMUtils.onReady(() => {
     themeImageLoader = new ThemeImageLoader();
+});
+
+/**
+ * Contact Form Manager with reCAPTCHA v3 Support
+ * Handles AJAX form submission and reCAPTCHA verification
+ */
+class ContactFormManager {
+    constructor() {
+        this.form = null;
+        this.submitButton = null;
+        this.statusElement = null;
+        this.isSubmitting = false;
+        this.recaptchaReady = false;
+        
+        this.init();
+    }
+    
+    init() {
+        debugLog('info', 'ContactFormManager: Initializing');
+        
+        this.form = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.CONTACT_FORM);
+        this.submitButton = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.CONTACT_SUBMIT_BTN);
+        this.statusElement = DOMUtils.getElementById(THEME_CONFIG.SELECTORS.FORM_STATUS);
+        
+        if (!this.form || !this.submitButton) {
+            debugLog('warn', 'ContactFormManager: Required elements not found');
+            return;
+        }
+        
+        this.setupEventListeners();
+        this.initializeRecaptcha();
+    }
+    
+    setupEventListeners() {
+        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        
+        // Real-time validation
+        this.form.querySelectorAll('input[required], textarea[required]').forEach(field => {
+            field.addEventListener('blur', () => this.validateField(field));
+            field.addEventListener('input', () => this.clearFieldError(field));
+        });
+    }
+    
+    async initializeRecaptcha() {
+        if (!THEME_CONFIG.RECAPTCHA.enabled || !THEME_CONFIG.RECAPTCHA.site_key) {
+            debugLog('info', 'ContactFormManager: reCAPTCHA disabled or not configured');
+            this.recaptchaReady = true;
+            this.updateSubmitButtonState();
+            return;
+        }
+        
+        debugLog('info', 'ContactFormManager: Waiting for reCAPTCHA');
+        
+        // Wait for reCAPTCHA to load
+        const maxWaitTime = 10000; // 10 seconds
+        const checkInterval = 100;
+        let waitTime = 0;
+        
+        const checkRecaptcha = () => {
+            if (typeof grecaptcha !== 'undefined' && grecaptcha.ready) {
+                grecaptcha.ready(() => {
+                    debugLog('info', 'ContactFormManager: reCAPTCHA ready');
+                    this.recaptchaReady = true;
+                    this.updateSubmitButtonState();
+                });
+                return;
+            }
+            
+            waitTime += checkInterval;
+            if (waitTime < maxWaitTime) {
+                setTimeout(checkRecaptcha, checkInterval);
+            } else {
+                debugLog('error', 'ContactFormManager: reCAPTCHA failed to load');
+                this.showStatus('reCAPTCHAの読み込みに失敗しました。ページを再読み込みしてください。', 'error');
+            }
+        };
+        
+        checkRecaptcha();
+    }
+    
+    async handleSubmit(e) {
+        e.preventDefault();
+        
+        if (this.isSubmitting) {
+            debugLog('warn', 'ContactFormManager: Form already submitting');
+            return;
+        }
+        
+        debugLog('info', 'ContactFormManager: Form submission started');
+        
+        if (!this.validateForm()) {
+            return;
+        }
+        
+        this.setSubmitting(true);
+        
+        try {
+            let recaptchaToken = null;
+            
+            // Get reCAPTCHA token if enabled
+            if (THEME_CONFIG.RECAPTCHA.enabled && THEME_CONFIG.RECAPTCHA.site_key) {
+                if (!this.recaptchaReady) {
+                    throw new Error('reCAPTCHA is not ready');
+                }
+                
+                recaptchaToken = await this.getRecaptchaToken();
+                debugLog('info', 'ContactFormManager: reCAPTCHA token obtained');
+            }
+            
+            // Prepare form data
+            const formData = this.getFormData();
+            if (recaptchaToken) {
+                formData.recaptcha_token = recaptchaToken;
+            }
+            
+            // Submit form
+            const response = await this.submitForm(formData);
+            
+            if (response.success) {
+                this.showStatus(response.data.message, 'success');
+                this.resetForm();
+                debugLog('info', 'ContactFormManager: Form submitted successfully');
+            } else {
+                throw new Error(response.data.message || 'Unknown error occurred');
+            }
+            
+        } catch (error) {
+            debugLog('error', 'ContactFormManager: Form submission failed', error);
+            this.showStatus(error.message || 'エラーが発生しました。再度お試しください。', 'error');
+        } finally {
+            this.setSubmitting(false);
+        }
+    }
+    
+    async getRecaptchaToken() {
+        return new Promise((resolve, reject) => {
+            grecaptcha.execute(THEME_CONFIG.RECAPTCHA.site_key, {
+                action: THEME_CONFIG.RECAPTCHA.action
+            }).then(token => {
+                if (token) {
+                    resolve(token);
+                } else {
+                    reject(new Error('Failed to get reCAPTCHA token'));
+                }
+            }).catch(error => {
+                reject(new Error('reCAPTCHA execution failed: ' + error.message));
+            });
+        });
+    }
+    
+    getFormData() {
+        const formData = new FormData(this.form);
+        const data = {};
+        
+        for (let [key, value] of formData.entries()) {
+            data[key] = value;
+        }
+        
+        return data;
+    }
+    
+    async submitForm(data) {
+        const response = await fetch(window.vtuber_ajax.ajax_url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams(data)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    }
+    
+    validateForm() {
+        const requiredFields = this.form.querySelectorAll('input[required], textarea[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!this.validateField(field)) {
+                isValid = false;
+            }
+        });
+        
+        return isValid;
+    }
+    
+    validateField(field) {
+        const value = field.value.trim();
+        let isValid = true;
+        let errorMessage = '';
+        
+        if (!value) {
+            isValid = false;
+            errorMessage = 'この項目は必須です。';
+        } else if (field.type === 'email' && !this.isValidEmail(value)) {
+            isValid = false;
+            errorMessage = '有効なメールアドレスを入力してください。';
+        }
+        
+        this.setFieldError(field, isValid ? null : errorMessage);
+        return isValid;
+    }
+    
+    isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+    
+    setFieldError(field, message) {
+        const formGroup = field.closest('.form-group');
+        if (!formGroup) return;
+        
+        let errorElement = formGroup.querySelector('.field-error');
+        
+        if (message) {
+            if (!errorElement) {
+                errorElement = document.createElement('span');
+                errorElement.className = 'field-error';
+                formGroup.appendChild(errorElement);
+            }
+            errorElement.textContent = message;
+            formGroup.classList.add(THEME_CONFIG.SELECTORS.ERROR_CLASS);
+            field.setAttribute('aria-invalid', 'true');
+        } else {
+            if (errorElement) {
+                errorElement.remove();
+            }
+            formGroup.classList.remove(THEME_CONFIG.SELECTORS.ERROR_CLASS);
+            field.removeAttribute('aria-invalid');
+        }
+    }
+    
+    clearFieldError(field) {
+        const formGroup = field.closest('.form-group');
+        if (formGroup && formGroup.classList.contains(THEME_CONFIG.SELECTORS.ERROR_CLASS)) {
+            this.validateField(field);
+        }
+    }
+    
+    setSubmitting(isSubmitting) {
+        this.isSubmitting = isSubmitting;
+        this.updateSubmitButtonState();
+    }
+    
+    updateSubmitButtonState() {
+        if (!this.submitButton) return;
+        
+        const shouldDisable = this.isSubmitting || 
+                             (THEME_CONFIG.RECAPTCHA.enabled && !this.recaptchaReady);
+        
+        this.submitButton.disabled = shouldDisable;
+        this.submitButton.classList.toggle(THEME_CONFIG.SELECTORS.LOADING_CLASS, this.isSubmitting);
+        
+        const btnText = this.submitButton.querySelector('.btn-text');
+        const btnLoading = this.submitButton.querySelector('.btn-loading');
+        
+        if (btnText && btnLoading) {
+            btnText.style.display = this.isSubmitting ? 'none' : 'inline';
+            btnLoading.style.display = this.isSubmitting ? 'inline' : 'none';
+        }
+        
+        // Update button opacity based on state
+        this.submitButton.style.opacity = shouldDisable ? 
+            THEME_CONFIG.VISUAL.CONTACT_FORM_DISABLED_OPACITY : 
+            THEME_CONFIG.VISUAL.CONTACT_FORM_ENABLED_OPACITY;
+    }
+    
+    showStatus(message, type) {
+        if (!this.statusElement) return;
+        
+        this.statusElement.textContent = message;
+        this.statusElement.className = `form-status ${type}`;
+        this.statusElement.style.display = 'block';
+        
+        // Auto-hide success messages
+        if (type === 'success') {
+            setTimeout(() => {
+                this.hideStatus();
+            }, THEME_CONFIG.ANIMATION.CONTACT_FORM_RESET_TIMEOUT);
+        }
+    }
+    
+    hideStatus() {
+        if (this.statusElement) {
+            this.statusElement.style.display = 'none';
+            this.statusElement.className = 'form-status';
+        }
+    }
+    
+    resetForm() {
+        this.form.reset();
+        
+        // Clear all field errors
+        this.form.querySelectorAll(`.${THEME_CONFIG.SELECTORS.ERROR_CLASS}`).forEach(element => {
+            element.classList.remove(THEME_CONFIG.SELECTORS.ERROR_CLASS);
+        });
+        
+        this.form.querySelectorAll('.field-error').forEach(element => {
+            element.remove();
+        });
+        
+        this.form.querySelectorAll('[aria-invalid]').forEach(element => {
+            element.removeAttribute('aria-invalid');
+        });
+    }
+}
+
+// Initialize Contact Form Manager
+let contactFormManager;
+
+DOMUtils.onReady(() => {
+    // Initialize contact form with reCAPTCHA support
+    contactFormManager = new ContactFormManager();
+    
+    debugLog('info', 'Main: Contact form manager initialized');
 });

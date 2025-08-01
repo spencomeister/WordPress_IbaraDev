@@ -349,17 +349,18 @@ get_header(); ?>
                 </div>
                 
                 <form class="contact-form" 
+                      id="contact-form"
                       method="POST" 
-                      action="<?php echo esc_url(admin_url('admin-post.php')); ?>"
+                      action="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"
                       novalidate>
                     <input type="hidden" name="action" value="contact_form_submission">
-                    <?php wp_nonce_field('contact_form_nonce', 'contact_nonce'); ?>
+                    <input type="hidden" name="nonce" value="<?php echo wp_create_nonce('vtuber_nonce'); ?>">
                     
                     <div class="form-group">
                         <label for="contact_name">お名前 *</label>
                         <input type="text" 
                                id="contact_name" 
-                               name="contact_name" 
+                               name="name" 
                                required 
                                aria-required="true"
                                autocomplete="name">
@@ -369,7 +370,7 @@ get_header(); ?>
                         <label for="contact_email">メールアドレス *</label>
                         <input type="email" 
                                id="contact_email" 
-                               name="contact_email" 
+                               name="email" 
                                required 
                                aria-required="true"
                                autocomplete="email">
@@ -379,7 +380,7 @@ get_header(); ?>
                         <label for="contact_subject">件名 *</label>
                         <input type="text" 
                                id="contact_subject" 
-                               name="contact_subject" 
+                               name="subject" 
                                required 
                                aria-required="true">
                     </div>
@@ -387,17 +388,21 @@ get_header(); ?>
                     <div class="form-group">
                         <label for="contact_message">メッセージ *</label>
                         <textarea id="contact_message" 
-                                  name="contact_message" 
+                                  name="message" 
                                   rows="5" 
                                   required 
                                   aria-required="true"
                                   placeholder="お問い合わせ内容をご記入ください..."></textarea>
                     </div>
                     
+                    <div class="form-status" id="form-status" style="display: none;"></div>
+                    
                     <button type="submit" 
+                            id="submit-contact-btn"
                             name="submit_contact" 
                             class="submit-btn">
-                        <span>送信</span>
+                        <span class="btn-text">送信</span>
+                        <span class="btn-loading" style="display: none;">送信中...</span>
                         <span class="sr-only">フォームを送信</span>
                     </button>
                 </form>
