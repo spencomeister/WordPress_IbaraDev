@@ -2375,29 +2375,40 @@ function extract_year_from_date($date_string) {
         return date('Y'); // 現在の年をフォールバック
     }
     
+    // デバッグ用ログ（開発時のみ）
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        error_log('extract_year_from_date: Processing date string: ' . $date_string);
+    }
+    
     // 様々な日付形式に対応
     $patterns = array(
-        '/(\d{4})-\d{1,2}-\d{1,2}/',      // YYYY-MM-DD
-        '/(\d{4})\/\d{1,2}\/\d{1,2}/',    // YYYY/MM/DD
-        '/(\d{4})\.\d{1,2}\.\d{1,2}/',    // YYYY.MM.DD
-        '/(\d{4})\.\d{1,2}/',             // YYYY.MM
-        '/(\d{4})年\d{1,2}月\d{1,2}日/',   // YYYY年MM月DD日
-        '/(\d{4})年\d{1,2}月/',           // YYYY年MM月
-        '/(\d{4})年/',                    // YYYY年
-        '/(\d{4})/',                      // 4桁の数字
+        '/^(\d{4})-\d{1,2}-\d{1,2}$/',      // YYYY-MM-DD
+        '/^(\d{4})\/\d{1,2}\/\d{1,2}$/',    // YYYY/MM/DD
+        '/^(\d{4})\.\d{1,2}\.\d{1,2}$/',    // YYYY.MM.DD
+        '/^(\d{4})\.\d{1,2}$/',             // YYYY.MM
+        '/^(\d{4})年\d{1,2}月\d{1,2}日$/',   // YYYY年MM月DD日
+        '/^(\d{4})年\d{1,2}月$/',           // YYYY年MM月
+        '/^(\d{4})年$/',                    // YYYY年
+        '/^(\d{4})$/',                      // 4桁の数字のみ
     );
     
     foreach ($patterns as $pattern) {
-        if (preg_match($pattern, $date_string, $matches)) {
+        if (preg_match($pattern, trim($date_string), $matches)) {
             $year = intval($matches[1]);
             // 妥当な年の範囲チェック（1900-2099）
             if ($year >= 1900 && $year <= 2099) {
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('extract_year_from_date: Extracted year: ' . $year . ' from: ' . $date_string);
+                }
                 return strval($year);
             }
         }
     }
     
     // フォールバック：現在の年を返す
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        error_log('extract_year_from_date: No pattern matched for: ' . $date_string . ', returning current year');
+    }
     return date('Y');
 }
 
