@@ -225,7 +225,24 @@ function vtuber_scripts() {
             'enable_transitions' => true,
             'show_for_external' => false,
         ),
+        'recaptcha_config' => array(
+            'enabled' => get_theme_mod('recaptcha_enabled', false),
+            'site_key' => get_theme_mod('recaptcha_site_key', ''),
+            'threshold' => get_theme_mod('recaptcha_threshold', 0.5),
+        ),
     ));
+    
+    // Enqueue reCAPTCHA v3 script if enabled
+    if (get_theme_mod('recaptcha_enabled', false) && !empty(get_theme_mod('recaptcha_site_key', ''))) {
+        $site_key = get_theme_mod('recaptcha_site_key', '');
+        wp_enqueue_script(
+            'google-recaptcha', 
+            "https://www.google.com/recaptcha/api.js?render={$site_key}",
+            array(),
+            null,
+            true
+        );
+    }
     
     // Add AVIF detection and fallback functionality
     enqueue_avif_detection_script();
@@ -288,7 +305,7 @@ function handle_contact_form_submission() {
     );
     
     // Log attempt if debug mode is enabled
-    if (get_theme_mod('debug_log_enabled', false)) {
+    if (get_theme_mod('debug_logging_enabled', false)) {
         vtuber_log_contact_info('メール送信を試行中', array(
             'to' => $to,
             'subject' => $email_subject,
@@ -332,9 +349,215 @@ function handle_contact_form_submission() {
 add_action('admin_post_contact_form_submission', 'handle_contact_form_submission');
 add_action('admin_post_nopriv_contact_form_submission', 'handle_contact_form_submission');
 
+// Frontend AJAX contact form submission with reCAPTCHA v3 support
+function handle_ajax_contact_form_submission() {
+    // Verify nonce
+    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'vtuber_nonce')) {
+        wp_send_json_error(array(
+            'message' => 'セキュリティチェックに失敗しました。',
+            'code' => 'SECURITY_ERROR'
+        ));
+    }
+    
+    // Sanitize form data
+    $name = sanitize_text_field($_POST['name'] ?? '');
+    $email = sanitize_email($_POST['email'] ?? '');
+    $subject = sanitize_text_field($_POST['subject'] ?? '');
+    $message = sanitize_textarea_field($_POST['message'] ?? '');
+    $recaptcha_token = sanitize_text_field($_POST['recaptcha_token'] ?? '');
+    
+    // Validate required fields
+    if (empty($name) || empty($email) || empty($subject) || empty($message)) {
+        wp_send_json_error(array(
+            'message' => '必須フィールドに入力してください。',
+            'code' => 'VALIDATION_ERROR'
+        ));
+    }
+    
+    // Validate email format
+    if (!is_email($email)) {
+        wp_send_json_error(array(
+            'message' => '有効なメールアドレスを入力してください。',
+            'code' => 'EMAIL_VALIDATION_ERROR'
+        ));
+    }
+    
+    // reCAPTCHA v3 verification if enabled
+    if (get_theme_mod('recaptcha_enabled', false)) {
+        if (empty($recaptcha_token)) {
+            wp_send_json_error(array(
+                'message' => 'reCAPTCHA認証が必要です。',
+                'code' => 'RECAPTCHA_TOKEN_MISSING'
+            ));
+        }
+        
+        $recaptcha_result = verify_recaptcha_token($recaptcha_token);
+        if (!$recaptcha_result['success']) {
+            vtuber_log_contact_error('reCAPTCHA認証失敗', array(
+                'error' => $recaptcha_result['error'],
+                'score' => $recaptcha_result['score'] ?? 'N/A'
+            ));
+            
+            wp_send_json_error(array(
+                'message' => 'スパム防止認証に失敗しました。再度お試しください。',
+                'code' => 'RECAPTCHA_VERIFICATION_FAILED'
+            ));
+        }
+        
+        vtuber_log_contact_info('reCAPTCHA認証成功', array(
+            'score' => $recaptcha_result['score']
+        ));
+    }
+    
+    // Get recipient email from customizer or use admin email as fallback
+    $to = get_theme_mod('contact_recipient_email', get_option('admin_email'));
+    
+    // Prepare email with enhanced formatting
+    $email_subject = '[' . get_bloginfo('name') . '] ' . $subject;
+    $email_message = "━━━ お問い合わせ内容 ━━━\n\n";
+    $email_message .= "お名前: {$name}\n";
+    $email_message .= "メールアドレス: {$email}\n";
+    $email_message .= "件名: {$subject}\n";
+    $email_message .= "送信日時: " . current_time('Y-m-d H:i:s') . "\n\n";
+    $email_message .= "メッセージ:\n" . str_repeat('-', 40) . "\n";
+    $email_message .= $message . "\n";
+    $email_message .= str_repeat('-', 40) . "\n\n";
+    $email_message .= "━━━ 送信情報 ━━━\n";
+    $email_message .= "送信者IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown') . "\n";
+    $email_message .= "ユーザーエージェント: " . ($_SERVER['HTTP_USER_AGENT'] ?? 'unknown') . "\n";
+    
+    if (get_theme_mod('recaptcha_enabled', false) && isset($recaptcha_result['score'])) {
+        $email_message .= "reCAPTCHA スコア: " . $recaptcha_result['score'] . "\n";
+    }
+    
+    $headers = array(
+        'Content-Type: text/plain; charset=UTF-8',
+        'From: ' . get_bloginfo('name') . ' <' . $to . '>',
+        'Reply-To: ' . $name . ' <' . $email . '>'
+    );
+    
+    // Log attempt if debug mode is enabled
+    if (get_theme_mod('debug_logging_enabled', false)) {
+        vtuber_log_contact_info('AJAX メール送信を試行中', array(
+            'to' => $to,
+            'subject' => $email_subject,
+            'from_name' => $name,
+            'from_email' => $email,
+            'wp_mail_smtp_active' => is_plugin_active('wp-mail-smtp/wp_mail_smtp.php')
+        ));
+    }
+    
+    // Send email with error capturing
+    $sent = wp_mail($to, $email_subject, $email_message, $headers);
+    
+    if ($sent) {
+        vtuber_log_contact_info('AJAX メール送信成功', array(
+            'to' => $to,
+            'from' => $email,
+            'subject' => $subject
+        ));
+        
+        wp_send_json_success(array(
+            'message' => 'お問い合わせを送信しました。ありがとうございます。'
+        ));
+    } else {
+        // Capture detailed error information
+        $error_info = array(
+            'to' => $to,
+            'from' => $email,
+            'subject' => $subject,
+            'wp_mail_smtp_active' => is_plugin_active('wp-mail-smtp/wp_mail_smtp.php'),
+            'admin_email' => get_option('admin_email'),
+            'bloginfo_name' => get_bloginfo('name')
+        );
+        
+        vtuber_log_contact_error('AJAX メール送信失敗', $error_info);
+        
+        wp_send_json_error(array(
+            'message' => 'メール送信に失敗しました。しばらく時間を置いてから再度お試しください。',
+            'code' => 'EMAIL_SEND_FAILED'
+        ));
+    }
+}
+
+// reCAPTCHA v3 token verification
+function verify_recaptcha_token($token) {
+    $secret_key = get_theme_mod('recaptcha_secret_key', '');
+    $threshold = get_theme_mod('recaptcha_threshold', 0.5);
+    
+    if (empty($secret_key)) {
+        return array(
+            'success' => false,
+            'error' => 'reCAPTCHA secret key not configured'
+        );
+    }
+    
+    $response = wp_remote_post('https://www.google.com/recaptcha/api/siteverify', array(
+        'body' => array(
+            'secret' => $secret_key,
+            'response' => $token,
+            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
+        ),
+        'timeout' => 30
+    ));
+    
+    if (is_wp_error($response)) {
+        return array(
+            'success' => false,
+            'error' => 'reCAPTCHA API request failed: ' . $response->get_error_message()
+        );
+    }
+    
+    $body = wp_remote_retrieve_body($response);
+    $result = json_decode($body, true);
+    
+    if (!$result) {
+        return array(
+            'success' => false,
+            'error' => 'Invalid reCAPTCHA API response'
+        );
+    }
+    
+    if (!$result['success']) {
+        return array(
+            'success' => false,
+            'error' => 'reCAPTCHA verification failed',
+            'error_codes' => $result['error-codes'] ?? array()
+        );
+    }
+    
+    // Check action (should be 'contact_form')
+    if (isset($result['action']) && $result['action'] !== 'contact_form') {
+        return array(
+            'success' => false,
+            'error' => 'Invalid reCAPTCHA action: ' . $result['action']
+        );
+    }
+    
+    // Check score against threshold
+    $score = $result['score'] ?? 0.0;
+    if ($score < $threshold) {
+        return array(
+            'success' => false,
+            'error' => 'reCAPTCHA score too low',
+            'score' => $score,
+            'threshold' => $threshold
+        );
+    }
+    
+    return array(
+        'success' => true,
+        'score' => $score
+    );
+}
+
+// Register AJAX handlers
+add_action('wp_ajax_contact_form_submission', 'handle_ajax_contact_form_submission');
+add_action('wp_ajax_nopriv_contact_form_submission', 'handle_ajax_contact_form_submission');
+
 // Contact form logging functions
 function vtuber_log_contact_info($message, $data = array()) {
-    if (!get_theme_mod('debug_log_enabled', false)) {
+    if (!get_theme_mod('debug_logging_enabled', false)) {
         return;
     }
     
@@ -862,6 +1085,80 @@ function vtuber_customize_register($wp_customize) {
         'section'     => 'contact_settings',
         'type'        => 'checkbox',
         'priority'    => 30,
+    ));
+    
+    // reCAPTCHA v3 Settings
+    $wp_customize->add_setting('recaptcha_enabled', array(
+        'default'    => false,
+        'sanitize_callback' => 'rest_sanitize_boolean',
+        'transport'  => 'refresh',
+    ));
+    
+    $wp_customize->add_control('recaptcha_enabled', array(
+        'label'       => __('reCAPTCHA v3を有効にする', 'vtuber-theme'),
+        'description' => __('お問い合わせフォームでreCAPTCHA v3による認証を行います。', 'vtuber-theme'),
+        'section'     => 'contact_settings',
+        'type'        => 'checkbox',
+        'priority'    => 40,
+    ));
+    
+    $wp_customize->add_setting('recaptcha_site_key', array(
+        'default'    => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'  => 'refresh',
+    ));
+    
+    $wp_customize->add_control('recaptcha_site_key', array(
+        'label'       => __('reCAPTCHA サイトキー', 'vtuber-theme'),
+        'description' => __('Google reCAPTCHA v3のサイトキーを入力してください。<a href="https://www.google.com/recaptcha/admin" target="_blank">reCAPTCHA管理コンソール</a>で取得できます。', 'vtuber-theme'),
+        'section'     => 'contact_settings',
+        'type'        => 'text',
+        'priority'    => 50,
+        'active_callback' => function() {
+            return get_theme_mod('recaptcha_enabled', false);
+        },
+    ));
+    
+    $wp_customize->add_setting('recaptcha_secret_key', array(
+        'default'    => '',
+        'sanitize_callback' => 'sanitize_text_field',
+        'transport'  => 'refresh',
+    ));
+    
+    $wp_customize->add_control('recaptcha_secret_key', array(
+        'label'       => __('reCAPTCHA シークレットキー', 'vtuber-theme'),
+        'description' => __('Google reCAPTCHA v3のシークレットキーを入力してください。', 'vtuber-theme'),
+        'section'     => 'contact_settings',
+        'type'        => 'text',
+        'priority'    => 60,
+        'active_callback' => function() {
+            return get_theme_mod('recaptcha_enabled', false);
+        },
+    ));
+    
+    $wp_customize->add_setting('recaptcha_threshold', array(
+        'default'    => 0.5,
+        'sanitize_callback' => function($value) {
+            $value = floatval($value);
+            return max(0.0, min(1.0, $value));
+        },
+        'transport'  => 'refresh',
+    ));
+    
+    $wp_customize->add_control('recaptcha_threshold', array(
+        'label'       => __('reCAPTCHA 閾値', 'vtuber-theme'),
+        'description' => __('スパム判定の閾値を設定してください（0.0-1.0）。低いほど厳しくなります。推奨: 0.5', 'vtuber-theme'),
+        'section'     => 'contact_settings',
+        'type'        => 'number',
+        'priority'    => 70,
+        'input_attrs' => array(
+            'min' => '0.0',
+            'max' => '1.0',
+            'step' => '0.1',
+        ),
+        'active_callback' => function() {
+            return get_theme_mod('recaptcha_enabled', false);
+        },
     ));
 }
 
@@ -1508,7 +1805,7 @@ function vtuber_contact_form_test_page() {
                 </tr>
                 <tr>
                     <th>デバッグログ</th>
-                    <td><?php echo get_theme_mod('debug_log_enabled', false) ? '✅ 有効' : '❌ 無効'; ?></td>
+                    <td><?php echo get_theme_mod('debug_logging_enabled', false) ? '✅ 有効' : '❌ 無効'; ?></td>
                 </tr>
                 <tr>
                     <th>Contactテストモード</th>

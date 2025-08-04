@@ -2,7 +2,7 @@
 Theme Name: IbaraDev VTuber Landing Page
 Theme URI: https://github.com/spencomeister/WordPress_IbaraDev
 Description: Modern VTuber Landing Page Theme for Content Creators - Features YouTube Data API integration, responsive design, and customizer controls for easy content management. Version 2.1.0: プロフィールテーブル動的管理、デバッグ制御システム、モバイルサイドバー改善
-Version: 2.2.14
+Version: 2.3.2
 Author: Cleva Spencer
 Author URI: https://github.com/spencomeister
 License: GPL v2 or later
@@ -1185,12 +1185,103 @@ body[data-theme="dark"] .sidebar-menu-link:hover {
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 1rem;
+  position: relative;
+  overflow: hidden;
 }
 
-.submit-btn:hover {
+.submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 15px 30px rgba(139, 92, 246, 0.4);
   background: linear-gradient(135deg, var(--accent-purple-dark), var(--accent-purple));
+}
+
+.submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.submit-btn.loading {
+  cursor: wait;
+}
+
+.submit-btn .btn-loading {
+  display: none;
+}
+
+.submit-btn.loading .btn-text {
+  display: none;
+}
+
+.submit-btn.loading .btn-loading {
+  display: inline;
+}
+
+/* Form Status Messages */
+.form-status {
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-top: 1rem;
+  display: none;
+  animation: fadeInUp 0.3s ease;
+}
+
+.form-status.success {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.form-status.error {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+body[data-theme="dark"] .form-status.success {
+  background-color: #064e3b;
+  color: #a7f3d0;
+  border-color: #065f46;
+}
+
+body[data-theme="dark"] .form-status.error {
+  background-color: #7f1d1d;
+  color: #fca5a5;
+  border-color: #dc2626;
+}
+
+/* Field Error Messages */
+.form-group.error input,
+.form-group.error textarea {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.field-error {
+  display: block;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+body[data-theme="dark"] .field-error {
+  color: #fca5a5;
+}
+
+/* Fade in animation for status messages */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Footer */
