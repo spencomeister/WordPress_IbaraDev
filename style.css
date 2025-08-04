@@ -683,7 +683,7 @@ body[data-theme="dark"] .sidebar-menu-link:hover {
   background-color: rgba(139, 92, 246, 0.05);
 }
 
-/* Achievements Section */
+/* Achievements Section - Updated for Yearly Accordion */
 .achievements-table-container {
   overflow-x: auto;
   border-radius: 16px;
@@ -745,7 +745,8 @@ body[data-theme="dark"] .sidebar-menu-link:hover {
 }
 
 .achievement-row:hover {
-  background-color: var(--bg-secondary);
+  background-color: rgba(139, 92, 246, 0.05);
+  transition: background-color 0.2s ease;
   /* transformを削除してスクロールバーの表示を防ぐ */
 }
 
@@ -976,6 +977,238 @@ body[data-theme="dark"] .sidebar-menu-link:hover {
   .achievement-date {
     font-size: 0.7rem;
     line-height: 1.1;
+  }
+}
+
+/* Yearly Grouped Achievements Styles - Enhanced Integration */
+.yearly-achievements-container {
+  margin-top: 1.5rem;
+}
+
+.yearly-accordion {
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--bg-primary);
+  overflow: hidden;
+  box-shadow: 0 10px 30px var(--shadow-light);
+  transition: all 0.3s ease;
+}
+
+.yearly-accordion:hover {
+  box-shadow: 0 15px 40px var(--shadow-medium);
+  transform: translateY(-2px);
+}
+
+.yearly-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-light));
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+  min-height: 70px;
+}
+
+.yearly-accordion-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.yearly-accordion-header:hover::before {
+  left: 100%;
+}
+
+.yearly-accordion-header:hover {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-light));
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+  color: white;
+}
+
+.yearly-accordion-header:hover .yearly-title,
+.yearly-accordion-header:hover .accordion-icon {
+  color: white;
+}
+
+.yearly-accordion-header:focus {
+  outline: 3px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.yearly-accordion-header.active {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-light));
+}
+
+.yearly-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.yearly-title .year {
+  font-size: 1.6rem;
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  transform: translateY(8px);
+}
+
+.accordion-icon {
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.yearly-accordion-header.active .accordion-icon {
+  transform: rotate(180deg);
+}
+
+.yearly-accordion-content {
+  padding: 0;
+  background: var(--bg-primary);
+  transition: all 0.3s ease;
+  display: none;
+}
+
+.yearly-accordion-content .achievements-table-container {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.yearly-accordion-content .achievements-table {
+  margin-bottom: 0;
+}
+
+.yearly-accordion-content .achievements-table thead {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-light));
+}
+
+.yearly-accordion-content .achievements-table th {
+  color: white;
+  font-weight: 600;
+  border-bottom: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced table styles for yearly view */
+.yearly-accordion-content .achievement-row:hover {
+  background-color: rgba(139, 92, 246, 0.08);
+  color: inherit;
+  transition: background-color 0.2s ease;
+}
+
+.yearly-accordion-content .achievement-icon {
+  font-size: 1.6rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* アニメーション効果 */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.yearly-accordion-content[style*="block"] {
+  animation: slideDown 0.4s ease-out;
+}
+
+/* Empty state styling */
+.no-data-message {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  border-radius: 12px;
+  margin: 1rem;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .yearly-accordion-header {
+    padding: 1.2rem 1.5rem;
+  }
+  
+  .yearly-title {
+    font-size: 1.2rem;
+    gap: 0.7rem;
+  }
+  
+  .yearly-title .year {
+    font-size: 1.4rem;
+  }
+  
+  .accordion-icon {
+    font-size: 1.1rem;
+  }
+  
+  .no-data-message {
+    padding: 2rem 1rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .yearly-accordion-header {
+    padding: 1rem;
+  }
+  
+  .yearly-title {
+    font-size: 1.1rem;
+    gap: 0.5rem;
+  }
+  
+  .yearly-title .year {
+    font-size: 1.3rem;
+  }
+  
+  .accordion-icon {
+    font-size: 1rem;
   }
 }
 
