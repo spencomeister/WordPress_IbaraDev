@@ -2,7 +2,11 @@
 Theme Name: IbaraDev VTuber Landing Page
 Theme URI: https://github.com/spencomeister/WordPress_IbaraDev
 Description: Modern VTuber Landing Page Theme for Content Creators - Features YouTube Data API integration, responsive design, and customizer controls for easy content management. Version 2.1.0: プロフィールテーブル動的管理、デバッグ制御システム、モバイルサイドバー改善
+<<<<<<< HEAD
 Version: 2.4.6
+=======
+Version: 2.4.0
+>>>>>>> fix/yearly-achievements-page
 Author: Cleva Spencer
 Author URI: https://github.com/spencomeister
 License: GPL v2 or later
@@ -1038,9 +1042,21 @@ body[data-theme="dark"] .sidebar-menu-link:hover {
   color: white;
 }
 
+.yearly-accordion-header:active {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-light)) !important;
+  transform: translateY(0px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  color: white !important;
+}
+
 .yearly-accordion-header:hover .yearly-title,
 .yearly-accordion-header:hover .accordion-icon {
   color: white;
+}
+
+.yearly-accordion-header:active .yearly-title,
+.yearly-accordion-header:active .accordion-icon {
+  color: white !important;
 }
 
 .yearly-accordion-header:focus {
@@ -1059,6 +1075,7 @@ body[data-theme="dark"] .sidebar-menu-link:hover {
   height: 100%;
   margin: 0;
   padding: 0;
+  color: var(--text-primary);
 }
 
 .yearly-title .year {
@@ -1071,6 +1088,7 @@ body[data-theme="dark"] .sidebar-menu-link:hover {
   padding: 0;
   line-height: 1;
   transform: translateY(8px);
+  color: inherit;
 }
 
 .accordion-icon {
