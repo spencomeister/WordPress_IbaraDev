@@ -2291,33 +2291,6 @@ function render_yearly_grouped_achievements($achievements, $default_icon = '📺
         return;
     }
 
-    // 診断用のHTML出力（開発時のみ表示）
-    $debug_mode = current_user_can('manage_options');
-    
-    if ($debug_mode) {
-        echo '<div class="yearly-debug-info" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; font-size: 12px;">';
-        echo '<strong>📊 年別グルーピング診断情報</strong><br>';
-        echo '<details><summary>クリックで詳細を表示</summary>';
-        echo '<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">';
-        echo '<tr style="background: #f8f9fa;"><th style="border: 1px solid #ddd; padding: 5px;">元の日付</th><th style="border: 1px solid #ddd; padding: 5px;">抽出された年</th><th style="border: 1px solid #ddd; padding: 5px;">タイトル</th></tr>';
-        
-        foreach ($achievements as $achievement) {
-            if (!empty($achievement['title']) && !empty($achievement['date'])) {
-                $original_date = $achievement['date'];
-                $extracted_year = extract_year_from_date($achievement['date']);
-                echo '<tr>';
-                echo '<td style="border: 1px solid #ddd; padding: 5px;">' . esc_html($original_date) . '</td>';
-                echo '<td style="border: 1px solid #ddd; padding: 5px; font-weight: bold; color: ' . ($extracted_year == date('Y') ? '#28a745' : '#007bff') . ';">' . esc_html($extracted_year) . '</td>';
-                echo '<td style="border: 1px solid #ddd; padding: 5px;">' . esc_html($achievement['title']) . '</td>';
-                echo '</tr>';
-            }
-        }
-        
-        echo '</table>';
-        echo '</details>';
-        echo '</div>';
-    }
-
     // 年別にグループ化
     $grouped_by_year = array();
     foreach ($achievements as $achievement) {
@@ -2329,19 +2302,6 @@ function render_yearly_grouped_achievements($achievements, $default_icon = '📺
             }
             $grouped_by_year[$year][] = $achievement;
         }
-    }
-
-    // 診断用のグルーピング結果表示（管理者のみ）
-    if ($debug_mode) {
-        echo '<div class="yearly-debug-grouping" style="background: #e7f3ff; border: 1px solid #b3d7ff; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; font-size: 12px;">';
-        echo '<strong>📈 グルーピング結果</strong><br>';
-        foreach ($grouped_by_year as $year => $year_items) {
-            echo '<strong>' . esc_html($year) . '年:</strong> ' . count($year_items) . '件<br>';
-            foreach ($year_items as $item) {
-                echo '&nbsp;&nbsp;- ' . esc_html($item['date']) . ': ' . esc_html($item['title']) . '<br>';
-            }
-        }
-        echo '</div>';
     }
 
     // 年順でソート（新しい年が上に）
@@ -2437,10 +2397,6 @@ function extract_year_from_date($date_string) {
             $year = intval($matches[1]);
             // 妥当な年の範囲チェック（1900-2099）
             if ($year >= 1900 && $year <= 2099) {
-                // 診断情報（管理者のみ、HTMLコメントとして出力）
-                if (current_user_can('manage_options')) {
-                    echo '<!-- extract_year_from_date: "' . esc_html($date_string) . '" → ' . $year . ' (format: ' . $format_name . ') -->';
-                }
                 return strval($year);
             }
         }
@@ -2448,66 +2404,7 @@ function extract_year_from_date($date_string) {
     
     // フォールバック：現在の年を返す
     $current_year = date('Y');
-    if (current_user_can('manage_options')) {
-        echo '<!-- extract_year_from_date: "' . esc_html($date_string) . '" → ' . $current_year . ' (fallback: no pattern matched) -->';
-    }
     return $current_year;
-}
-
-/**
- * Test function for year extraction - Diagnostic tool
- * 年抽出機能のテスト用診断ツール
- */
-function test_year_extraction() {
-    if (!current_user_can('manage_options')) {
-        return;
-    }
-    
-    // テスト用のサンプル日付
-    $test_dates = array(
-        '2024.11',
-        '2024.12',
-        '2023.01',
-        '2023.12',
-        '2025.01',
-        '2024-11-01',
-        '2023/12/31',
-        '2024年11月',
-        '2023年',
-        '2024',
-        'invalid date',
-        '',
-        '  2024.11  ',  // 前後に空白
-    );
-    
-    echo '<div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin: 20px 0; border-radius: 5px;">';
-    echo '<h4>🔍 年抽出テスト結果</h4>';
-    echo '<table style="width: 100%; border-collapse: collapse;">';
-    echo '<tr style="background: #e9ecef;"><th style="border: 1px solid #ddd; padding: 8px;">入力日付</th><th style="border: 1px solid #ddd; padding: 8px;">抽出された年</th><th style="border: 1px solid #ddd; padding: 8px;">期待値との比較</th></tr>';
-    
-    foreach ($test_dates as $test_date) {
-        $extracted_year = extract_year_from_date($test_date);
-        $expected_year = '';
-        $status = '';
-        
-        // 期待値を設定
-        if (preg_match('/^(\d{4})/', $test_date, $matches)) {
-            $expected_year = $matches[1];
-            $status = ($extracted_year == $expected_year) ? '✅ 正常' : '❌ 異常';
-        } else {
-            $expected_year = date('Y') . ' (フォールバック)';
-            $status = ($extracted_year == date('Y')) ? '✅ 正常' : '❌ 異常';
-        }
-        
-        echo '<tr>';
-        echo '<td style="border: 1px solid #ddd; padding: 8px; font-family: monospace;">' . ($test_date === '' ? '(空文字)' : esc_html($test_date)) . '</td>';
-        echo '<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">' . esc_html($extracted_year) . '</td>';
-        echo '<td style="border: 1px solid #ddd; padding: 8px;">' . $status . ' (期待: ' . esc_html($expected_year) . ')</td>';
-        echo '</tr>';
-    }
-    
-    echo '</table>';
-    echo '</div>';
 }
 
 /**
