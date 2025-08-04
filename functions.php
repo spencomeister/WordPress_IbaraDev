@@ -2245,49 +2245,16 @@ function decode_youtube_title($title) {
 }
 
 /**
- * Render achievements table
- * 実績テーブルを出力する共通関数
+ * Render achievements table (Legacy function - now redirects to yearly grouped)
+ * 実績テーブルを出力する関数（レガシー - 年別グループ表示にリダイレクト）
  * 
  * @param array $achievements 実績データの配列
  * @param string $default_icon デフォルトアイコン
  * @param string $no_data_message データがない場合のメッセージ
  */
 function render_achievements_table($achievements, $default_icon = '📺', $no_data_message = 'データがありません。') {
-    if (!empty($achievements) && is_array($achievements)) {
-        // Sort by date in descending order (newest first)
-        usort($achievements, function($a, $b) {
-            $dateA = isset($a['date']) ? $a['date'] : '';
-            $dateB = isset($b['date']) ? $b['date'] : '';
-            return strcmp($dateB, $dateA);
-        });
-        
-        foreach ($achievements as $achievement) {
-            if (!empty($achievement['title'])) {
-                echo '<tr class="achievement-row">';
-                echo '<td class="achievement-icon" role="gridcell">';
-                echo '<span aria-label="' . esc_attr($achievement['title']) . 'の種別">';
-                echo isset($achievement['icon']) ? esc_html($achievement['icon']) : esc_html($default_icon);
-                echo '</span>';
-                echo '</td>';
-                echo '<td class="achievement-date" role="gridcell">';
-                echo '<time>' . esc_html(isset($achievement['date']) ? $achievement['date'] : '') . '</time>';
-                echo '</td>';
-                echo '<td class="achievement-title" role="gridcell">';
-                echo esc_html($achievement['title']);
-                echo '</td>';
-                echo '<td class="achievement-description" role="gridcell">';
-                echo esc_html(isset($achievement['desc']) ? $achievement['desc'] : '');
-                echo '</td>';
-                echo '</tr>';
-            }
-        }
-    } else {
-        echo '<tr>';
-        echo '<td colspan="4" class="no-data-message">';
-        echo esc_html($no_data_message);
-        echo '</td>';
-        echo '</tr>';
-    }
+    // 既存の関数呼び出しを年別グループ表示にリダイレクト
+    render_yearly_grouped_achievements($achievements, $default_icon, $no_data_message, '実績名');
 }
 
 /**
@@ -2305,6 +2272,139 @@ function render_achievements_table_header($title_column = '実績名') {
     echo '<th class="description-col" scope="col">詳細</th>';
     echo '</tr>';
     echo '</thead>';
+}
+
+/**
+ * Render achievements grouped by year
+ * 実績データを年別にグループ化して表示する関数
+ * 
+ * @param array $achievements 実績データの配列
+ * @param string $default_icon デフォルトアイコン
+ * @param string $no_data_message データがない場合のメッセージ
+ * @param string $title_column タイトルカラムの見出し
+ */
+function render_yearly_grouped_achievements($achievements, $default_icon = '📺', $no_data_message = 'データがありません。', $title_column = '実績名') {
+    if (empty($achievements) || !is_array($achievements)) {
+        echo '<div class="yearly-achievements-container">';
+        echo '<div class="no-data-message">' . esc_html($no_data_message) . '</div>';
+        echo '</div>';
+        return;
+    }
+
+    // 年別にグループ化
+    $grouped_by_year = array();
+    foreach ($achievements as $achievement) {
+        if (!empty($achievement['title']) && !empty($achievement['date'])) {
+            // 日付から年を抽出
+            $year = extract_year_from_date($achievement['date']);
+            if (!isset($grouped_by_year[$year])) {
+                $grouped_by_year[$year] = array();
+            }
+            $grouped_by_year[$year][] = $achievement;
+        }
+    }
+
+    // 年順でソート（新しい年が上に）
+    krsort($grouped_by_year);
+
+    // 各年のデータ内で日付順ソート（参照を使わずに処理）
+    foreach ($grouped_by_year as $year => $year_achievements) {
+        usort($year_achievements, function($a, $b) {
+            $dateA = isset($a['date']) ? $a['date'] : '';
+            $dateB = isset($b['date']) ? $b['date'] : '';
+            return strcmp($dateB, $dateA);
+        });
+        // ソート後の配列を再代入
+        $grouped_by_year[$year] = $year_achievements;
+    }
+
+    echo '<div class="yearly-achievements-container">';
+    
+    foreach ($grouped_by_year as $year => $year_achievements) {
+        echo '<div class="yearly-accordion">';
+        echo '<div class="yearly-accordion-header" role="button" tabindex="0" aria-expanded="false">';
+        echo '<h3 class="yearly-title">';
+        echo '<span class="year">' . esc_html($year) . '年</span>';
+        echo '</h3>';
+        echo '<i class="fas fa-chevron-down accordion-icon" aria-hidden="true"></i>';
+        echo '</div>';
+        
+        echo '<div class="yearly-accordion-content" style="display: none;">';
+        echo '<div class="achievements-table-container">';
+        echo '<table class="achievements-table" role="table" aria-label="' . esc_attr($year) . '年の' . esc_attr($title_column) . '一覧">';
+        
+        // テーブルヘッダー
+        render_achievements_table_header($title_column);
+        
+        echo '<tbody>';
+        foreach ($year_achievements as $achievement) {
+            echo '<tr class="achievement-row">';
+            echo '<td class="achievement-icon" role="gridcell">';
+            echo '<span aria-label="' . esc_attr($achievement['title']) . 'の種別">';
+            echo isset($achievement['icon']) ? esc_html($achievement['icon']) : esc_html($default_icon);
+            echo '</span>';
+            echo '</td>';
+            echo '<td class="achievement-date" role="gridcell">';
+            echo '<time>' . esc_html(isset($achievement['date']) ? $achievement['date'] : '') . '</time>';
+            echo '</td>';
+            echo '<td class="achievement-title" role="gridcell">';
+            echo esc_html($achievement['title']);
+            echo '</td>';
+            echo '<td class="achievement-description" role="gridcell">';
+            echo esc_html(isset($achievement['desc']) ? $achievement['desc'] : '');
+            echo '</td>';
+            echo '</tr>';
+        }
+        echo '</tbody>';
+        echo '</table>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+    }
+    
+    echo '</div>';
+}
+
+/**
+ * Extract year from date string - Enhanced version with diagnostics
+ * 日付文字列から年を抽出する関数（診断機能付き強化版）
+ * 
+ * @param string $date_string 日付文字列
+ * @return string 年（4桁）
+ */
+function extract_year_from_date($date_string) {
+    if (empty($date_string)) {
+        return date('Y'); // 現在の年をフォールバック
+    }
+    
+    // 文字列をトリムして余分な空白を除去
+    $date_string = trim($date_string);
+    
+    // 様々な日付形式に対応（優先順位順）
+    $patterns = array(
+        '/^(\d{4})\.\d{1,2}$/' => 'YYYY.MM',                    // 2024.11
+        '/^(\d{4})\.\d{1,2}\.\d{1,2}$/' => 'YYYY.MM.DD',        // 2024.11.01
+        '/^(\d{4})-\d{1,2}-\d{1,2}$/' => 'YYYY-MM-DD',          // 2024-11-01
+        '/^(\d{4})\/\d{1,2}\/\d{1,2}$/' => 'YYYY/MM/DD',        // 2024/11/01
+        '/^(\d{4})年\d{1,2}月\d{1,2}日$/' => 'YYYY年MM月DD日',   // 2024年11月01日
+        '/^(\d{4})年\d{1,2}月$/' => 'YYYY年MM月',               // 2024年11月
+        '/^(\d{4})年$/' => 'YYYY年',                           // 2024年
+        '/^(\d{4})$/' => 'YYYY',                               // 2024
+    );
+    
+    foreach ($patterns as $pattern => $format_name) {
+        if (preg_match($pattern, $date_string, $matches)) {
+            $year = intval($matches[1]);
+            // 妥当な年の範囲チェック（1900-2099）
+            if ($year >= 1900 && $year <= 2099) {
+                return strval($year);
+            }
+        }
+    }
+    
+    // フォールバック：現在の年を返す
+    $current_year = date('Y');
+    return $current_year;
 }
 
 /**
