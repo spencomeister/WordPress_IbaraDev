@@ -2379,6 +2379,8 @@ function extract_year_from_date($date_string) {
     $patterns = array(
         '/(\d{4})-\d{1,2}-\d{1,2}/',      // YYYY-MM-DD
         '/(\d{4})\/\d{1,2}\/\d{1,2}/',    // YYYY/MM/DD
+        '/(\d{4})\.\d{1,2}\.\d{1,2}/',    // YYYY.MM.DD
+        '/(\d{4})\.\d{1,2}/',             // YYYY.MM
         '/(\d{4})年\d{1,2}月\d{1,2}日/',   // YYYY年MM月DD日
         '/(\d{4})年\d{1,2}月/',           // YYYY年MM月
         '/(\d{4})年/',                    // YYYY年
