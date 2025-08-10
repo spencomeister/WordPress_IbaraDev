@@ -80,6 +80,20 @@ function vtuber_theme_setup() {
 add_action('after_setup_theme', 'vtuber_theme_setup');
 
 /**
+ * Add security headers for enhanced security
+ */
+function vtuber_add_security_headers() {
+    // Add Content Security Policy
+    if (!headers_sent()) {
+        header("X-Content-Type-Options: nosniff");
+        header("X-Frame-Options: SAMEORIGIN");
+        header("X-XSS-Protection: 1; mode=block");
+        header("Referrer-Policy: strict-origin-when-cross-origin");
+    }
+}
+add_action('send_headers', 'vtuber_add_security_headers');
+
+/**
  * Set up blog page on theme activation
  * Creates necessary pages for the theme
  */
@@ -295,8 +309,8 @@ function handle_contact_form_submission() {
     $email_message .= $message . "\n";
     $email_message .= str_repeat('-', 40) . "\n\n";
     $email_message .= "━━━ 送信情報 ━━━\n";
-    $email_message .= "送信者IP: " . $_SERVER['REMOTE_ADDR'] . "\n";
-    $email_message .= "ユーザーエージェント: " . $_SERVER['HTTP_USER_AGENT'] . "\n";
+    $email_message .= "送信者IP: " . sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown') . "\n";
+    $email_message .= "ユーザーエージェント: " . sanitize_text_field($_SERVER['HTTP_USER_AGENT'] ?? 'unknown') . "\n";
     
     $headers = array(
         'Content-Type: text/plain; charset=UTF-8',
@@ -423,8 +437,8 @@ function handle_ajax_contact_form_submission() {
     $email_message .= $message . "\n";
     $email_message .= str_repeat('-', 40) . "\n\n";
     $email_message .= "━━━ 送信情報 ━━━\n";
-    $email_message .= "送信者IP: " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown') . "\n";
-    $email_message .= "ユーザーエージェント: " . ($_SERVER['HTTP_USER_AGENT'] ?? 'unknown') . "\n";
+    $email_message .= "送信者IP: " . sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown') . "\n";
+    $email_message .= "ユーザーエージェント: " . sanitize_text_field($_SERVER['HTTP_USER_AGENT'] ?? 'unknown') . "\n";
     
     if (get_theme_mod('recaptcha_enabled', false) && isset($recaptcha_result['score'])) {
         $email_message .= "reCAPTCHA スコア: " . $recaptcha_result['score'] . "\n";
@@ -496,7 +510,7 @@ function verify_recaptcha_token($token) {
         'body' => array(
             'secret' => $secret_key,
             'response' => $token,
-            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
+            'remoteip' => sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? '')
         ),
         'timeout' => 30
     ));
@@ -567,8 +581,8 @@ function vtuber_log_contact_info($message, $data = array()) {
         'category' => 'CONTACT',
         'message' => $message,
         'data' => $data,
-        'user_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+        'user_ip' => sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
+        'user_agent' => sanitize_text_field($_SERVER['HTTP_USER_AGENT'] ?? 'unknown')
     );
     
     error_log('[VTUBER CONTACT INFO] ' . json_encode($log_entry, JSON_UNESCAPED_UNICODE));
@@ -581,8 +595,8 @@ function vtuber_log_contact_error($message, $data = array()) {
         'category' => 'CONTACT',
         'message' => $message,
         'data' => $data,
-        'user_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+        'user_ip' => sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
+        'user_agent' => sanitize_text_field($_SERVER['HTTP_USER_AGENT'] ?? 'unknown')
     );
     
     // Always log errors regardless of debug setting
