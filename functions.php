@@ -20,6 +20,14 @@ define('VTUBER_THEME_PATH', get_template_directory());
 define('VTUBER_THEME_URL', get_template_directory_uri());
 
 /**
+ * Contact availability helper
+ * When disabled via Customizer, the contact section/page and related features (incl. reCAPTCHA) are disabled.
+ */
+function vtuber_is_contact_enabled() {
+    return ! (bool) get_theme_mod('contact_page_disabled', false);
+}
+
+/**
  * Theme Setup
  * Initialize theme features and functionality
  */
@@ -167,8 +175,11 @@ function vtuber_fallback_menu() {
         '実績' => home_url() . '/achievements/',
         'ニュース' => home_url() . '/blog/',
         'ガイドライン' => home_url() . '/#guidelines',
-        'お問合せ' => home_url() . '/#contact'
     );
+
+    if (vtuber_is_contact_enabled()) {
+        $menu_items['お問合せ'] = home_url() . '/#contact';
+    }
     
     echo '<ul class="nav-links">';
     foreach ($menu_items as $title => $url) {
@@ -240,14 +251,14 @@ function vtuber_scripts() {
             'show_for_external' => false,
         ),
         'recaptcha_config' => array(
-            'enabled' => get_theme_mod('recaptcha_enabled', false),
+            'enabled' => (vtuber_is_contact_enabled() && get_theme_mod('recaptcha_enabled', false)),
             'site_key' => get_theme_mod('recaptcha_site_key', ''),
             'threshold' => get_theme_mod('recaptcha_threshold', 0.5),
         ),
     ));
     
     // Enqueue reCAPTCHA v3 script if enabled
-    if (get_theme_mod('recaptcha_enabled', false) && !empty(get_theme_mod('recaptcha_site_key', ''))) {
+    if (vtuber_is_contact_enabled() && get_theme_mod('recaptcha_enabled', false) && !empty(get_theme_mod('recaptcha_site_key', ''))) {
         $site_key = get_theme_mod('recaptcha_site_key', '');
         wp_enqueue_script(
             'google-recaptcha', 
@@ -265,6 +276,10 @@ add_action('wp_enqueue_scripts', 'vtuber_scripts');
 
 // Contact form handling with WP Mail SMTP support
 function handle_contact_form_submission() {
+    if (!vtuber_is_contact_enabled()) {
+        wp_die('Contact form is disabled');
+    }
+
     // Verify nonce
     if (!isset($_POST['contact_nonce']) || !wp_verify_nonce($_POST['contact_nonce'], 'contact_form_nonce')) {
         wp_die('Security check failed');
@@ -365,6 +380,13 @@ add_action('admin_post_nopriv_contact_form_submission', 'handle_contact_form_sub
 
 // Frontend AJAX contact form submission with reCAPTCHA v3 support
 function handle_ajax_contact_form_submission() {
+    if (!vtuber_is_contact_enabled()) {
+        wp_send_json_error(array(
+            'message' => '現在、お問い合わせは受け付けておりません。',
+            'code' => 'CONTACT_DISABLED'
+        ));
+    }
+
     // Verify nonce
     if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'vtuber_nonce')) {
         wp_send_json_error(array(
@@ -396,8 +418,8 @@ function handle_ajax_contact_form_submission() {
         ));
     }
     
-    // reCAPTCHA v3 verification if enabled
-    if (get_theme_mod('recaptcha_enabled', false)) {
+    // reCAPTCHA v3 verification if enabled (also requires contact to be enabled)
+    if (vtuber_is_contact_enabled() && get_theme_mod('recaptcha_enabled', false)) {
         if (empty($recaptcha_token)) {
             wp_send_json_error(array(
                 'message' => 'reCAPTCHA認証が必要です。',
@@ -440,7 +462,7 @@ function handle_ajax_contact_form_submission() {
     $email_message .= "送信者IP: " . sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? 'unknown') . "\n";
     $email_message .= "ユーザーエージェント: " . sanitize_text_field($_SERVER['HTTP_USER_AGENT'] ?? 'unknown') . "\n";
     
-    if (get_theme_mod('recaptcha_enabled', false) && isset($recaptcha_result['score'])) {
+    if (vtuber_is_contact_enabled() && get_theme_mod('recaptcha_enabled', false) && isset($recaptcha_result['score'])) {
         $email_message .= "reCAPTCHA スコア: " . $recaptcha_result['score'] . "\n";
     }
     
@@ -1046,6 +1068,21 @@ function vtuber_customize_register($wp_customize) {
         'description' => __('Contactフォームの送信先メールアドレスやWP Mail SMTP連携設定を管理します。', 'vtuber-theme'),
         'priority' => 140,
     ));
+
+    // Contact page/section toggle
+    $wp_customize->add_setting('contact_page_disabled', array(
+        'default' => false,
+        'sanitize_callback' => 'rest_sanitize_boolean',
+        'transport' => 'refresh',
+    ));
+
+    $wp_customize->add_control('contact_page_disabled', array(
+        'label' => __('お問い合わせページを無効化', 'vtuber-theme'),
+        'description' => __('有効にすると、お問い合わせ（CONTACT）セクション/ページと送信処理を無効化し、reCAPTCHAも無効になります。', 'vtuber-theme'),
+        'section' => 'contact_settings',
+        'type' => 'checkbox',
+        'priority' => 5,
+    ));
     
     // Contact recipient email setting
     $wp_customize->add_setting('contact_recipient_email', array(
@@ -1114,6 +1151,9 @@ function vtuber_customize_register($wp_customize) {
         'section'     => 'contact_settings',
         'type'        => 'checkbox',
         'priority'    => 40,
+        'active_callback' => function() {
+            return vtuber_is_contact_enabled();
+        },
     ));
     
     $wp_customize->add_setting('recaptcha_site_key', array(
@@ -1129,7 +1169,7 @@ function vtuber_customize_register($wp_customize) {
         'type'        => 'text',
         'priority'    => 50,
         'active_callback' => function() {
-            return get_theme_mod('recaptcha_enabled', false);
+            return vtuber_is_contact_enabled() && get_theme_mod('recaptcha_enabled', false);
         },
     ));
     
@@ -1146,7 +1186,7 @@ function vtuber_customize_register($wp_customize) {
         'type'        => 'text',
         'priority'    => 60,
         'active_callback' => function() {
-            return get_theme_mod('recaptcha_enabled', false);
+            return vtuber_is_contact_enabled() && get_theme_mod('recaptcha_enabled', false);
         },
     ));
     
@@ -1171,7 +1211,7 @@ function vtuber_customize_register($wp_customize) {
             'step' => '0.1',
         ),
         'active_callback' => function() {
-            return get_theme_mod('recaptcha_enabled', false);
+            return vtuber_is_contact_enabled() && get_theme_mod('recaptcha_enabled', false);
         },
     ));
 }

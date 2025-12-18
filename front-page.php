@@ -335,6 +335,7 @@ get_header(); ?>
         </div>
     </section>
 
+    <?php if (function_exists('vtuber_is_contact_enabled') && vtuber_is_contact_enabled()) : ?>
     <!-- Contact Section -->
     <section class="section" id="contact">
         <div class="container">
@@ -409,6 +410,7 @@ get_header(); ?>
             </div>
         </div>
     </section>
+    <?php endif; ?>
 </main>
 
 <?php get_footer(); ?>

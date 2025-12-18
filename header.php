@@ -189,11 +189,13 @@ $sidebar_bg_size = get_theme_mod('sidebar_background_size', 'cover');
                     <span>GUIDELINES</span>
                 </a>
             </li>
+            <?php if (function_exists('vtuber_is_contact_enabled') && vtuber_is_contact_enabled()) : ?>
             <li class="sidebar-menu-item">
                 <a href="<?php echo esc_url(home_url('/#contact')); ?>" class="sidebar-menu-link">
                     <span>CONTACT</span>
                 </a>
             </li>
+            <?php endif; ?>
         </ul>
     </nav>
 </aside>
